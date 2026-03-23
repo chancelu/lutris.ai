@@ -18,7 +18,7 @@ import { useEditorStore } from '@/stores/editor'
 
 import type { Variable, VariableType } from '@open-pencil/core'
 
-const props = defineProps<{
+const { variableType, boundVariableId } = defineProps<{
   /** Variable type to filter: COLOR, FLOAT, STRING, BOOLEAN */
   variableType: VariableType
   /** Currently bound variable ID, if any */
@@ -34,7 +34,7 @@ const store = useEditorStore()
 const search = ref('')
 const { contains } = useFilter({ sensitivity: 'base' })
 
-const variables = computed(() => store.graph.getVariablesByType(props.variableType))
+const variables = computed(() => store.graph.getVariablesByType(variableType))
 
 const filteredVariables = computed(() => {
   if (!search.value) return variables.value
@@ -42,8 +42,8 @@ const filteredVariables = computed(() => {
 })
 
 const boundVariable = computed(() => {
-  if (!props.boundVariableId) return undefined
-  return store.graph.variables.get(props.boundVariableId)
+  if (!boundVariableId) return undefined
+  return store.graph.variables.get(boundVariableId)
 })
 
 function resolvedSwatchStyle(v: Variable): string {

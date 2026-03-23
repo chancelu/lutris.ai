@@ -1,6 +1,15 @@
 import { colorToHex } from '../color'
 import { defineTool } from './schema'
+import type { SceneGraph } from '../scene-graph'
 
+interface FigmaPage {
+  findAll(predicate: (node: { id: string; type: string }) => boolean): { id: string; type: string }[]
+}
+
+interface FigmaContext {
+  currentPage: FigmaPage
+  graph: SceneGraph
+}
 
 interface ColorToken {
   name: string
@@ -104,10 +113,10 @@ function sanitizeKey(name: string, prefix?: string): string {
 /**
  * Extract color tokens from the scene graph.
  */
-function extractColors(figma: { currentPage: any; graph: any }): ColorToken[] {
+function extractColors(figma: FigmaContext): ColorToken[] {
   const colorMap = new Map<string, ColorToken>()
 
-  figma.currentPage.findAll((node: any) => {
+  figma.currentPage.findAll((node) => {
     const raw = figma.graph.getNode(node.id)
     if (!raw) return false
 
@@ -149,10 +158,10 @@ function extractColors(figma: { currentPage: any; graph: any }): ColorToken[] {
 /**
  * Extract typography tokens from the scene graph.
  */
-function extractTypography(figma: { currentPage: any; graph: any }): TypographyToken[] {
+function extractTypography(figma: FigmaContext): TypographyToken[] {
   const familyMap = new Map<string, Set<number>>()
 
-  figma.currentPage.findAll((node: any) => {
+  figma.currentPage.findAll((node) => {
     if (node.type !== 'TEXT') return false
     const raw = figma.graph.getNode(node.id)
     if (!raw) return false
@@ -175,10 +184,10 @@ function extractTypography(figma: { currentPage: any; graph: any }): TypographyT
 /**
  * Extract spacing tokens from the scene graph.
  */
-function extractSpacing(figma: { currentPage: any; graph: any }): SpacingToken[] {
+function extractSpacing(figma: FigmaContext): SpacingToken[] {
   const spacingMap = new Map<number, number>()
 
-  figma.currentPage.findAll((node: any) => {
+  figma.currentPage.findAll((node) => {
     const raw = figma.graph.getNode(node.id)
     if (!raw) return false
 
@@ -201,10 +210,10 @@ function extractSpacing(figma: { currentPage: any; graph: any }): SpacingToken[]
 /**
  * Extract border radius values from the scene graph.
  */
-function extractBorderRadius(figma: { currentPage: any; graph: any }): number[] {
+function extractBorderRadius(figma: FigmaContext): number[] {
   const radii = new Set<number>()
 
-  figma.currentPage.findAll((node: any) => {
+  figma.currentPage.findAll((node) => {
     const raw = figma.graph.getNode(node.id)
     if (!raw) return false
 
@@ -247,8 +256,8 @@ export const exportTailwindConfig = defineTool({
       config,
       summary: {
         colors: colors.length,
-        fontFamilies: [...new Set(typography.map((t) => t.family))].length,
-        fontSizes: [...new Set(typography.flatMap((t) => t.sizes))].length,
+        fontFamilies: new Set(typography.map((t) => t.family)).size,
+        fontSizes: new Set(typography.flatMap((t) => t.sizes)).size,
         spacingValues: spacing.length,
         borderRadiusValues: borderRadius.length
       }

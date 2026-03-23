@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRequirements } from '@/composables/use-requirements'
 
-const props = defineProps<{
+const { nodeId, x, y } = defineProps<{
   nodeId: string
   x: number
   y: number
@@ -14,10 +14,10 @@ const emit = defineEmits<{
 
 const { board, linkNodeToRequirement, unlinkNodeFromRequirement, getRequirementsForNode } = useRequirements()
 
-const linkedReqs = computed(() => getRequirementsForNode(props.nodeId))
+const linkedReqs = computed(() => getRequirementsForNode(nodeId))
 const unlinkedReqs = computed(() =>
   board.value.requirements.filter(
-    (r) => !r.linkedNodeIds.includes(props.nodeId)
+    (r) => !r.linkedNodeIds.includes(nodeId)
   )
 )
 
@@ -32,11 +32,11 @@ const filteredUnlinked = computed(() => {
 })
 
 function link(reqId: string) {
-  linkNodeToRequirement(props.nodeId, reqId)
+  linkNodeToRequirement(nodeId, reqId)
 }
 
 function unlink(reqId: string) {
-  unlinkNodeFromRequirement(props.nodeId, reqId)
+  unlinkNodeFromRequirement(nodeId, reqId)
 }
 
 const priorityColors: Record<string, string> = {

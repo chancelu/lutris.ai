@@ -667,8 +667,9 @@ export const snapshotDesignSystemTool = defineTool({
   execute: (figma, args) => {
     const snapshot = snapshotDesignSystem(figma)
     const id = `ds_${Date.now()}`
-    const store = (figma as any)._dsSnapshots ?? new Map()
-    ;(figma as any)._dsSnapshots = store
+    const figmaRecord = figma as unknown as Record<string, unknown>
+    const store = (figmaRecord._dsSnapshots ?? new Map()) as Map<string, { label: string; snapshot: DesignSystemSnapshot; timestamp: number }>
+    figmaRecord._dsSnapshots = store
     store.set(id, { label: args.label ?? id, snapshot, timestamp: Date.now() })
     return {
       snapshotId: id,
@@ -691,7 +692,7 @@ export const diffDesignSystem = defineTool({
     }
   },
   execute: (figma, args) => {
-    const store = (figma as any)._dsSnapshots as
+    const store = (figma as unknown as Record<string, unknown>)._dsSnapshots as
       | Map<string, { label: string; snapshot: DesignSystemSnapshot; timestamp: number }>
       | undefined
     if (!store) return { error: 'No snapshots found. Use snapshot_design_system first.' }
