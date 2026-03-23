@@ -278,8 +278,14 @@ function createModel(): LanguageModel {
       return custom(effectiveModelID)
     }
     default: {
-      const _exhaustive: never = providerID.value
-      throw new Error(`Unknown provider: ${String(_exhaustive)}`)
+      // Fallback: treat any unknown provider as openai-compatible
+      const fallback = createOpenAI({
+        apiKey: key,
+        baseURL: customBaseURL.value || undefined
+      })
+      return customAPIType.value === 'responses'
+        ? fallback.responses(effectiveModelID)
+        : fallback.chat(effectiveModelID)
     }
   }
 }
