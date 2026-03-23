@@ -709,8 +709,12 @@ export class SceneGraph {
     }
   }
 
-  createNode(type: NodeType, parentId: string, overrides: Partial<SceneNode> = {}): SceneNode {
-    const node = createDefaultNode(type, overrides)
+  createNode(type: NodeType, parentId: string, overrides: Partial<SceneNode> & { characters?: string } = {}): SceneNode {
+    // Figma API compat: map `characters` → `text`
+    if ('characters' in overrides && overrides.characters != null && !('text' in overrides)) {
+      (overrides as Partial<SceneNode>).text = overrides.characters
+    }
+    const node = createDefaultNode(type, overrides as Partial<SceneNode>)
     node.parentId = parentId
     this.nodes.set(node.id, node)
 
