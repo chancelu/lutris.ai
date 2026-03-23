@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
+import { motion } from 'motion-v'
+import { useScroll, useTransform } from 'motion-v'
 
 const router = useRouter()
 const go = () => router.push('/editor')
@@ -23,19 +25,37 @@ function typeWriter() {
   }, 60)
 }
 
-// Scroll animations
-let observer: IntersectionObserver | null = null
+// Parallax: track page scroll for hero blobs
+const heroSection = ref<HTMLElement>()
+const { scrollYProgress } = useScroll({
+  target: heroSection,
+  offset: ['start start', 'end start'],
+})
+const blobY1 = useTransform(scrollYProgress, [0, 1], [0, -120])
+const blobY2 = useTransform(scrollYProgress, [0, 1], [0, -80])
+const blobY3 = useTransform(scrollYProgress, [0, 1], [0, -50])
+const heroContentY = useTransform(scrollYProgress, [0, 1], [0, -60])
+const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0])
+
 onMounted(() => {
   typeWriter()
-  observer = new IntersectionObserver(
-    (entries) => entries.forEach((e) => {
-      if (e.isIntersecting) { e.target.classList.add('animate-in'); observer?.unobserve(e.target) }
-    }),
-    { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+
+  // Scroll-triggered entrance animations via IntersectionObserver
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-in')
+          observer.unobserve(entry.target)
+        }
+      }
+    },
+    { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
   )
-  document.querySelectorAll('[data-animate]').forEach((el) => observer?.observe(el))
+  for (const el of document.querySelectorAll('[data-animate]')) {
+    observer.observe(el)
+  }
 })
-onUnmounted(() => observer?.disconnect())
 
 const features = [
   { icon: '✏️', title: 'AI-Powered Design', desc: 'Describe your UI in natural language. AI generates production-ready layouts instantly.' },
@@ -77,19 +97,19 @@ const workflow = [
     </nav>
 
     <!-- Hero -->
-    <section class="relative flex min-h-screen flex-col items-center justify-center px-6 pt-16 overflow-hidden">
-      <!-- Warm decorative blobs -->
+    <section ref="heroSection" class="relative flex min-h-screen flex-col items-center justify-center px-6 pt-16 overflow-hidden">
+      <!-- Warm decorative blobs with parallax -->
       <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute left-1/4 top-1/4 size-[500px] rounded-full bg-[#F0D9B5]/40 blur-[100px]" />
-        <div class="absolute right-1/4 top-1/2 size-[400px] rounded-full bg-[#B5D8D0]/30 blur-[100px]" />
-        <div class="absolute left-1/2 bottom-1/4 size-[300px] rounded-full bg-[#E8C5A0]/20 blur-[80px]" />
+        <motion.div :style="{ y: blobY1 }" class="absolute left-1/4 top-1/4 size-[500px] rounded-full bg-[#F0D9B5]/40 blur-[100px]" />
+        <motion.div :style="{ y: blobY2 }" class="absolute right-1/4 top-1/2 size-[400px] rounded-full bg-[#B5D8D0]/30 blur-[100px]" />
+        <motion.div :style="{ y: blobY3 }" class="absolute left-1/2 bottom-1/4 size-[300px] rounded-full bg-[#E8C5A0]/20 blur-[80px]" />
         <!-- Doodle decorations -->
         <svg class="absolute top-20 left-10 text-[#D4C4A8] opacity-40 w-16 h-16" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="8 6"/></svg>
         <svg class="absolute top-40 right-16 text-[#B5D8D0] opacity-40 w-12 h-12" viewBox="0 0 100 100"><path d="M20 80 L50 20 L80 80" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
         <svg class="absolute bottom-32 left-20 text-[#D4C4A8] opacity-30 w-10 h-10" viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" rx="8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="6 4"/></svg>
       </div>
 
-      <div class="relative z-10 max-w-3xl text-center">
+      <motion.div :style="{ y: heroContentY, opacity: heroOpacity }" class="relative z-10 max-w-3xl text-center">
         <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-[#D4C4A8] bg-white/60 px-4 py-1.5 text-sm text-[#8B7E6A] backdrop-blur-sm">
           <span class="size-2 rounded-full bg-[#3B7A6B] animate-pulse" />
           AI-native design tool
@@ -117,9 +137,7 @@ const workflow = [
             See Features
           </a>
         </div>
-      </div>
-
-      <!-- Hero mascot -->
+      </motion.div>      <!-- Hero mascot -->
       <div class="relative z-10 mt-12 animate-target" data-animate style="transition-delay: 200ms">
         <img src="/mascot-waving.png" alt="Lutris otter waving" class="mx-auto h-48 md:h-56 w-auto object-contain drop-shadow-xl" />
       </div>
