@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "trailingComma": "none",
+  "tabWidth": 2,
+  "semi": false,
+  "singleQuote": true,
+  "printWidth": 100,
+  "arrowParens": "always",
+  "sortTailwindcss": {
+    "stylesheet": "src/app.css",
+    "functions": ["twMerge", "tv"],
+    "preserveDuplicates": false
+  },
+  "sortImports": {
+    "order": "asc",
+    "ignoreCase": true,
+    "newlinesBetween": true,
+    "internalPattern": ["@open-pencil/", "@/"],
+    "groups": [
+      "builtin",
+      "external",
+      "internal",
+      ["parent", "sibling", "index"],
+      "type"
+    ]
+  }
+}
