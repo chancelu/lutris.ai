@@ -3,7 +3,6 @@ import {
   SelectContent,
   SelectItem,
   SelectItemText,
-  SelectPortal,
   SelectRoot,
   SelectTrigger,
   SelectViewport
@@ -37,10 +36,10 @@ const { triggerClass, itemClass, testId } = defineProps<{
       {{ providerDef.name }}
       <icon-lucide-chevron-down class="size-2.5 shrink-0 text-muted" />
     </SelectTrigger>
-    <SelectPortal>
-      <SelectContent
+    <SelectContent
         position="popper"
         :side-offset="4"
+        class="z-[9999]"
         :class="selectContent({ radius: 'lg', padding: 'md' })"
       >
         <SelectViewport>
@@ -62,6 +61,5 @@ const { triggerClass, itemClass, testId } = defineProps<{
           </SelectItem>
         </SelectViewport>
       </SelectContent>
-    </SelectPortal>
   </SelectRoot>
 </template>
