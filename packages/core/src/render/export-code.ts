@@ -98,41 +98,22 @@ function applyTextCSS(node: SceneNode, css: CSSProps): void {
   else if (node.textAlignHorizontal === 'JUSTIFIED') css['text-align'] = 'justify'
 }
 
-function nodeToCSS(node: SceneNode, graph: SceneGraph): CSSProps {
-  const css: CSSProps = {}
-  const parent = node.parentId ? graph.getNode(node.parentId) : null
-  const parentIsAutoLayout = parent ? parent.layoutMode !== 'NONE' : false
-
-  // Position & size
-  if (!parentIsAutoLayout) {
-    css['position'] = 'absolute'
-    css['left'] = `${node.x}px`
-    css['top'] = `${node.y}px`
-  }
-  if (node.width > 0) css['width'] = `${node.width}px`
-  if (node.height > 0) css['height'] = `${node.height}px`
-
-  applyLayoutCSS(node, css)
-
-  // Padding
+function applyPaddingCSS(node: SceneNode, css: CSSProps): void {
   const { paddingTop: pt, paddingRight: pr, paddingBottom: pb, paddingLeft: pl } = node
   if (pt > 0 || pr > 0 || pb > 0 || pl > 0) {
     if (pt === pr && pr === pb && pb === pl) css['padding'] = `${pt}px`
     else if (pt === pb && pl === pr) css['padding'] = `${pt}px ${pr}px`
     else css['padding'] = `${pt}px ${pr}px ${pb}px ${pl}px`
   }
+}
 
-  // Fill
+function applyBoxCSS(node: SceneNode, css: CSSProps): void {
   const bg = solidFillColor(node.fills)
   if (bg) css[node.type === 'TEXT' ? 'color' : 'background'] = bg
 
-  // Stroke
   const stroke = solidStroke(node.strokes)
-  if (stroke) {
-    css['border'] = `${stroke.weight}px solid ${stroke.color}`
-  }
+  if (stroke) css['border'] = `${stroke.weight}px solid ${stroke.color}`
 
-  // Corner radius
   if (node.cornerRadius > 0) {
     if (node.independentCorners) {
       css['border-radius'] = `${node.topLeftRadius}px ${node.topRightRadius}px ${node.bottomRightRadius}px ${node.bottomLeftRadius}px`
@@ -144,11 +125,27 @@ function nodeToCSS(node: SceneNode, graph: SceneGraph): CSSProps {
   if (node.opacity < 1) css['opacity'] = String(Number(node.opacity.toFixed(2)))
   if (node.clipsContent) css['overflow'] = 'hidden'
   if (node.rotation !== 0) css['transform'] = `rotate(${Number(node.rotation.toFixed(2))}deg)`
+}
 
+function nodeToCSS(node: SceneNode, graph: SceneGraph): CSSProps {
+  const css: CSSProps = {}
+  const parent = node.parentId ? graph.getNode(node.parentId) : null
+  const parentIsAutoLayout = parent ? parent.layoutMode !== 'NONE' : false
+
+  if (!parentIsAutoLayout) {
+    css['position'] = 'absolute'
+    css['left'] = `${node.x}px`
+    css['top'] = `${node.y}px`
+  }
+  if (node.width > 0) css['width'] = `${node.width}px`
+  if (node.height > 0) css['height'] = `${node.height}px`
+
+  applyLayoutCSS(node, css)
+  applyPaddingCSS(node, css)
+  applyBoxCSS(node, css)
   applyEffectsCSS(node, css)
   applyTextCSS(node, css)
 
-  // Flex child
   if (parentIsAutoLayout && node.layoutGrow === 1) css['flex'] = '1'
 
   return css

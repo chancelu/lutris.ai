@@ -20,7 +20,7 @@ export const exportCode = defineTool({
   },
   execute: (figma, args) => {
     const format = (args.format || 'html') as CodeFormat
-    let ids = (args.nodeIds ?? []) as string[]
+    let ids = args.nodeIds ?? []
 
     if (ids.length === 0) {
       ids = figma.currentPage.selection.map((n: { id: string }) => n.id)

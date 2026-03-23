@@ -370,7 +370,7 @@ function initChatProjectWatch(): void {
     watch(() => activeProjectId.value, (_newId, oldId) => {
       // Save current chat messages to old project
       if (oldId && chat) {
-        activeChat.value = { messages: [...(chat.messages || [])] }
+        activeChat.value = { messages: [...chat.messages] }
         void saveActiveProjectData()
       }
 
@@ -401,7 +401,7 @@ function saveChatToProject(): void {
   try {
     const { useProjects } = require('./use-projects')
     const { activeChat, saveActiveProjectData } = useProjects()
-    activeChat.value = { messages: [...(chat.messages ?? [])] }
+    activeChat.value = { messages: [...chat.messages] }
     void saveActiveProjectData()
   } catch {
     // ignore
