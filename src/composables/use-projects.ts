@@ -1,4 +1,4 @@
-import { ref, readonly, computed } from 'vue'
+import { ref, readonly, computed, toRaw } from 'vue'
 
 import {
   saveDocumentToIDB,
@@ -68,10 +68,10 @@ async function saveActiveProjectData(): Promise<void> {
   isSaving.value = true
   try {
     await Promise.all([
-      saveBrandToIDB(pid, activeBrand.value),
-      savePRDToIDB(pid, activePRD.value),
-      saveChatToIDB(pid, activeChat.value),
-      saveSnapshotsToIDB(pid, activeSnapshots.value),
+      saveBrandToIDB(pid, structuredClone(toRaw(activeBrand.value))),
+      savePRDToIDB(pid, structuredClone(toRaw(activePRD.value))),
+      saveChatToIDB(pid, structuredClone(toRaw(activeChat.value))),
+      saveSnapshotsToIDB(pid, structuredClone(toRaw(activeSnapshots.value))),
     ])
     lastSavedAt.value = Date.now()
     // Update meta timestamp
