@@ -32,10 +32,10 @@ export function useImageGen() {
     error.value = null
 
     try {
-      const url = `${GEMINI_BASE}/models/${GEMINI_MODEL}:generateContent?key=${apiKey.value}`
+      const url = `${GEMINI_BASE}/models/${GEMINI_MODEL}:generateContent`
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey.value },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {

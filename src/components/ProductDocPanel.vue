@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed } from 'vue'
+import DOMPurify from 'dompurify'
 import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewport } from 'reka-ui'
 import { useProductDoc } from '@/composables/use-product-doc'
 import { useAIChat } from '@/composables/use-chat'
@@ -156,7 +157,7 @@ function renderMarkdown(md: string): string {
 
 const renderedContent = computed(() => {
   if (!currentContent.value) return ''
-  return renderMarkdown(currentContent.value)
+  return DOMPurify.sanitize(renderMarkdown(currentContent.value))
 })
 </script>
 
