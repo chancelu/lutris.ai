@@ -8,10 +8,7 @@ import {
   DEFAULT_FRAME_FILL,
   SECTION_DEFAULT_FILL,
   SECTION_DEFAULT_STROKE,
-  CANVAS_BG_COLOR,
-  ZOOM_DIVISOR,
-  ZOOM_SCALE_MIN,
-  ZOOM_SCALE_MAX
+  CANVAS_BG_COLOR
 } from '@/constants'
 import { loadFont } from '@/engine/fonts'
 import {
@@ -19,26 +16,21 @@ import {
   computeLayout,
   computeAllLayouts,
   computeVectorBounds,
-  exportFigFile,
-  importClipboardNodes,
-  parseFigmaClipboard,
-  parseOpenPencilClipboard,
-  buildFigmaClipboardHTML,
-  buildOpenPencilClipboardHTML,
   prefetchFigmaSchema,
   readFigFile,
   computeImageHash,
-  renderNodesToImage,
-  renderNodesToSVG,
   SceneGraph,
   setTextMeasurer,
   TextEditor,
   UndoManager
 } from '@open-pencil/core'
 
+import { createClipboardOps } from './editor-clipboard'
+import { createExportOps } from './editor-export'
+import { createViewportOps } from './editor-viewport'
+
 import type {
   Color,
-  ExportFormat,
   Fill,
   LayoutMode,
   NodeType,
@@ -54,6 +46,7 @@ import type {
   VectorVertex
 } from '@open-pencil/core'
 import type { CanvasKit } from 'canvaskit-wasm'
+import type { EditorContext } from './editor-types'
 
 export type Tool =
   | 'SELECT'
@@ -143,21 +136,6 @@ export function createEditorStore() {
 
   void prefetchFigmaSchema()
 
-  function downloadBlob(data: Uint8Array, filename: string, mime: string) {
-    const blob = new Blob([data.buffer as ArrayBuffer], { type: mime })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.style.display = 'none'
-    document.body.appendChild(a)
-    a.click()
-    setTimeout(() => {
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    }, 100)
-  }
-
   const state = shallowReactive({
     activeTool: 'SELECT' as Tool,
     currentPageId: graph.getPages()[0].id,
@@ -213,31 +191,6 @@ export function createEditorStore() {
   })
 
   const AUTOSAVE_DELAY = 3000
-
-  watch(
-    () => state.sceneVersion,
-    (version) => {
-      if (version === savedVersion) return
-      if (!state.autosaveEnabled) return
-      clearTimeout(autosaveTimer)
-      // oxlint-disable-next-line typescript/no-misused-promises
-      autosaveTimer = setTimeout(async () => {
-        if (state.sceneVersion === savedVersion) return
-        if (!state.autosaveEnabled) return
-        try {
-          const data = await buildFigFile()
-          if (fileHandle || filePath) {
-            await writeFile(data)
-          } else {
-            // No file handle — save to IndexedDB for session recovery
-            await saveToIDB(data)
-          }
-        } catch {
-          // silently fail — user can still save manually
-        }
-      }, AUTOSAVE_DELAY)
-    }
-  )
 
   const selectedNodes = computed(() => {
     void state.sceneVersion
@@ -697,6 +650,25 @@ export function createEditorStore() {
     }
   }
 
+  async function loadFontsForNodes(nodeIds: string[]) {
+    const toLoad = collectFontKeys(graph, nodeIds)
+    if (toLoad.length === 0) return
+
+    const results = await Promise.all(toLoad.map(([family, style]) => loadFont(family, style)))
+    const failed = toLoad.filter((_, i) => results[i] === null)
+    if (failed.length > 0) {
+      const families = [...new Set(failed.map(([family]) => family))]
+      toast.show(
+        families.length === 1
+          ? `Font "${families[0]}" could not be loaded`
+          : `${families.length} fonts could not be loaded: ${families.join(', ')}`,
+        'warning'
+      )
+    }
+    computeAllLayouts(graph, state.currentPageId)
+    requestRender()
+  }
+
   function setCanvasKit(ck: CanvasKit, renderer: SkiaRenderer) {
     _ck = ck
     _renderer = renderer
@@ -704,70 +676,57 @@ export function createEditorStore() {
     setTextMeasurer((node, maxWidth) => renderer.measureTextNode(node, maxWidth))
   }
 
-  function buildFigFile() {
-    return exportFigFile(graph, _ck ?? undefined, _renderer ?? undefined, state.currentPageId)
+  // ─── Shared context for extracted modules ──────────────────────
+  const editorCtx: EditorContext = {
+    graph: () => graph,
+    ck: () => _ck,
+    renderer: () => _renderer,
+    state,
+    undo,
+    selectedNodes: () => selectedNodes.value,
+    requestRender,
+    requestRepaint,
+    loadFontsForNodes,
+    toast: (msg, type) => toast.show(msg, type),
+    fileHandle: () => fileHandle,
+    filePath: () => filePath,
+    downloadName: () => downloadName,
+    setFileHandle: (h) => { fileHandle = h },
+    setFilePath: (p) => { filePath = p },
+    setDownloadName: (n) => { downloadName = n },
+    writeFile,
+    startWatchingFile
   }
 
-  async function saveFigFile() {
-    if (filePath || fileHandle) {
-      await writeFile(await buildFigFile())
-    } else if (downloadName) {
-      downloadBlob(new Uint8Array(await buildFigFile()), downloadName, 'application/octet-stream')
-    } else {
-      await saveFigFileAs()
+  const clipboardOps = createClipboardOps(editorCtx)
+  const exportOps = createExportOps(editorCtx)
+  const viewportOps = createViewportOps(editorCtx)
+
+  // Autosave watcher (placed after ops creation so exportOps is available)
+  watch(
+    () => state.sceneVersion,
+    (version) => {
+      if (version === savedVersion) return
+      if (!state.autosaveEnabled) return
+      clearTimeout(autosaveTimer)
+      // oxlint-disable-next-line typescript/no-misused-promises
+      autosaveTimer = setTimeout(async () => {
+        if (state.sceneVersion === savedVersion) return
+        if (!state.autosaveEnabled) return
+        try {
+          const data = await exportOps.buildFigFile()
+          if (fileHandle || filePath) {
+            await writeFile(data)
+          } else {
+            // No file handle — save to IndexedDB for session recovery
+            await saveToIDB(data)
+          }
+        } catch {
+          // silently fail — user can still save manually
+        }
+      }, AUTOSAVE_DELAY)
     }
-  }
-
-  async function saveFigFileAs() {
-    const data = await buildFigFile()
-
-    if (IS_TAURI) {
-      const { save } = await import('@tauri-apps/plugin-dialog')
-      const path = await save({
-        defaultPath: 'Untitled.fig',
-        filters: [{ name: 'Figma file', extensions: ['fig'] }]
-      })
-      if (!path) return
-      filePath = path
-      fileHandle = null
-      state.documentName =
-        path
-          .split('/')
-          .pop()
-          ?.replace(/\.fig$/i, '') ?? 'Untitled'
-      await writeFile(data)
-      void startWatchingFile()
-      return
-    }
-
-    if (window.showSaveFilePicker) {
-      try {
-        const handle = await window.showSaveFilePicker({
-          suggestedName: 'Untitled.fig',
-          types: [
-            {
-              description: 'Figma file',
-              accept: { 'application/octet-stream': ['.fig'] }
-            }
-          ]
-        })
-        fileHandle = handle
-        filePath = null
-        state.documentName = handle.name.replace(/\.fig$/i, '')
-        await writeFile(data)
-        void startWatchingFile()
-        return
-      } catch (e) {
-        if ((e as Error).name === 'AbortError') return
-      }
-    }
-
-    const filename = prompt('Save as:', downloadName ?? 'Untitled.fig')
-    if (!filename) return
-    downloadName = filename
-    state.documentName = filename.replace(/\.fig$/i, '')
-    downloadBlob(new Uint8Array(data), filename, 'application/octet-stream')
-  }
+  )
 
   async function writeFile(data: Uint8Array) {
     lastWriteTime = Date.now()
@@ -868,114 +827,6 @@ export function createEditorStore() {
       }, 2000)
       unwatchFile = () => clearInterval(interval)
     }
-  }
-
-  async function renderExportImage(
-    nodeIds: string[],
-    scale: number,
-    format: ExportFormat
-  ): Promise<Uint8Array | null> {
-    if (!_ck || !_renderer) return null
-    const ids =
-      nodeIds.length > 0 ? nodeIds : graph.getChildren(state.currentPageId).map((n) => n.id)
-    if (ids.length === 0) return null
-    return renderNodesToImage(_ck, _renderer, graph, state.currentPageId, ids, { scale, format })
-  }
-
-  function exportImageExtension(format: ExportFormat): string {
-    switch (format) {
-      case 'JPG':
-        return '.jpg'
-      case 'WEBP':
-        return '.webp'
-      default:
-        return '.png'
-    }
-  }
-
-  function exportImageMime(format: ExportFormat): string {
-    switch (format) {
-      case 'JPG':
-        return 'image/jpeg'
-      case 'WEBP':
-        return 'image/webp'
-      default:
-        return 'image/png'
-    }
-  }
-
-  async function exportSelection(scale: number, format: ExportFormat, customName?: string): Promise<void> {
-    const ids = [...state.selectedIds]
-
-    if (format === 'SVG') {
-      const nodeIds = ids.length > 0 ? ids : graph.getChildren(state.currentPageId).map((n) => n.id)
-      const svgStr = renderNodesToSVG(graph, state.currentPageId, nodeIds)
-      if (!svgStr) {
-        console.error('Export failed: renderNodesToSVG returned null')
-        return
-      }
-      const svgData = new TextEncoder().encode(svgStr)
-      const node = ids.length === 1 ? graph.getNode(ids[0]) : undefined
-      const fileName = `${customName || node?.name || 'Export'}.svg`
-      await saveExportedFile(svgData, fileName, 'SVG', '.svg', 'image/svg+xml')
-      return
-    }
-
-    const data = await renderExportImage(ids, scale, format)
-    if (!data) {
-      console.error(
-        `Export failed: renderExportImage returned null for format=${format} scale=${scale}`
-      )
-      return
-    }
-
-    const node = ids.length === 1 ? graph.getNode(ids[0]) : undefined
-    const baseName = customName || node?.name || 'Export'
-    const ext = exportImageExtension(format)
-    const fileName = `${baseName}@${scale}x${ext}`
-    await saveExportedFile(new Uint8Array(data), fileName, format, ext, exportImageMime(format))
-  }
-
-  async function saveExportedFile(
-    data: Uint8Array,
-    fileName: string,
-    format: string,
-    ext: string,
-    mime: string
-  ) {
-    if (IS_TAURI) {
-      const { save } = await import('@tauri-apps/plugin-dialog')
-      const path = await save({
-        defaultPath: fileName,
-        filters: [{ name: format, extensions: [ext.slice(1)] }]
-      })
-      if (!path) return
-      const { writeFile: tauriWrite } = await import('@tauri-apps/plugin-fs')
-      await tauriWrite(path, data)
-      return
-    }
-
-    if (window.showSaveFilePicker) {
-      try {
-        const handle = await window.showSaveFilePicker({
-          suggestedName: fileName,
-          types: [
-            {
-              description: `${format} file`,
-              accept: { [mime]: [ext] }
-            }
-          ]
-        })
-        const writable = await handle.createWritable()
-        await writable.write(new Uint8Array(data))
-        await writable.close()
-        return
-      } catch (e) {
-        if ((e as Error).name === 'AbortError') return
-      }
-    }
-
-    downloadBlob(data, fileName, mime)
   }
 
   function runLayoutForNode(id: string) {
@@ -1887,295 +1738,6 @@ export function createEditorStore() {
     state.selectedIds = new Set(children.map((n) => n.id))
   }
 
-  function duplicateSelected() {
-    const prevSelection = new Set(state.selectedIds)
-    const newIds: string[] = []
-    const snapshots: Array<{ id: string; parentId: string; snapshot: SceneNode }> = []
-
-    for (const id of state.selectedIds) {
-      const src = graph.getNode(id)
-      if (!src) continue
-      const parentId = src.parentId ?? state.currentPageId
-      const { id: _srcId, parentId: _srcParent, childIds: _srcChildren, ...srcRest } = src
-      const node = graph.createNode(src.type, parentId, {
-        ...srcRest,
-        name: src.name + ' copy',
-        x: src.x + 20,
-        y: src.y + 20
-      })
-      newIds.push(node.id)
-      snapshots.push({ id: node.id, parentId, snapshot: { ...node } })
-    }
-
-    if (newIds.length > 0) {
-      state.selectedIds = new Set(newIds)
-      undo.push({
-        label: 'Duplicate',
-        forward: () => {
-          for (const { snapshot, parentId } of snapshots) {
-            graph.createNode(snapshot.type, parentId, snapshot)
-          }
-          state.selectedIds = new Set(newIds)
-        },
-        inverse: () => {
-          for (const { id } of snapshots) graph.deleteNode(id)
-          state.selectedIds = prevSelection
-        }
-      })
-    }
-  }
-
-  function writeCopyData(clipboardData: DataTransfer) {
-    const nodes = selectedNodes.value
-    if (nodes.length === 0) return
-
-    const names = nodes.map((n) => n.name).join('\n')
-    const renderer = _renderer
-    const textPicBuilder = renderer
-      ? (node: SceneNode) => renderer.buildTextPicture(node)
-      : undefined
-    const internalHtml = buildOpenPencilClipboardHTML(nodes, graph, textPicBuilder)
-    const figmaHtml = buildFigmaClipboardHTML(nodes, graph)
-
-    const html = figmaHtml ? figmaHtml + internalHtml : internalHtml
-    clipboardData.setData('text/html', html)
-    clipboardData.setData('text/plain', names)
-  }
-
-  function centerNodesAt(nodeIds: string[], cx: number, cy: number) {
-    let minX = Infinity
-    let minY = Infinity
-    let maxX = -Infinity
-    let maxY = -Infinity
-    for (const id of nodeIds) {
-      const n = graph.getNode(id)
-      if (!n) continue
-      minX = Math.min(minX, n.x)
-      minY = Math.min(minY, n.y)
-      maxX = Math.max(maxX, n.x + n.width)
-      maxY = Math.max(maxY, n.y + n.height)
-    }
-    if (minX === Infinity) return
-    const dx = cx - (minX + maxX) / 2
-    const dy = cy - (minY + maxY) / 2
-    for (const id of nodeIds) {
-      const n = graph.getNode(id)
-      if (n) graph.updateNode(id, { x: n.x + dx, y: n.y + dy })
-    }
-  }
-
-  function collectSubtrees(g: SceneGraph, rootIds: string[]): SceneNode[] {
-    const result: SceneNode[] = []
-    function walk(id: string) {
-      const node = g.getNode(id)
-      if (!node) return
-      result.push({ ...node })
-      for (const childId of node.childIds) walk(childId)
-    }
-    for (const id of rootIds) walk(id)
-    return result
-  }
-
-  async function loadFontsForNodes(nodeIds: string[]) {
-    const toLoad = collectFontKeys(graph, nodeIds)
-    if (toLoad.length === 0) return
-
-    const results = await Promise.all(toLoad.map(([family, style]) => loadFont(family, style)))
-    const failed = toLoad.filter((_, i) => results[i] === null)
-    if (failed.length > 0) {
-      const families = [...new Set(failed.map(([family]) => family))]
-      toast.show(
-        families.length === 1
-          ? `Font "${families[0]}" could not be loaded`
-          : `${families.length} fonts could not be loaded: ${families.join(', ')}`,
-        'warning'
-      )
-    }
-    computeAllLayouts(graph, state.currentPageId)
-    requestRender()
-  }
-
-  function pasteFromHTML(html: string, cursorPos?: Vector) {
-    const own = parseOpenPencilClipboard(html)
-    if (own) {
-      for (const [hash, data] of own.images) graph.images.set(hash, data)
-      pasteOpenPencilNodes(own.nodes, undefined, cursorPos)
-      return
-    }
-
-    void parseFigmaClipboard(html).then((figma) => {
-      if (figma) {
-        const prevSelection = new Set(state.selectedIds)
-        const created = importClipboardNodes(
-          figma.nodes,
-          graph,
-          state.currentPageId,
-          0,
-          0,
-          figma.blobs
-        )
-        if (created.length > 0) {
-          const cx = cursorPos?.x ?? (-state.panX + window.innerWidth / 2) / state.zoom
-          const cy = cursorPos?.y ?? (-state.panY + window.innerHeight / 2) / state.zoom
-          centerNodesAt(created, cx, cy)
-          computeAllLayouts(graph, state.currentPageId)
-          state.selectedIds = new Set(created)
-
-          const allNodes = collectSubtrees(graph, created)
-          const pageId = state.currentPageId
-          undo.push({
-            label: 'Paste',
-            forward: () => {
-              for (const snapshot of allNodes) {
-                graph.createNode(snapshot.type, snapshot.parentId ?? pageId, {
-                  ...snapshot,
-                  childIds: []
-                })
-              }
-              computeAllLayouts(graph, pageId)
-              state.selectedIds = new Set(created)
-            },
-            inverse: () => {
-              for (const id of [...created].reverse()) graph.deleteNode(id)
-              computeAllLayouts(graph, pageId)
-              state.selectedIds = prevSelection
-            }
-          })
-          void loadFontsForNodes(created)
-          warnMissingImages(created)
-        }
-      }
-    })
-  }
-
-  function warnMissingImages(nodeIds: string[]) {
-    const allNodes = collectSubtrees(graph, nodeIds)
-    const hasMissing = allNodes.some((n) =>
-      n.fills.some((f) => f.type === 'IMAGE' && f.imageHash && !graph.images.has(f.imageHash))
-    )
-    if (hasMissing) {
-      toast.show(
-        "Some images couldn't be pasted — Figma doesn't include image data in clipboard",
-        'warning'
-      )
-    }
-  }
-
-  function pasteOpenPencilNodes(
-    nodes: Array<SceneNode & { children?: SceneNode[] }>,
-    parentId?: string,
-    cursorPos?: Vector
-  ) {
-    const target = parentId ?? state.currentPageId
-    const prevSelection = new Set(state.selectedIds)
-    const newIds: string[] = []
-    const created: Array<{ id: string; parentId: string; snapshot: SceneNode }> = []
-
-    let offsetX = 20
-    let offsetY = 20
-    if (cursorPos && nodes.length > 0) {
-      let minX = Infinity
-      let minY = Infinity
-      let maxX = -Infinity
-      let maxY = -Infinity
-      for (const n of nodes) {
-        minX = Math.min(minX, n.x)
-        minY = Math.min(minY, n.y)
-        maxX = Math.max(maxX, n.x + n.width)
-        maxY = Math.max(maxY, n.y + n.height)
-      }
-      offsetX = cursorPos.x - (minX + maxX) / 2
-      offsetY = cursorPos.y - (minY + maxY) / 2
-    }
-
-    function createTree(src: SceneNode & { children?: SceneNode[] }, pid: string, isTop: boolean) {
-      const { id: _srcId, parentId: _srcParent, childIds: _srcChildren, ...rest } = src
-      const node = graph.createNode(src.type, pid, {
-        ...rest,
-        x: src.x + (isTop ? offsetX : 0),
-        y: src.y + (isTop ? offsetY : 0)
-      })
-      created.push({ id: node.id, parentId: pid, snapshot: { ...node } })
-      if (isTop) newIds.push(node.id)
-      if (src.children) {
-        for (const child of src.children) {
-          createTree(child, node.id, false)
-        }
-      }
-    }
-
-    for (const src of nodes) {
-      createTree(src, target, true)
-    }
-    if (newIds.length > 0) {
-      state.selectedIds = new Set(newIds)
-      undo.push({
-        label: 'Paste',
-        forward: () => {
-          for (const { snapshot, parentId: pid } of created) {
-            graph.createNode(snapshot.type, pid, snapshot)
-          }
-          state.selectedIds = new Set(newIds)
-        },
-        inverse: () => {
-          for (const { id } of [...created].reverse()) graph.deleteNode(id)
-          state.selectedIds = prevSelection
-        }
-      })
-    }
-  }
-
-  function deleteSelected() {
-    const entries: Array<{ id: string; parentId: string; snapshot: SceneNode; index: number }> = []
-    for (const id of state.selectedIds) {
-      const node = graph.getNode(id)
-      if (!node) continue
-      const parentId = node.parentId ?? state.currentPageId
-      const parent = graph.getNode(parentId)
-      const index = parent?.childIds.indexOf(id) ?? -1
-      entries.push({ id, parentId, snapshot: { ...node }, index })
-    }
-    if (entries.length === 0) return
-
-    const prevSelection = new Set(state.selectedIds)
-    for (const { id } of entries) graph.deleteNode(id)
-
-    undo.push({
-      label: 'Delete',
-      forward: () => {
-        for (const { id } of entries) graph.deleteNode(id)
-        clearSelection()
-      },
-      inverse: () => {
-        for (const { snapshot, parentId, index } of [...entries].reverse()) {
-          graph.createNode(snapshot.type, parentId, snapshot)
-          if (index >= 0) {
-            graph.reorderChild(snapshot.id, parentId, index)
-          }
-        }
-        state.selectedIds = prevSelection
-      }
-    })
-    clearSelection()
-  }
-
-  function mobileCopy() {
-    const transfer = new DataTransfer()
-    writeCopyData(transfer)
-    state.clipboardHtml = transfer.getData('text/html')
-  }
-
-  function mobileCut() {
-    mobileCopy()
-    deleteSelected()
-  }
-
-  function mobilePaste() {
-    if (state.clipboardHtml) {
-      pasteFromHTML(state.clipboardHtml)
-    }
-  }
-
   function commitMove(originals: Map<string, Vector>) {
     const finals = new Map<string, Vector>()
     for (const [id] of originals) {
@@ -2325,97 +1887,6 @@ export function createEditorStore() {
     requestRender()
   }
 
-  function screenToCanvas(sx: number, sy: number) {
-    return {
-      x: (sx - state.panX) / state.zoom,
-      y: (sy - state.panY) / state.zoom
-    }
-  }
-
-  function applyZoom(delta: number, centerX: number, centerY: number) {
-    const factor = Math.min(
-      ZOOM_SCALE_MAX,
-      Math.max(ZOOM_SCALE_MIN, Math.exp(-delta / ZOOM_DIVISOR))
-    )
-    const newZoom = Math.max(0.02, Math.min(256, state.zoom * factor))
-    state.panX = centerX - (centerX - state.panX) * (newZoom / state.zoom)
-    state.panY = centerY - (centerY - state.panY) * (newZoom / state.zoom)
-    state.zoom = newZoom
-    requestRepaint()
-  }
-
-  function pan(dx: number, dy: number) {
-    state.panX += dx
-    state.panY += dy
-    requestRepaint()
-  }
-
-  function zoomToBounds(minX: number, minY: number, maxX: number, maxY: number) {
-    const padding = 80
-    const w = maxX - minX + padding * 2
-    const h = maxY - minY + padding * 2
-
-    const viewW = window.innerWidth
-    const viewH = window.innerHeight
-    const zoom = Math.min(viewW / w, viewH / h, 1)
-
-    state.zoom = zoom
-    state.panX = (viewW - w * zoom) / 2 - minX * zoom + padding * zoom
-    state.panY = (viewH - h * zoom) / 2 - minY * zoom + padding * zoom
-    requestRepaint()
-  }
-
-  function zoomToFit() {
-    const nodes = graph.getChildren(state.currentPageId)
-    if (nodes.length === 0) return
-
-    let minX = Infinity
-    let minY = Infinity
-    let maxX = -Infinity
-    let maxY = -Infinity
-    for (const n of nodes) {
-      minX = Math.min(minX, n.x)
-      minY = Math.min(minY, n.y)
-      maxX = Math.max(maxX, n.x + n.width)
-      maxY = Math.max(maxY, n.y + n.height)
-    }
-
-    zoomToBounds(minX, minY, maxX, maxY)
-  }
-
-  function zoomTo100() {
-    const viewW = window.innerWidth
-    const viewH = window.innerHeight
-    const centerX = (-state.panX + viewW / 2) / state.zoom
-    const centerY = (-state.panY + viewH / 2) / state.zoom
-
-    state.zoom = 1
-    state.panX = viewW / 2 - centerX
-    state.panY = viewH / 2 - centerY
-    requestRepaint()
-  }
-
-  function zoomToSelection() {
-    if (state.selectedIds.size === 0) return
-
-    let minX = Infinity
-    let minY = Infinity
-    let maxX = -Infinity
-    let maxY = -Infinity
-    for (const id of state.selectedIds) {
-      const n = graph.getNode(id)
-      if (!n) continue
-      const abs = graph.getAbsolutePosition(id)
-      minX = Math.min(minX, abs.x)
-      minY = Math.min(minY, abs.y)
-      maxX = Math.max(maxX, abs.x + n.width)
-      maxY = Math.max(maxY, abs.y + n.height)
-    }
-    if (minX === Infinity) return
-
-    zoomToBounds(minX, minY, maxX, maxY)
-  }
-
   return {
     get graph() {
       return graph
@@ -2455,12 +1926,12 @@ export function createEditorStore() {
     startTextEditing,
     commitTextEdit,
     openFigFile,
-    saveFigFile,
-    buildFigFile,
+    saveFigFile: exportOps.saveFigFile,
+    buildFigFile: exportOps.buildFigFile,
     setCanvasKit,
-    saveFigFileAs,
-    renderExportImage,
-    exportSelection,
+    saveFigFileAs: exportOps.saveFigFileAs,
+    renderExportImage: exportOps.renderExportImage,
+    exportSelection: exportOps.exportSelection,
     updateNode,
     setLayoutMode,
     wrapInAutoLayout,
@@ -2482,13 +1953,13 @@ export function createEditorStore() {
     storeImage,
     placeImageFiles,
     adoptNodesIntoSection,
-    duplicateSelected,
-    writeCopyData,
-    pasteFromHTML,
-    mobileCopy,
-    mobileCut,
-    mobilePaste,
-    deleteSelected,
+    duplicateSelected: clipboardOps.duplicateSelected,
+    writeCopyData: clipboardOps.writeCopyData,
+    pasteFromHTML: clipboardOps.pasteFromHTML,
+    mobileCopy: clipboardOps.mobileCopy,
+    mobileCut: clipboardOps.mobileCut,
+    mobilePaste: clipboardOps.mobilePaste,
+    deleteSelected: clipboardOps.deleteSelected,
     commitMove,
     commitMoveWithReparent,
     commitResize,
@@ -2500,12 +1971,12 @@ export function createEditorStore() {
     snapshotPage,
     restorePageFromSnapshot,
     pushUndoEntry,
-    screenToCanvas,
-    applyZoom,
-    pan,
-    zoomToFit,
-    zoomTo100,
-    zoomToSelection,
+    screenToCanvas: viewportOps.screenToCanvas,
+    applyZoom: viewportOps.applyZoom,
+    pan: viewportOps.pan,
+    zoomToFit: viewportOps.zoomToFit,
+    zoomTo100: viewportOps.zoomTo100,
+    zoomToSelection: viewportOps.zoomToSelection,
     isTopLevel,
     switchPage,
     addPage,
