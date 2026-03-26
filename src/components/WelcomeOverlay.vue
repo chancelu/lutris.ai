@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { useEditorStore } from '@/stores/editor'
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { useI18n } from '@/composables/use-i18n'
+
+import { useEditorStore } from '@/stores/editor'
+import { useAIChat } from '@/composables/use-chat'
 
 const store = useEditorStore()
-const { t } = useI18n()
+const { isConfigured, providerID, draftMessage, activeTab } = useAIChat()
+
 const emit = defineEmits<{
   action: [type: 'blank' | 'template' | 'ai' | 'import' | 'import-prd' | 'import-fig' | 'import-code']
 }>()
@@ -24,6 +26,30 @@ const hasContent = computed(() => {
     return !!(page?.children && page.children.length > 0)
   }
 })
+
+const aiModeLabel = computed(() => {
+  if (!isConfigured.value) return 'Set up provider'
+  if (providerID.value === 'google') return 'Chat only'
+  return 'AI ready'
+})
+
+const aiModeTone = computed(() => {
+  if (!isConfigured.value) return 'border-red-500/25 bg-red-500/10 text-red-300'
+  if (providerID.value === 'google') return 'border-amber-500/25 bg-amber-500/10 text-amber-300'
+  return 'border-green-500/25 bg-green-500/10 text-green-300'
+})
+
+const quickPrompts = [
+  'Create a clean SaaS landing page with pricing and testimonials',
+  'Design a modern analytics dashboard for a startup founder',
+  'Turn a rough product idea into a mobile onboarding flow'
+]
+
+function usePrompt(prompt: string) {
+  draftMessage.value = prompt
+  activeTab.value = 'create'
+  dismissed.value = true
+}
 
 const forceCheck = ref(0)
 let checkTimer: ReturnType<typeof setInterval> | null = null
@@ -49,96 +75,69 @@ function handleAction(type: Parameters<typeof emit>[1]) {
   >
     <div
       v-if="showOverlay"
-      class="pointer-events-auto absolute inset-0 z-10 flex items-center justify-center"
+      class="pointer-events-auto absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[2px]"
     >
-      <div class="w-full max-w-2xl px-6">
-        <div class="text-center mb-8">
-          <img src="/mascot-waving.png" alt="Lutris" class="mx-auto mb-3 h-16 w-auto object-contain drop-shadow-md" style="animation: otterBounce 3s ease-in-out infinite" />
-          <h2 class="mb-1 text-[16px] font-semibold text-surface">{{ t('welcome.title') }}</h2>
-          <p class="text-[13px] text-muted">{{ t('welcome.subtitle') }}</p>
-        </div>
-
-        <div class="grid grid-cols-2 gap-6">
-          <!-- Enterprise Path (Left) -->
-          <div class="rounded-2xl border border-border bg-panel/80 p-5">
-            <div class="mb-4 flex items-center gap-2">
-              <icon-lucide-building-2 class="size-5 text-blue-400" />
-              <h3 class="text-[14px] font-semibold text-surface">企业导入</h3>
+      <div class="w-full max-w-2xl px-4 sm:px-6">
+        <div class="rounded-[28px] border border-border bg-panel/95 p-4 shadow-2xl shadow-black/20 sm:p-6">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h2 class="text-[20px] font-semibold text-surface sm:text-[24px]">What do you want to make?</h2>
+              <p class="mt-1 max-w-md text-[12px] leading-5 text-muted sm:text-[13px] sm:leading-6">
+                Start from a prompt, a file, or a blank canvas.
+              </p>
             </div>
-            <p class="mb-4 text-[12px] text-muted">从现有资产开始，AI 帮你解析和生成</p>
-            <div class="flex flex-col gap-2">
-              <button
-                class="flex items-center gap-3 rounded-xl border border-border p-3 text-left transition-all hover:border-blue-400/50 hover:bg-blue-500/5"
-                @click="handleAction('import-prd')"
-              >
-                <icon-lucide-file-text class="size-5 shrink-0 text-blue-400" />
-                <div>
-                  <div class="text-[13px] font-medium text-surface">导入 PRD</div>
-                  <div class="text-[11px] text-muted">Word / Markdown → AI 解析 → 生成设计</div>
-                </div>
-              </button>
-              <button
-                class="flex items-center gap-3 rounded-xl border border-border p-3 text-left transition-all hover:border-blue-400/50 hover:bg-blue-500/5"
-                @click="handleAction('import-fig')"
-              >
-                <icon-lucide-figma class="size-5 shrink-0 text-purple-400" />
-                <div>
-                  <div class="text-[13px] font-medium text-surface">导入 .fig 文件</div>
-                  <div class="text-[11px] text-muted">打开现有 Figma 设计文件</div>
-                </div>
-              </button>
-              <button
-                class="flex items-center gap-3 rounded-xl border border-border p-3 text-left transition-all hover:border-blue-400/50 hover:bg-blue-500/5"
-                @click="handleAction('import-code')"
-              >
-                <icon-lucide-code class="size-5 shrink-0 text-green-400" />
-                <div>
-                  <div class="text-[13px] font-medium text-surface">导入代码</div>
-                  <div class="text-[11px] text-muted">从前端代码逆向生成设计</div>
-                </div>
-              </button>
+            <div class="rounded-full border px-2 py-0.5 text-[10px] font-medium" :class="aiModeTone">
+              {{ aiModeLabel }}
             </div>
           </div>
 
-          <!-- Blank Path (Right) -->
-          <div class="rounded-2xl border border-border bg-panel/80 p-5">
-            <div class="mb-4 flex items-center gap-2">
-              <icon-lucide-sparkles class="size-5 text-purple-400" />
-              <h3 class="text-[14px] font-semibold text-surface">从零开始</h3>
-            </div>
-            <p class="mb-4 text-[12px] text-muted">用 AI 对话或空白画布开始创作</p>
-            <div class="flex flex-col gap-2">
-              <button
-                class="flex items-center gap-3 rounded-xl border border-border p-3 text-left transition-all hover:border-purple-400/50 hover:bg-purple-500/5"
-                @click="handleAction('ai')"
-              >
-                <icon-lucide-message-square class="size-5 shrink-0 text-purple-400" />
-                <div>
-                  <div class="text-[13px] font-medium text-surface">{{ t('welcome.aiGenerate') }}</div>
-                  <div class="text-[11px] text-muted">对话生成 PRD → 设计</div>
-                </div>
-              </button>
-              <button
-                class="flex items-center gap-3 rounded-xl border border-border p-3 text-left transition-all hover:border-purple-400/50 hover:bg-purple-500/5"
-                @click="handleAction('blank')"
-              >
-                <icon-lucide-file-plus class="size-5 shrink-0 text-gray-400" />
-                <div>
-                  <div class="text-[13px] font-medium text-surface">空白画布</div>
-                  <div class="text-[11px] text-muted">手动设计，自由创作</div>
-                </div>
-              </button>
-              <button
-                class="flex items-center gap-3 rounded-xl border border-border p-3 text-left transition-all hover:border-purple-400/50 hover:bg-purple-500/5"
-                @click="handleAction('template')"
-              >
-                <icon-lucide-layout-template class="size-5 shrink-0 text-amber-400" />
-                <div>
-                  <div class="text-[13px] font-medium text-surface">模板库</div>
-                  <div class="text-[11px] text-muted">从预设模板快速开始</div>
-                </div>
-              </button>
-            </div>
+          <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+            <button
+              class="flex-1 rounded-2xl border border-border bg-inset/30 px-4 py-2.5 text-left text-[13px] text-muted transition hover:border-accent/40 hover:bg-accent/5 hover:text-surface"
+              @click="handleAction('ai')"
+            >
+              Describe the interface you want…
+            </button>
+            <button
+              class="rounded-2xl bg-accent px-5 py-2.5 text-[13px] font-medium text-white transition hover:bg-accent/90"
+              @click="handleAction('ai')"
+            >
+              Start with prompt
+            </button>
+          </div>
+          <div class="mt-2 hidden flex-wrap gap-1.5 sm:flex">
+            <button
+              v-for="prompt in quickPrompts"
+              :key="prompt"
+              class="rounded-full border border-border/60 px-2.5 py-1 text-[10px] text-muted/70 transition hover:border-accent/40 hover:text-muted"
+              @click="usePrompt(prompt)"
+            >
+              {{ prompt.length > 38 ? `${prompt.slice(0, 38)}…` : prompt }}
+            </button>
+          </div>
+
+          <div class="mt-3 flex gap-2 sm:mt-4 sm:grid sm:grid-cols-3 sm:gap-3">
+            <button
+              class="flex-1 rounded-xl border border-border/60 p-3 text-left transition hover:border-accent/35 hover:bg-accent/5 sm:rounded-2xl sm:p-4"
+              @click="handleAction('import-fig')"
+            >
+              <div class="text-[12px] font-medium text-surface sm:text-[13px]">Import .fig</div>
+              <div class="mt-0.5 hidden text-[11px] leading-5 text-muted sm:block">From an existing design file.</div>
+            </button>
+            <button
+              class="flex-1 rounded-xl border border-border/60 p-3 text-left transition hover:border-accent/35 hover:bg-accent/5 sm:rounded-2xl sm:p-4"
+              @click="handleAction('import-prd')"
+            >
+              <div class="text-[12px] font-medium text-surface sm:text-[13px]">Import PRD</div>
+              <div class="mt-0.5 hidden text-[11px] leading-5 text-muted sm:block">Turn a spec into UI direction.</div>
+            </button>
+            <button
+              class="flex-1 rounded-xl border border-border/60 p-3 text-left transition hover:border-accent/35 hover:bg-accent/5 sm:rounded-2xl sm:p-4"
+              @click="handleAction('blank')"
+            >
+              <div class="text-[12px] font-medium text-surface sm:text-[13px]">Blank canvas</div>
+              <div class="mt-0.5 hidden text-[11px] leading-5 text-muted sm:block">Start directly on the canvas.</div>
+            </button>
           </div>
         </div>
       </div>

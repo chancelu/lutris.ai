@@ -24,7 +24,7 @@ const { activeTab } = useAIChat()
 function sendToAIChat() {
   const ids = selectedIds()
   for (const id of ids) addNodeToAIContext(id)
-  activeTab.value = 'ai'
+  activeTab.value = 'create'
 }
 
 const hasSelection = computed(() => {

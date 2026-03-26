@@ -11,7 +11,7 @@ const filtered = computed(() => getFilteredTemplates())
 
 function applyTemplate(prompt: string) {
   pendingMessage.value = prompt
-  activeTab.value = 'ai'
+  activeTab.value = 'create'
 }
 
 function clearFilter() {

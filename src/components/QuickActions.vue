@@ -29,7 +29,7 @@ function submitImage() {
   if (!imagePrompt.value.trim()) return
   if (!apiKey.value) return
   pendingMessage.value = `Generate an image: ${imagePrompt.value}`
-  activeTab.value = 'ai'
+  activeTab.value = 'create'
   imagePrompt.value = ''
   showImageDialog.value = false
 }
@@ -43,7 +43,7 @@ function saveInlineKey() {
 
 function createFrame(preset: typeof framePresets[0]) {
   pendingMessage.value = `Create an empty frame named "${preset.name}" with width ${preset.w} and height ${preset.h}`
-  activeTab.value = 'ai'
+  activeTab.value = 'create'
   showFrameMenu.value = false
 }
 

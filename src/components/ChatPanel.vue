@@ -3,20 +3,24 @@ import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewpor
 import { computed, markRaw, nextTick, ref, watch } from 'vue'
 
 import { copyChatLog } from '@/ai/chat-debug'
+import { isTextUIPart } from 'ai'
 import ChatInput from '@/components/chat/ChatInput.vue'
 import ChatMessage from '@/components/chat/ChatMessage.vue'
 import ProviderSetup from '@/components/chat/ProviderSetup.vue'
 import AIContextCards from '@/components/AIContextCards.vue'
 import { useAIChat } from '@/composables/use-chat'
+import { AI_PROVIDERS } from '@open-pencil/core'
 import { useAISelect } from '@/composables/use-ai-select'
+import { useSpec } from '@/composables/use-spec'
 import { useI18n } from '@/composables/use-i18n'
+import { toast } from '@/composables/use-toast'
 
 import type { Chat } from '@ai-sdk/vue'
 import type { UIMessage } from 'ai'
 
 const IS_DEV = import.meta.env.DEV
 
-const { isConfigured, ensureChat, resetChat, pendingMessage, aiProgress } = useAIChat()
+const { isConfigured, ensureChat, resetChat, pendingMessage, aiProgress, providerID, isServerConfigured, activeTab } = useAIChat()
 const { hasContext, buildContextPrompt, clearAIContext } = useAISelect()
 const { t } = useI18n()
 
@@ -24,9 +28,18 @@ const existing = ensureChat()
 const chat = ref<Chat<UIMessage> | null>(existing ? markRaw(existing) : null)
 const messagesEnd = ref<HTMLDivElement>()
 const debugCopied = ref(false)
+const chatError = ref<string | null>(null)
 
 const messages = computed(() => chat.value?.messages ?? [])
 const status = computed(() => chat.value?.status ?? 'ready')
+const chatSdkError = computed(() => chat.value?.error)
+
+watch(chatSdkError, (err) => {
+  if (err) {
+    console.error('[AI Chat] SDK error:', err)
+    chatError.value = err.message || String(err)
+  }
+})
 
 const progressLabel = computed(() => {
   switch (aiProgress.value) {
@@ -38,6 +51,23 @@ const progressLabel = computed(() => {
   }
 })
 
+const providerDef = computed(() => AI_PROVIDERS.find((p) => p.id === providerID.value))
+const aiMode = computed<'action' | 'chat-only' | 'not-configured'>(() => {
+  if (!isConfigured.value) return 'not-configured'
+  if (providerID.value === 'google') return 'chat-only'
+  return 'action'
+})
+const aiModeLabel = computed(() => {
+  if (aiMode.value === 'action') return 'AI ready'
+  if (aiMode.value === 'chat-only') return 'Chat only'
+  return 'Not configured'
+})
+const aiModeTone = computed(() => {
+  if (aiMode.value === 'action') return 'bg-green-500/15 text-green-400 border-green-500/30'
+  if (aiMode.value === 'chat-only') return 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+  return 'bg-red-500/15 text-red-400 border-red-500/30'
+})
+
 function scrollToBottom() {
   nextTick(() => {
     messagesEnd.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -46,7 +76,6 @@ function scrollToBottom() {
 
 watch(messages, scrollToBottom, { deep: true })
 
-// Watch for pending messages from other panels (e.g. Product Doc → AI)
 watch(pendingMessage, (msg) => {
   if (!msg) return
   handleSubmit(msg)
@@ -54,17 +83,23 @@ watch(pendingMessage, (msg) => {
 })
 
 function handleSubmit(text: string) {
+  const requiresAction = hasContext.value || /(create|generate|build|design|edit|modify|update|redesign|make|layout|screen|page|component|render)/i.test(text)
+  if (requiresAction && aiMode.value === 'chat-only') {
+    chatError.value = 'Current provider is chat-only. Switch to an action-capable model/provider to generate or modify designs.'
+    return
+  }
+
   if (!chat.value) {
     const c = ensureChat()
     if (c) chat.value = markRaw(c)
   }
-  // Append AI selection context if any elements are selected
   const contextSuffix = hasContext.value ? buildContextPrompt() : ''
   const fullText = text + contextSuffix
-  chat.value?.sendMessage({ text: fullText }).catch(() => {
-    /* user-facing error handled by UI */
+  chatError.value = null
+  chat.value?.sendMessage({ text: fullText }).catch((err) => {
+    console.error('[AI Chat] sendMessage failed:', err)
+    chatError.value = err?.message || 'Failed to send message'
   })
-  // Clear context after sending so next message starts fresh
   if (hasContext.value) clearAIContext()
 }
 
@@ -84,30 +119,97 @@ function handleClearChat() {
   chat.value = null
   resetChat()
 }
+
+function prefillPrompt(prompt: string) {
+  const { draftMessage } = useAIChat()
+  draftMessage.value = prompt
+  activeTab.value = 'create'
+}
+
+function handleSaveSummary(content: string) {
+  const { appendSummary } = useSpec()
+  appendSummary(`## Summary\n\n${content}`, 'ai', 'Saved to spec summary')
+  toast.show('Saved to spec summary ✅')
+}
+
+function handleSaveRequirements(content: string) {
+  const { saveRequirementsFromText, appendSummary } = useSpec()
+  const count = saveRequirementsFromText(content, 'ai', 'Saved requirements from AI')
+  if (count > 0) {
+    toast.show(`Saved ${count} requirements ✅`)
+    return
+  }
+  appendSummary(`## Requirements Draft\n\n${content}`, 'ai', 'Saved requirements draft from AI')
+  toast.show('Saved as requirements draft ✅')
+}
+
+function handleCreateSpecDraft(content: string) {
+  const { createSpecDraftFromAI } = useSpec()
+  createSpecDraftFromAI(content)
+  toast.show('Created spec draft ✅')
+}
+
+function handleCreateSpecFromAll() {
+  const { createSpecDraftFromAI } = useSpec()
+  const assistantTexts = messages.value
+    .filter(m => m.role === 'assistant')
+    .map(m => m.parts.filter(isTextUIPart).map(p => p.text).join(''))
+    .filter(Boolean)
+    .join('\n\n---\n\n')
+  if (!assistantTexts) return
+  createSpecDraftFromAI(assistantTexts)
+  toast.show('Created combined spec draft ✅')
+}
 </script>
 
 <template>
   <div data-test-id="chat-panel" class="flex min-w-0 flex-1 flex-col overflow-hidden select-text">
+    <div class="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
+      <div class="min-w-0">
+        <div class="text-[12px] font-semibold text-surface">Create</div>
+        <div class="text-[10px] text-muted">{{ providerDef?.name || 'Provider' }}<span v-if="isServerConfigured"> · Hosted</span><span v-else> · BYOK</span></div>
+      </div>
+      <div class="rounded-full border px-2 py-1 text-[10px] font-medium" :class="aiModeTone">
+        {{ aiModeLabel }}
+      </div>
+    </div>
+
     <ProviderSetup v-if="!isConfigured" />
 
     <template v-else>
       <ScrollAreaRoot class="min-h-0 flex-1">
         <ScrollAreaViewport class="h-full px-3 py-3 [&>div]:h-full">
-          <!-- Empty state -->
           <div
             v-if="messages.length === 0"
             data-test-id="chat-empty-state"
-            class="flex h-full flex-col items-center justify-center gap-3 text-muted"
+            class="flex h-full flex-col justify-center px-4 py-4"
           >
-            <icon-lucide-message-circle class="size-8 opacity-50" />
-            <p class="text-center text-xs">{{ t('chat.emptyState') }}</p>
+            <div class="mx-auto flex w-full max-w-md flex-col items-center text-center">
+              <div class="rounded-full border border-white/10 bg-white/[0.03] p-3 text-white/70">
+                <icon-lucide-sparkles class="size-5" />
+              </div>
+              <p class="mt-4 text-sm font-medium text-surface">Start with a prompt</p>
+              <p class="mt-1 max-w-sm text-[11px] leading-5 text-muted">
+                Describe a screen, flow, or idea. Refine after the first pass.
+              </p>
+              <div class="mt-4 flex flex-wrap justify-center gap-2">
+                <button class="rounded-full border border-border px-2.5 py-1.5 text-[11px] text-muted transition hover:bg-hover hover:text-surface" @click="prefillPrompt('Create a clean SaaS landing page with pricing and testimonials')">Landing page</button>
+                <button class="rounded-full border border-border px-2.5 py-1.5 text-[11px] text-muted transition hover:bg-hover hover:text-surface" @click="prefillPrompt('Design a modern analytics dashboard for a startup founder')">Dashboard</button>
+                <button class="rounded-full border border-border px-2.5 py-1.5 text-[11px] text-muted transition hover:bg-hover hover:text-surface" @click="prefillPrompt('Turn this product idea into a mobile onboarding flow')">Mobile app</button>
+              </div>
+            </div>
           </div>
 
-          <!-- Messages -->
           <div v-else data-test-id="chat-messages" class="flex flex-col gap-3">
-            <ChatMessage v-for="msg in messages" :key="msg.id" :message="msg" />
+            <ChatMessage
+              v-for="msg in messages"
+              :key="msg.id"
+              :message="msg"
+              @save-summary="handleSaveSummary"
+              @save-requirements="handleSaveRequirements"
+              @create-spec-draft="handleCreateSpecDraft"
+            />
 
-            <!-- AI progress status -->
             <div
               v-if="progressLabel && (status === 'submitted' || status === 'streaming')"
               data-test-id="chat-progress-status"
@@ -117,30 +219,18 @@ function handleClearChat() {
               <span>{{ progressLabel }}</span>
             </div>
 
-            <!-- Typing indicator -->
             <div
               v-if="status === 'submitted'"
               data-test-id="chat-typing-indicator"
               class="flex gap-2"
             >
-              <div
-                class="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted/20 text-[11px] font-bold text-muted"
-              >
+              <div class="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted/20 text-[11px] font-bold text-muted">
                 AI
               </div>
               <div class="flex items-center gap-1 py-2">
-                <span
-                  class="size-1.5 animate-bounce rounded-full bg-muted"
-                  style="animation-delay: 0ms"
-                />
-                <span
-                  class="size-1.5 animate-bounce rounded-full bg-muted"
-                  style="animation-delay: 150ms"
-                />
-                <span
-                  class="size-1.5 animate-bounce rounded-full bg-muted"
-                  style="animation-delay: 300ms"
-                />
+                <span class="size-1.5 animate-bounce rounded-full bg-muted" style="animation-delay: 0ms" />
+                <span class="size-1.5 animate-bounce rounded-full bg-muted" style="animation-delay: 150ms" />
+                <span class="size-1.5 animate-bounce rounded-full bg-muted" style="animation-delay: 300ms" />
               </div>
             </div>
 
@@ -152,11 +242,7 @@ function handleClearChat() {
         </ScrollAreaScrollbar>
       </ScrollAreaRoot>
 
-      <!-- Chat actions toolbar -->
-      <div
-        v-if="messages.length > 0"
-        class="flex shrink-0 items-center gap-1 border-t border-border px-3 py-1"
-      >
+      <div v-if="messages.length > 0" class="flex shrink-0 items-center gap-1 border-t border-border px-3 py-1">
         <button
           v-if="IS_DEV"
           class="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted hover:bg-hover hover:text-surface"
@@ -173,9 +259,31 @@ function handleClearChat() {
           <icon-lucide-trash-2 class="size-3" />
           {{ t('chat.clear') }}
         </button>
+        <button
+          class="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-accent hover:bg-accent/10"
+          title="Create a structured spec draft from all AI responses"
+          @click="handleCreateSpecFromAll"
+        >
+          <icon-lucide-file-plus class="size-3" />
+          Create spec draft
+        </button>
+      </div>
+
+      <div v-if="aiMode === 'chat-only'" class="border-t border-amber-500/20 bg-amber-500/8 px-3 py-2 text-[11px] text-amber-300">
+        This provider can chat, but tool-based design actions are disabled right now.
       </div>
 
       <AIContextCards />
+
+      <div
+        v-if="chatError"
+        class="flex items-center gap-2 border-t border-red-500/20 bg-red-500/10 px-3 py-1.5 text-[11px] text-red-400"
+      >
+        <icon-lucide-alert-circle class="size-3 shrink-0" />
+        <span class="min-w-0 flex-1 truncate">{{ chatError }}</span>
+        <button class="shrink-0 text-red-400 hover:text-red-300" @click="chatError = null">✕</button>
+      </div>
+
       <ChatInput :status="status" @submit="handleSubmit" @stop="handleStop" />
     </template>
   </div>

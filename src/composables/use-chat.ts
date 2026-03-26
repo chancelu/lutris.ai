@@ -11,6 +11,9 @@ import { computed, ref, shallowRef, watch } from 'vue'
 import { createAITools } from '@/ai/tools'
 import { useEditorStore } from '@/stores/editor'
 import { AI_PROVIDERS, DEFAULT_AI_MODEL, DEFAULT_AI_PROVIDER } from '@open-pencil/core'
+import { useBrand } from './use-brand'
+import { useProductDoc } from './use-product-doc'
+import { useProjects } from './use-projects'
 
 import type { AIProviderID } from '@open-pencil/core'
 import type { LanguageModel, UIMessage } from 'ai'
@@ -187,14 +190,24 @@ if (ENV_BASE_URL !== '') customBaseURL.value = ENV_BASE_URL
 if (ENV_MODEL !== '') customModelID.value = ENV_MODEL
 if (ENV_API_TYPE !== 'completions') customAPIType.value = ENV_API_TYPE
 
-const activeTab = ref<'design' | 'code' | 'ai' | 'handoff' | 'figma' | 'doc' | 'comments' | 'export' | 'brand'>('design')
+const activeTab = ref<'create' | 'spec' | 'ship'>('create')
 const pendingMessage = ref<string | null>(null)
+const draftMessage = ref<string>('')
 
 const providerDef = computed(
   () => AI_PROVIDERS.find((p) => p.id === providerID.value) ?? AI_PROVIDERS[0]
 )
 
+// Server-configured: env vars provide everything, skip user setup entirely
+const isServerConfigured = computed(() => {
+  if (!ENV_API_KEY || !ENV_PROVIDER) return false
+  const needsBaseURL = ENV_PROVIDER === 'openai-compatible' || ENV_PROVIDER === 'anthropic-compatible'
+  if (needsBaseURL && !ENV_BASE_URL) return false
+  return true
+})
+
 const isConfigured = computed(() => {
+  if (isServerConfigured.value) return true
   if (!apiKey.value) return false
   const needsBaseURL =
     providerID.value === 'openai-compatible' || providerID.value === 'anthropic-compatible'
@@ -218,13 +231,31 @@ function setAPIKey(key: string) {
   apiKey.value = key
 }
 
-function createModel(): LanguageModel {
-  const key = apiKey.value
+function getModelConfig() {
+  const isEnv = !!(ENV_PROVIDER && ENV_API_KEY)
+  const key = isEnv ? ENV_API_KEY : apiKey.value
+  const activeProvider = isEnv ? ENV_PROVIDER : providerID.value
   const needsCustomModel =
-    providerID.value === 'openai-compatible' || providerID.value === 'anthropic-compatible'
-  const effectiveModelID = needsCustomModel ? customModelID.value : modelID.value
+    activeProvider === 'openai-compatible' || activeProvider === 'anthropic-compatible'
+  const effectiveModelID = isEnv && ENV_MODEL
+    ? ENV_MODEL
+    : (needsCustomModel ? customModelID.value : modelID.value)
+  const effectiveBaseURL = isEnv && ENV_BASE_URL ? ENV_BASE_URL : customBaseURL.value
+  const effectiveAPIType = isEnv ? ENV_API_TYPE : customAPIType.value
 
-  switch (providerID.value) {
+  return {
+    key,
+    activeProvider,
+    effectiveModelID,
+    effectiveBaseURL,
+    effectiveAPIType,
+  }
+}
+
+function createModel(): LanguageModel {
+  const { key, activeProvider, effectiveModelID, effectiveBaseURL, effectiveAPIType } = getModelConfig()
+
+  switch (activeProvider) {
     case 'openrouter': {
       const openrouter = createOpenRouter({
         apiKey: key,
@@ -264,16 +295,16 @@ function createModel(): LanguageModel {
     case 'openai-compatible': {
       const custom = createOpenAI({
         apiKey: key,
-        baseURL: customBaseURL.value
+        baseURL: effectiveBaseURL
       })
-      return customAPIType.value === 'responses'
+      return effectiveAPIType === 'responses'
         ? custom.responses(effectiveModelID)
         : custom.chat(effectiveModelID)
     }
     case 'anthropic-compatible': {
       const custom = createAnthropic({
         apiKey: key,
-        baseURL: customBaseURL.value
+        baseURL: effectiveBaseURL
       })
       return custom(effectiveModelID)
     }
@@ -281,9 +312,9 @@ function createModel(): LanguageModel {
       // Fallback: treat any unknown provider as openai-compatible
       const fallback = createOpenAI({
         apiKey: key,
-        baseURL: customBaseURL.value || undefined
+        baseURL: effectiveBaseURL || undefined
       })
-      return customAPIType.value === 'responses'
+      return effectiveAPIType === 'responses'
         ? fallback.responses(effectiveModelID)
         : fallback.chat(effectiveModelID)
     }
@@ -302,12 +333,14 @@ let chat: Chat<UIMessage> | null = null
 function createTransport() {
   if (overrideTransport) return overrideTransport()
 
-  const tools = createAITools(useEditorStore())
+  // Google Gemini has strict function_declaration schema requirements —
+  // disable tools for now to unblock basic chat; TODO: sanitize schemas for Gemini
+  const activeProvider = isServerConfigured.value ? ENV_PROVIDER : providerID.value
+  const tools = activeProvider === 'google' ? {} : createAITools(useEditorStore())
 
   // Build dynamic system prompt with brand + PRD context
   let fullPrompt = SYSTEM_PROMPT
   try {
-    const { useBrand } = require('./use-brand')
     const { getBrandSystemPrompt, hasBrand } = useBrand()
     if (hasBrand.value) {
       fullPrompt += '\n\n' + getBrandSystemPrompt()
@@ -315,7 +348,6 @@ function createTransport() {
   } catch { /* brand composable not available */ }
 
   try {
-    const { useProductDoc } = require('./use-product-doc')
     const { currentContent, hasContent } = useProductDoc()
     if (hasContent.value) {
       const summary = currentContent.value.slice(0, 2000)
@@ -370,7 +402,6 @@ function initChatProjectWatch(): void {
   _chatProjectWatchInit = true
 
   try {
-    const { useProjects } = require('./use-projects')
     const { activeProjectId, activeChat, saveActiveProjectData } = useProjects()
 
     watch(() => activeProjectId.value, (_newId, oldId) => {
@@ -393,9 +424,8 @@ function initChatProjectWatch(): void {
 
 function getRestoredMessages(): UIMessage[] {
   try {
-    const { useProjects } = require('./use-projects')
     const { activeChat } = useProjects()
-    return activeChat.value?.messages ?? []
+    return activeChat.value.messages
   } catch {
     return []
   }
@@ -405,7 +435,6 @@ function getRestoredMessages(): UIMessage[] {
 function saveChatToProject(): void {
   if (!chat) return
   try {
-    const { useProjects } = require('./use-projects')
     const { activeChat, saveActiveProjectData } = useProjects()
     activeChat.value = { messages: [...chat.messages] }
     void saveActiveProjectData()
@@ -414,7 +443,7 @@ function saveChatToProject(): void {
   }
 }
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
   window.__OPEN_PENCIL_SET_TRANSPORT__ = (factory) => {
     overrideTransport = factory
   }
@@ -436,7 +465,9 @@ export function useAIChat() {
     maxOutputTokens,
     activeTab,
     pendingMessage,
+    draftMessage,
     isConfigured,
+    isServerConfigured,
     ensureChat,
     resetChat,
     saveChatToProject,

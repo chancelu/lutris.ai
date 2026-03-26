@@ -11,7 +11,8 @@ import { openFileDialog } from './use-menu'
 import type { ComputedRef } from 'vue'
 
 function isEditing(e: Event) {
-  return e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
+  const t = e.target
+  return t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable)
 }
 
 const PREVENT_MOD_ALT = new Set(['KeyK', 'KeyB'])
@@ -164,7 +165,7 @@ export function useKeyboard() {
         store.state.mobileDrawerSnap = 'half'
       }
     } else {
-      activeTab.value = activeTab.value === 'ai' ? 'design' : 'ai'
+      activeTab.value = activeTab.value === 'create' ? 'ship' : 'create'
     }
   })
   whenever(mod('keyw'), () => {
@@ -232,26 +233,26 @@ export function useKeyboard() {
     store.setTool('SELECT')
   })
 
-  // --- New shortcuts (P3) ---
-  // Ctrl+E → Export panel
+  // --- Workflow shortcuts ---
+  // Ctrl+E → Ship
   whenever(mod('keye'), () => {
-    activeTab.value = activeTab.value === 'export' ? 'design' : 'export'
+    activeTab.value = 'ship'
   })
-  // Ctrl+/ → Comments panel
+  // Ctrl+/ → Create
   whenever(mod('slash'), () => {
-    activeTab.value = activeTab.value === 'comments' ? 'design' : 'comments'
+    activeTab.value = 'create'
   })
-  // Ctrl+B → Brand settings
+  // Ctrl+B → Create (Brand lives inside Create)
   whenever(mod('keyb'), () => {
-    activeTab.value = activeTab.value === 'brand' ? 'design' : 'brand'
+    activeTab.value = 'create'
   })
-  // Ctrl+Shift+F → Figma panel
+  // Ctrl+Shift+F → Ship
   whenever(mod('shift+keyf'), () => {
-    activeTab.value = activeTab.value === 'figma' ? 'design' : 'figma'
+    activeTab.value = 'ship'
   })
-  // Ctrl+Shift+D → Doc panel
+  // Ctrl+Shift+D → Spec
   whenever(mod('shift+keyd'), () => {
-    activeTab.value = activeTab.value === 'doc' ? 'design' : 'doc'
+    activeTab.value = 'spec'
   })
 
   // Ctrl+? → Shortcuts panel (dispatches custom event)

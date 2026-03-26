@@ -7,6 +7,7 @@ import 'vue-stream-markdown/index.css'
 import type { UIMessage, UIMessagePart } from 'ai'
 
 const { message } = defineProps<{ message: UIMessage }>()
+const emit = defineEmits<{ saveSummary: [content: string], saveRequirements: [content: string], createSpecDraft: [content: string] }>()
 
 type ToolPart = Extract<UIMessagePart, { toolCallId: string }>
 
@@ -105,6 +106,32 @@ function partKey(part: UIMessagePart, index: number): string {
             class="rounded-xl rounded-tl-md bg-hover px-3 py-2 text-xs leading-relaxed text-surface"
           >
             <Markdown :content="part.text" :mermaid="false" class="chat-markdown" />
+            <div class="mt-2 flex flex-wrap justify-end gap-1">
+              <button
+                class="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted transition-colors hover:bg-accent/10 hover:text-accent"
+                title="Save as summary"
+                @click="emit('saveSummary', part.text)"
+              >
+                <icon-lucide-scroll-text class="size-3" />
+                <span>Save summary</span>
+              </button>
+              <button
+                class="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted transition-colors hover:bg-accent/10 hover:text-accent"
+                title="Save as requirements"
+                @click="emit('saveRequirements', part.text)"
+              >
+                <icon-lucide-list-checks class="size-3" />
+                <span>Save requirements</span>
+              </button>
+              <button
+                class="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted transition-colors hover:bg-accent/10 hover:text-accent"
+                title="Create spec draft"
+                @click="emit('createSpecDraft', part.text)"
+              >
+                <icon-lucide-file-plus class="size-3" />
+                <span>Create spec draft</span>
+              </button>
+            </div>
           </div>
         </template>
       </template>

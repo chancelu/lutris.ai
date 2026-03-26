@@ -1,84 +1,74 @@
-# Lutris.ai 后续迭代任务
+# Code Review Fix Checklist (2026-03-26)
 
-> 按优先级排序，P0 为上线阻塞项
+> 基于 CODE-REVIEW.md，按优先级排列。cc 逐项修复，每完成一项打 ✅。
+> lint check: 0 warnings, 0 errors ✅
 
----
+## 🔴 CRITICAL — 部署前必修
 
-## P0 — 上线阻塞
+- [x] **C1** 清理 .env.production/.env.local 中的明文 key，替换为 placeholder，.gitignore 加入 .env.local ✅
+- [x] **C2** render-jsx.ts 的 `new Function()` 加 shadow 危险全局变量 ✅
+- [x] **C3** constants.ts 中硬编码的 Google Fonts API key 改为 `import.meta.env` 读取 ✅
 
-### 1. 修复 `bun run build`
-- 现象：`vite-plugin-pwa:build` 在 buildEnd 阶段报错，构建失败
-- 方向：检查 PWA manifest 配置、icons 路径、workbox 配置是否正确
-- 文件：`vite.config.ts`
+## 🟠 HIGH — Security
 
-### 2. 修复 lint errors（70 个）
-- 现状：29 warnings + 70 errors
-- 方向：逐文件修复，优先修 error（可能包含类型错误、未使用变量等）
-- 命令：`bun run lint`
+- [x] **H1** use-figma-mcp.ts postMessage handler 加 origin 校验 ✅
+- [x] **H2** use-collab.ts P2P 房间标注安全风险文档 ✅
+- [ ] **H3** ProductDocPanel.vue 的 v-html 加 DOMPurify 消毒（DOMPurify 已安装，未接入）
+- [x] **H4** use-chat.ts / tabs.ts 的 debug window hook 包 `if (import.meta.env.DEV)` ✅
+- [x] **H5** bridge.ts CORS 限制为 localhost origin ✅
 
----
+## 🟠 HIGH — Correctness
 
-## P1 — 上线前建议完成
+- [x] **H6** use-chat.ts 导出 `draftMessage`（修复 prefill 流程）✅
+- [x] **H7** 所有 `activeTab.value = 'ai'` 改为有效值 `'create'` ✅
+- [x] **H8** fonts.ts `weightToStyle` 修复 400→Regular 映射 ✅
+- [x] **H9** undo.ts `createPropertyChange` 改用 `graph.updateNode()` 替代 `Object.assign` ✅
+- [x] **H10** scene-graph.ts `reorderChild` 修复 same-parent off-by-one ✅
+- [x] **H11** use-chat.ts 的 `require()` 已移除/重构 ✅
+- [x] **H12** clipboard.ts `componentId: ''` 改为 `null` ✅
 
-### 3. QuickActions 弹窗点击外部关闭（R7 #7）
-- 现状：Image Dialog 和 Frame Menu 只能通过按钮关闭
-- 方案：添加 `onClickOutside` 或 Popover 组件替代
-- 文件：`src/components/QuickActions.vue`
+## 🟠 HIGH — Performance
 
-### 4. WelcomeOverlay .fig 导入描述修正（R7 #4）
-- 现状：仍显示 "导入 .fig 文件"，但 .fig 导入需要 Figma MCP
-- 方案：改为 "导入 .svg / .png" 或加连接状态检测
-- 文件：`src/components/WelcomeOverlay.vue`
+- [ ] **H13** renderer.ts 共享 Float32Array 加文档注释或改为 per-call 分配
+- [ ] **H14** renderer.ts WASM 对象缓存加 LRU 淘汰 + `.delete()` 释放
 
-### 5. PWA 离线体验验证（R8 #4）
-- VitePWA 已配置，但未实际验证离线场景
-- 验证：断网后能否打开编辑器、恢复 IndexedDB 数据
+## 🟡 MEDIUM — Security
 
----
+- [ ] **M1** use-image-gen.ts API key 从 URL query 改为 header
+- [ ] **M2** use-collab.ts Yjs 远程数据加 schema 校验
+- [ ] **M3** MCP server.ts fileRoot 为 null 时默认 cwd，防路径穿越
 
-## P2 — 体验增强
+## 🟡 MEDIUM — Correctness
 
-### 6. 多页面支持（R8 #2）
-- 在 LayersPanel 顶部加 page tabs
-- 支持新建/切换/重命名/删除页面
-- 文件：`src/components/LayersPanel.vue`, `src/stores/editor.ts`
-- 后端已有 `listPages`, `switchPage`, `createPage` 工具
+- [ ] **M4** use-spec.ts 监听 activeProjectId 变化重新 sync
+- [ ] **M5** figma-api.ts 删除重复的 weight↔style 转换，统一用 fonts.ts
+- [ ] **M6** snap.ts 删除重复常量 + 死代码
 
-### 7. 历史版本 Visual Diff（R8 #3）
-- 选中 UndoHistory 条目时高亮变更节点
-- 新增=绿色边框、修改=黄色、删除=红色
-- 文件：`src/components/UndoHistoryPanel.vue`, `src/stores/editor.ts`
+## 🟡 MEDIUM — Performance
 
-### 8. lint warnings 清理（R8 #8）
-- 剩余 29 个 warnings
-- 逐步清理，优先新增文件
+- [ ] **M7** scene-graph.ts updateNode 只在位置属性变更时清 absPosCache
+- [ ] **M8** fonts.ts isFontLoaded 改用 Set 做 O(1) 查找
+- [ ] **M9** ChatPanel.vue deep watcher 改为 watch messages.length
 
----
+## 🟡 MEDIUM — Code Quality
 
-## P3 — 未来迭代（PLAN.md What's Next）
+- [ ] **M10** editor.ts 拆分（clipboard/export/viewport 等模块）
+- [ ] **M11** aiModeLabel/aiModeTone 逻辑提取到 useAIChat()
+- [ ] **M12** ProductDocPanel.vue 清理 dead refs 和 unused import
 
-| 功能 | 说明 |
-|------|------|
-| Prototyping | 帧转场、交互触发器（click/hover/drag）、overlay、全屏预览 |
-| Shader effects (SkSL) | GPU 自定义视觉效果 |
-| Raster tile caching | 复杂文档的即时缩放/平移 |
-| Component libraries | 跨文件发布/共享/消费设计系统 |
-| CI tools | 设计 lint、代码导出、视觉回归（headless CLI） |
-| Windows code signing | Azure Authenticode 证书 |
-| Skewing + OkHCL color | 仿射变换 + 感知均匀色彩空间 |
-| WebGPU/Graphite rendering | 下一代渲染后端 |
-| .fig compatibility | 更多真实文件的导入/导出保真度 |
-| Port remaining figma-use tools | 从 90+/118 补齐到 118 |
-| Grid child positioning UI | 列/行 span 控件、网格 overlay |
+## 🟢 LOW（后续处理）
 
----
+- [ ] **L1** color.ts colorToFill 修复 alpha 双重应用
+- [ ] **L2** scene-graph.ts generateId 改为实例级计数器
+- [ ] **L3** tools.ts generate_image setInterval 加 try/finally
+- [ ] **L4** use-collab.ts zoom watch 存 stop handle
+- [ ] **L5** WelcomeOverlay.vue 去掉 polling interval，修根因
+- [ ] **L6** EditorView.vue 文件输入改专用 input 元素
+- [ ] **L7** ProductDocPanel.vue emoji 换 Lucide icon
+- [ ] **L8** use-chat.ts ENV_API_TYPE 条件对齐
 
-## 上线最低可行条件
+## 📊 Duplication（后续处理）
 
-1. ✅ 核心编辑功能完整（7 个 Phase 全部完成）
-2. ❌ `bun run build` 通过 → 能部署 Web 版
-3. ❌ lint errors 清零 → 代码质量基线
-4. ✅ 测试全绿（1211 pass / 0 fail）
-5. ⚠️ PWA 离线验证 → 确保断网可用
-
-**结论：修复 build + lint errors 后即可上线体验版。**
+- [ ] 提取 geometry/snap 共享 bounds 计算
+- [ ] 提取 fonts.ts 重复的 loading 分支
+- [ ] 提取 fig-export/clipboard 共享序列化逻辑

@@ -1,4 +1,4 @@
-import type { SceneNode } from './scene-graph'
+import type { SceneNode, SceneGraph } from './scene-graph'
 
 export interface UndoEntry {
   label: string
@@ -109,6 +109,7 @@ export class UndoManager {
 }
 
 export function createPropertyChange(
+  graph: SceneGraph,
   node: SceneNode,
   changes: Partial<SceneNode>,
   label: string
@@ -119,7 +120,7 @@ export function createPropertyChange(
 
   return {
     label,
-    forward: () => Object.assign(node, changes),
-    inverse: () => Object.assign(node, previous)
+    forward: () => graph.updateNode(node.id, changes),
+    inverse: () => graph.updateNode(node.id, previous)
   }
 }

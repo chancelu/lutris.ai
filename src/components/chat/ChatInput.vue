@@ -13,7 +13,7 @@ import {
   TooltipRoot,
   TooltipTrigger
 } from 'reka-ui'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import ProviderSettings from '@/components/chat/ProviderSettings.vue'
 import { uiButton } from '@/components/ui/button'
@@ -21,7 +21,7 @@ import { uiInput } from '@/components/ui/input'
 import { selectContent, selectItem, selectTrigger } from '@/components/ui/select'
 import { useAIChat } from '@/composables/use-chat'
 
-const { providerID, providerDef, modelID, customModelID } = useAIChat()
+const { providerID, providerDef, modelID, customModelID, isServerConfigured, draftMessage } = useAIChat()
 
 const { status } = defineProps<{
   status: 'ready' | 'submitted' | 'streaming' | 'error'
@@ -32,7 +32,7 @@ const emit = defineEmits<{
   stop: []
 }>()
 
-const input = ref('')
+const input = ref(draftMessage.value || '')
 
 const isStreaming = computed(() => status === 'streaming' || status === 'submitted')
 const isCustomProvider = computed(() => providerID.value === 'openai-compatible')
@@ -42,20 +42,29 @@ const selectedModelName = computed(() => {
   return providerDef.value.models.find((m) => m.id === modelID.value)?.name ?? modelID.value
 })
 
+watch(draftMessage, (value) => {
+  if (value !== input.value) input.value = value
+})
+
+watch(input, (value) => {
+  draftMessage.value = value
+})
+
 function handleSubmit(e: Event) {
   e.preventDefault()
   const text = input.value.trim()
   if (!text) return
   emit('submit', text)
   input.value = ''
+  draftMessage.value = ''
 }
 </script>
 
 <template>
   <TooltipProvider>
     <div class="shrink-0 border-t border-border px-3 py-2">
-      <!-- Model selector & settings -->
-      <div class="mb-1.5 flex items-center gap-1">
+      <!-- Model selector & settings (hidden when server-configured) -->
+      <div v-if="!isServerConfigured" class="mb-1.5 flex items-center gap-1">
         <template v-if="isCustomProvider">
           <div
             class="flex items-center gap-1 px-1.5 py-0.5 text-[10px] text-muted"

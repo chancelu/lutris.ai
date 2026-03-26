@@ -140,7 +140,17 @@ export function startAutomationBridge(server: ViteServer) {
   }
 
   const app = new Hono()
-  app.use('*', cors())
+  app.use('*', cors({
+    origin: (origin) => {
+      // Only allow localhost origins (any port)
+      if (!origin) return origin // allow non-browser requests (curl, etc.)
+      try {
+        const url = new URL(origin)
+        if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return origin
+      } catch { /* invalid origin */ }
+      return null
+    }
+  }))
 
   app.get('/health', (c) => {
     return c.json({

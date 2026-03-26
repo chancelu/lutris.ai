@@ -1,10 +1,6 @@
-import { ref, readonly, computed, watch } from 'vue'
+import { computed, readonly, ref } from 'vue'
 
-import { useProjects } from './use-projects'
-
-// ── Product Document Store ──
-// Per-project PRD with bidirectional sync between design canvas and product documentation.
-// Anti-recursion: syncSource flag prevents infinite loops.
+import { useSpec } from './use-spec'
 
 export interface DocVersion {
   id: number
@@ -22,218 +18,12 @@ export interface SyncConflict {
 
 type SyncSource = 'user' | 'design' | 'doc' | null
 
-const MAX_VERSIONS = 50
-
-/** Detect if content is binary (high ratio of non-printable chars) */
-function isBinaryContent(text: string): boolean {
-  const sample = text.slice(0, 1024)
-  if (!sample) return false
-  const nonPrintable = sample.split('').filter(c => {
-    const code = c.charCodeAt(0)
-    return code < 32 && code !== 9 && code !== 10 && code !== 13
-  }).length
-  return nonPrintable / sample.length > 0.1
-}
-
-// ── State (reactive, driven by active project) ──
-const currentContent = ref('')
-const versions = ref<DocVersion[]>([])
 const isEditing = ref(false)
 const showMarkdown = ref(true)
-const syncSource = ref<SyncSource>(null)
 const pendingConflict = ref<SyncConflict | null>(null)
 const pendingSyncConfirm = ref<{ content: string; source: SyncSource } | null>(null)
 const isImporting = ref(false)
 const isParsing = ref(false)
-const versionCounter = ref(0)
-
-// ── Sync with useProjects ──
-
-function syncToProject(): void {
-  const { activePRD, saveActiveProjectData } = useProjects()
-  activePRD.value = {
-    content: currentContent.value,
-    versions: versions.value,
-    versionCounter: versionCounter.value,
-  }
-  // Debounced persist
-  void saveActiveProjectData()
-}
-
-function syncFromProject(): void {
-  const { activePRD } = useProjects()
-  const prd = activePRD.value
-  const content = prd.content || ''
-  if (content && isBinaryContent(content)) {
-    currentContent.value = ''
-    versions.value = []
-    versionCounter.value = 0
-    return
-  }
-  currentContent.value = content
-  versions.value = prd.versions
-  versionCounter.value = prd.versionCounter
-}
-
-// Watch active project changes to reload PRD
-let _watchInitialized = false
-function initProjectWatch(): void {
-  if (_watchInitialized) return
-  _watchInitialized = true
-  const { activeProjectId } = useProjects()
-  watch(() => activeProjectId.value, () => {
-    syncFromProject()
-  })
-  // Initial load
-  syncFromProject()
-}
-
-// ── Version Management ──
-function createVersion(content: string, source: DocVersion['source'], label?: string): DocVersion {
-  const version: DocVersion = {
-    id: ++versionCounter.value,
-    content,
-    timestamp: Date.now(),
-    source,
-    label,
-  }
-  versions.value = [...versions.value, version]
-  if (versions.value.length > MAX_VERSIONS) {
-    versions.value = versions.value.slice(-MAX_VERSIONS)
-  }
-  syncToProject()
-  return version
-}
-
-function restoreVersion(versionId: number) {
-  const version = versions.value.find((v) => v.id === versionId)
-  if (!version) return false
-
-  syncSource.value = 'user'
-  currentContent.value = version.content
-  createVersion(version.content, 'user', `Restored from v${versionId}`)
-  syncSource.value = null
-  return true
-}
-
-// ── Document Update (from user editing) ──
-function updateContent(content: string) {
-  syncSource.value = 'user'
-  currentContent.value = content
-  createVersion(content, 'user')
-  syncSource.value = null
-}
-
-// ── Import file (Word/TXT/MD) ──
-async function importFile(file: File): Promise<string> {
-  isImporting.value = true
-  try {
-    const ext = file.name.split('.').pop()?.toLowerCase()
-    let text = ''
-
-    const binaryExts = ['fig', 'sketch', 'xd', 'psd', 'ai', 'pdf', 'zip', 'rar', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'wasm', 'exe', 'dll']
-    if (ext && binaryExts.includes(ext)) {
-      throw new Error(`Cannot import .${ext} files as a document. Use File > Open for design files.`)
-    }
-
-    if (ext === 'md' || ext === 'txt') {
-      text = await file.text()
-    } else if (ext === 'docx' || ext === 'doc') {
-      text = await parseWordFile(file)
-    } else {
-      text = await file.text()
-      const sample = text.slice(0, 1024)
-      const nonPrintable = sample.split('').filter(c => {
-        const code = c.charCodeAt(0)
-        return code < 32 && code !== 9 && code !== 10 && code !== 13
-      }).length
-      if (nonPrintable / sample.length > 0.1) {
-        throw new Error('File appears to be binary. Only text-based documents are supported.')
-      }
-    }
-
-    syncSource.value = 'user'
-    currentContent.value = text
-    createVersion(text, 'import', `Imported: ${file.name}`)
-    syncSource.value = null
-    return text
-  } finally {
-    isImporting.value = false
-  }
-}
-
-async function parseWordFile(file: File): Promise<string> {
-  try {
-    const mammoth = await import('mammoth')
-    const arrayBuffer = await file.arrayBuffer()
-    const result = await (mammoth as unknown as { convertToMarkdown: typeof mammoth.convertToHtml }).convertToMarkdown({ arrayBuffer })
-    return result.value
-  } catch {
-    return await file.text()
-  }
-}
-
-// ── Design → Doc sync ──
-function updateFromDesign(designDescription: string) {
-  if (syncSource.value === 'doc') return
-
-  if (!currentContent.value.trim()) {
-    syncSource.value = 'design'
-    currentContent.value = designDescription
-    createVersion(designDescription, 'design', 'Auto-generated from design')
-    syncSource.value = null
-    return
-  }
-
-  pendingSyncConfirm.value = {
-    content: designDescription,
-    source: 'design',
-  }
-}
-
-// ── Doc → Design sync ──
-function requestDesignSync(): string | undefined {
-  if (syncSource.value === 'design') return undefined
-  return currentContent.value
-}
-
-// ── Conflict Resolution ──
-function acceptDesignVersion() {
-  if (!pendingConflict.value) return
-  syncSource.value = 'design'
-  currentContent.value = pendingConflict.value.designContent
-  createVersion(pendingConflict.value.designContent, 'design', 'Accepted design version')
-  pendingConflict.value = null
-  syncSource.value = null
-}
-
-function keepDocVersion() {
-  pendingConflict.value = null
-}
-
-function acceptPendingSync() {
-  if (!pendingSyncConfirm.value) return
-  const { content, source } = pendingSyncConfirm.value
-
-  syncSource.value = source
-  currentContent.value = content
-  createVersion(content, source === 'design' ? 'design' : 'user', `Synced from ${source}`)
-  pendingSyncConfirm.value = null
-  syncSource.value = null
-}
-
-function rejectPendingSync() {
-  pendingSyncConfirm.value = null
-}
-
-// ── Computed ──
-const hasContent = computed(() => currentContent.value.trim().length > 0)
-const versionCount = computed(() => versions.value.length)
-const latestVersion = computed(() =>
-  versions.value.length > 0 ? versions.value[versions.value.length - 1] : null
-)
-
-// ── PM Skill Integration ──
 
 const PM_PARSE_PROMPT = `You are a senior product manager with expertise in PRD writing and requirements analysis.
 
@@ -329,30 +119,121 @@ Given a product document:
 
 Output: Structured design brief that can be fed to an AI design generator.`
 
-function getParsePrompt(): string {
-  return PM_PARSE_PROMPT
-}
-
-function getStructuredParsePrompt(): string {
-  return PM_STRUCTURED_PARSE_PROMPT
-}
-
-function getDesignSyncPrompt(): string {
-  return PM_DESIGN_SYNC_PROMPT
-}
-
-function getDocToDesignPrompt(): string {
-  return PM_DOC_TO_DESIGN_PROMPT
+async function parseWordFile(file: File): Promise<string> {
+  try {
+    const mammoth = await import('mammoth')
+    const arrayBuffer = await file.arrayBuffer()
+    const result = await (mammoth as unknown as { convertToMarkdown: typeof mammoth.convertToHtml }).convertToMarkdown({ arrayBuffer })
+    return result.value
+  } catch {
+    return await file.text()
+  }
 }
 
 export function useProductDoc() {
-  // Initialize project watch on first use
-  initProjectWatch()
+  const { summary, versions, updateSummary, appendSummary, restoreVersion } = useSpec()
+
+  const currentContent = computed(() => summary.value)
+  const versionCount = computed(() => versions.value.length)
+  const latestVersion = computed(() => versions.value.length > 0 ? versions.value[versions.value.length - 1] : null)
+  const hasContent = computed(() => currentContent.value.trim().length > 0)
+
+  function updateContent(content: string) {
+    updateSummary(content, 'user', 'Updated product document')
+  }
+
+  function appendContent(content: string, source: DocVersion['source'] = 'ai') {
+    appendSummary(content, source, 'Imported from AI Chat')
+  }
+
+  async function importFile(file: File): Promise<string> {
+    isImporting.value = true
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      let text = ''
+
+      const binaryExts = ['fig', 'sketch', 'xd', 'psd', 'ai', 'pdf', 'zip', 'rar', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'wasm', 'exe', 'dll']
+      if (ext && binaryExts.includes(ext)) {
+        throw new Error(`Cannot import .${ext} files as a document. Use File > Open for design files.`)
+      }
+
+      if (ext === 'md' || ext === 'txt') {
+        text = await file.text()
+      } else if (ext === 'docx' || ext === 'doc') {
+        text = await parseWordFile(file)
+      } else {
+        text = await file.text()
+      }
+
+      updateSummary(text, 'import', `Imported: ${file.name}`)
+      return text
+    } finally {
+      isImporting.value = false
+    }
+  }
+
+  function updateFromDesign(designDescription: string) {
+    if (!currentContent.value.trim()) {
+      updateSummary(designDescription, 'design', 'Auto-generated from design')
+      return
+    }
+
+    pendingSyncConfirm.value = {
+      content: designDescription,
+      source: 'design',
+    }
+  }
+
+  function requestDesignSync(): string | undefined {
+    return currentContent.value || undefined
+  }
+
+  function acceptDesignVersion() {
+    if (!pendingConflict.value) return
+    updateSummary(pendingConflict.value.designContent, 'design', 'Accepted design version')
+    pendingConflict.value = null
+  }
+
+  function keepDocVersion() {
+    pendingConflict.value = null
+  }
+
+  function acceptPendingSync() {
+    if (!pendingSyncConfirm.value) return
+    const { content, source } = pendingSyncConfirm.value
+    updateSummary(content, source === 'design' ? 'design' : 'user', `Synced from ${source}`)
+    pendingSyncConfirm.value = null
+  }
+
+  function rejectPendingSync() {
+    pendingSyncConfirm.value = null
+  }
+
+  function getParsePrompt(): string {
+    return PM_PARSE_PROMPT
+  }
+
+  function getStructuredParsePrompt(): string {
+    return PM_STRUCTURED_PARSE_PROMPT
+  }
+
+  function getDesignSyncPrompt(): string {
+    return PM_DESIGN_SYNC_PROMPT
+  }
+
+  function getDocToDesignPrompt(): string {
+    return PM_DOC_TO_DESIGN_PROMPT
+  }
 
   return {
-    // State
     currentContent,
-    versions: readonly(versions),
+    versions: readonly(computed(() => versions.value.map((version) => ({
+      id: version.id,
+      content: version.summarySnapshot,
+      timestamp: version.timestamp,
+      source: version.source,
+      label: version.label,
+    })))),
     isEditing,
     showMarkdown,
     isImporting: readonly(isImporting),
@@ -362,11 +243,9 @@ export function useProductDoc() {
     hasContent,
     versionCount,
     latestVersion,
-
-    // Actions
     updateContent,
+    appendContent,
     importFile,
-    createVersion,
     restoreVersion,
     updateFromDesign,
     requestDesignSync,
@@ -374,9 +253,7 @@ export function useProductDoc() {
     keepDocVersion,
     acceptPendingSync,
     rejectPendingSync,
-    saveToStorage: syncToProject,
-
-    // PM Skill prompts
+    saveToStorage: () => undefined,
     getParsePrompt,
     getStructuredParsePrompt,
     getDesignSyncPrompt,

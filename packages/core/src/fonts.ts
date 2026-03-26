@@ -346,6 +346,7 @@ export function weightToStyle(weight: number, italic = false): string {
   if (weight <= 100) label = 'Thin'
   else if (weight <= 200) label = 'ExtraLight'
   else if (weight <= 300) label = 'Light'
+  else if (weight <= 400) label = 'Regular'
   else if (weight <= 500) label = 'Medium'
   else if (weight <= 600) label = 'SemiBold'
   else if (weight <= 700) label = 'Bold'
