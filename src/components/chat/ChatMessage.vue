@@ -43,7 +43,7 @@ function partKey(part: UIMessagePart, index: number): string {
     :data-test-id="`chat-message-${message.role}`"
     :class="message.role === 'user' ? 'flex justify-end' : ''"
   >
-    <div class="min-w-0 space-y-1.5" :class="message.role === 'user' ? 'max-w-[85%]' : ''">
+    <div class="min-w-0 select-text space-y-1.5" :class="message.role === 'user' ? 'max-w-[85%]' : ''">
       <template v-if="message.role === 'assistant'">
         <template v-for="(part, i) in message.parts" :key="partKey(part, i)">
           <!-- Tool call -->
