@@ -198,7 +198,7 @@ function detachOrphanedInstances(created: Map<string, string>, graph: SceneGraph
     const node = graph.getNode(ourId)
     if (node?.type !== 'INSTANCE') continue
     if (node.childIds.length === 0 && (!node.componentId || !graph.getNode(node.componentId))) {
-      graph.updateNode(ourId, { type: 'FRAME', componentId: '' })
+      graph.updateNode(ourId, { type: 'FRAME', componentId: null })
     }
   }
 }

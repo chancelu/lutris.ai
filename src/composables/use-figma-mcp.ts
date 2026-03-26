@@ -189,6 +189,8 @@ async function connect() {
         }, 120000)
 
         const handler = (event: MessageEvent) => {
+          // Validate origin to prevent cross-origin message injection
+          if (event.origin !== window.location.origin) return
           if (event.data?.type === 'figma-oauth-callback' && event.data?.token) {
             accessToken.value = event.data.token
             saveToken(event.data.token)

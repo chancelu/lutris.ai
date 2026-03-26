@@ -118,7 +118,7 @@ function confirmAISelect() {
   if (aiSelectNodeIds.value.length) {
     for (const id of aiSelectNodeIds.value) addNodeToAIContext(id)
   }
-  activeTab.value = 'ai'
+  activeTab.value = 'create'
   showAISelectPopup.value = false
 }
 

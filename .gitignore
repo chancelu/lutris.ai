@@ -30,6 +30,7 @@ test-results/
 # Git worktrees for parallel agent work
 .worktrees/
 .env
+.env.local
 .env.production
 .env.staging
 packages/docs/.vitepress/cache/

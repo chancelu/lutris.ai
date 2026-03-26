@@ -4,6 +4,7 @@ import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewpor
 import { useProductDoc } from '@/composables/use-product-doc'
 import { useAIChat } from '@/composables/use-chat'
 import { useI18n } from '@/composables/use-i18n'
+import NextStepCard from './NextStepCard.vue'
 
 const {
   currentContent,
@@ -27,11 +28,14 @@ const {
 const { pendingMessage, activeTab } = useAIChat()
 const { t } = useI18n()
 
+const { defaultSection } = defineProps<{ defaultSection?: 'summary' | 'versions' }>()
+
 const editBuffer = ref('')
 const showVersions = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
-const activeSection = ref<'doc' | 'versions'>('doc')
+const activeSection = ref<'doc' | 'versions'>(defaultSection === 'versions' ? 'versions' : 'doc')
 const isAIParsing = ref(false)
+const showImportNextSteps = ref(false)
 
 function startEditing() {
   editBuffer.value = currentContent.value
@@ -57,7 +61,22 @@ async function handleFileChange(event: Event) {
   const file = input.files?.[0]
   if (!file) return
   await importFile(file)
+  showImportNextSteps.value = true
   input.value = '' // reset
+}
+
+function handleImportNextStep(action: string) {
+  if (action === 'ai-summary') {
+    handleAIParse()
+    return
+  }
+  if (action === 'to-design') {
+    handleSyncToDesign()
+    return
+  }
+  if (action === 'review-spec') {
+    showImportNextSteps.value = false
+  }
 }
 
 function handleSyncToDesign() {
@@ -88,11 +107,20 @@ function formatDate(ts: number): string {
 
 function sourceLabel(source: string): string {
   switch (source) {
-    case 'user': return '✏️ Manual'
-    case 'design': return '🎨 Design'
-    case 'import': return '📄 Import'
-    case 'ai': return '🤖 AI'
+    case 'user': return 'Manual'
+    case 'design': return 'Design'
+    case 'import': return 'Import'
+    case 'ai': return 'AI'
     default: return source
+  }
+}
+
+function sourceTone(source: string): string {
+  switch (source) {
+    case 'ai': return 'bg-violet-500/15 text-violet-400'
+    case 'import': return 'bg-blue-500/15 text-blue-400'
+    case 'design': return 'bg-emerald-500/15 text-emerald-400'
+    default: return 'bg-muted/15 text-muted'
   }
 }
 
@@ -262,6 +290,18 @@ const renderedContent = computed(() => {
 
           <!-- Rendered / Source view -->
           <div v-else class="p-3">
+            <div v-if="showImportNextSteps" class="mb-3">
+              <NextStepCard
+                title="PRD imported"
+                body="Summarize, review, or turn it into a design brief."
+                :actions="[
+                  { label: 'Generate spec summary', value: 'ai-summary' },
+                  { label: 'Review spec', value: 'review-spec' },
+                  { label: 'Send to design', value: 'to-design' }
+                ]"
+                @action="handleImportNextStep"
+              />
+            </div>
             <!-- Rendered markdown (default view) -->
             <div
               v-if="showMarkdown"
@@ -305,28 +345,25 @@ const renderedContent = computed(() => {
           <div v-if="versions.length === 0" class="px-4 py-8 text-center">
             <span class="text-[12px] text-muted">{{ t('doc.noVersions') }}</span>
           </div>
-          <div v-else class="p-2">
-            <div
+          <div v-else class="p-2 space-y-0.5">
+            <button
               v-for="v in [...versions].reverse()"
               :key="v.id"
-              class="mb-1 rounded border border-border/50 p-2 hover:border-border"
+              class="group flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-hover"
+              @click="restoreVersion(v.id)"
             >
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-[11px] text-muted">v{{ v.id }}</span>
-                  <span class="text-[11px]">{{ sourceLabel(v.source) }}</span>
+              <span class="mt-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium" :class="sourceTone(v.source)">
+                {{ sourceLabel(v.source) }}
+              </span>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-baseline justify-between gap-2">
+                  <span class="truncate text-[11px] text-surface">{{ v.label || `v${v.id}` }}</span>
+                  <span class="shrink-0 text-[10px] text-muted/60">{{ formatDate(v.timestamp) }}</span>
                 </div>
-                <span class="text-[11px] text-muted">{{ formatDate(v.timestamp) }}</span>
+                <div class="mt-0.5 truncate text-[10px] text-muted/50">{{ v.content.slice(0, 80) }}</div>
               </div>
-              <div v-if="v.label" class="mt-0.5 text-[11px] text-muted/70">{{ v.label }}</div>
-              <pre class="mt-1 max-h-16 overflow-hidden text-[11px] text-muted/60">{{ v.content.slice(0, 200) }}{{ v.content.length > 200 ? '...' : '' }}</pre>
-              <button
-                class="mt-1 text-[11px] text-blue-400 hover:text-blue-300"
-                @click="restoreVersion(v.id)"
-              >
-                {{ t('doc.restoreVersion') }}
-              </button>
-            </div>
+              <span class="mt-0.5 shrink-0 text-[10px] text-blue-400 opacity-0 transition group-hover:opacity-100">Restore</span>
+            </button>
           </div>
         </template>
       </ScrollAreaViewport>

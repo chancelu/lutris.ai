@@ -800,18 +800,18 @@ export class SceneGraph {
     const newParent = this.nodes.get(parentId)
     if (!newParent) return
 
+    // Capture original index before removal for same-parent off-by-one correction
+    const oldIndex = oldParent === newParent ? oldParent.childIds.indexOf(nodeId) : -1
+
     // Remove from old parent
     if (oldParent) {
       oldParent.childIds = oldParent.childIds.filter((cid) => cid !== nodeId)
     }
 
-    // If same parent, adjust index since we removed the item
+    // If same parent and target is after the removed position, adjust down by 1
     let idx = insertIndex
-    if (
-      oldParent === newParent &&
-      idx > (oldParent.childIds.indexOf(nodeId) === -1 ? idx : oldParent.childIds.length)
-    ) {
-      // Already removed above, no adjustment needed
+    if (oldParent === newParent && oldIndex !== -1 && idx > oldIndex) {
+      idx--
     }
 
     node.parentId = parentId

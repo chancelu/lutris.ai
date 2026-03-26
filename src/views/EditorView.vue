@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { provide, ref, onMounted, onUnmounted } from 'vue'
+import NextStepCard from '@/components/NextStepCard.vue'
 import { useBreakpoints, useEventListener, useUrlSearchParams } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
@@ -13,6 +14,7 @@ import { useProductDoc } from '@/composables/use-product-doc'
 import { useOnlineStatus } from '@/composables/use-online-status'
 import { useI18n } from '@/composables/use-i18n'
 import { useProjects } from '@/composables/use-projects'
+import { toast } from '@/composables/use-toast'
 import { connectAutomation } from '@/automation/server'
 import { createDemoShapes } from '@/demo'
 import { useEditorStore } from '@/stores/editor'
@@ -51,8 +53,9 @@ useKeyboard()
 useMenu()
 const { isOnline } = useOnlineStatus()
 const { t } = useI18n()
-const { activeTab: rightTab } = useAIChat()
+const { activeTab: rightTab, draftMessage } = useAIChat()
 const { updateFromDesign } = useProductDoc()
+const importNextSteps = ref<{ title: string; body: string; actions: Array<{ label: string; value: string }> } | null>(null)
 const { init: initProjects, switchProject, activeProjectId, startAutosave, stopAutosave } = useProjects()
 
 // ── Project initialization ──
@@ -88,18 +91,42 @@ function onSyncPRD() {
     return `- ${n.name || n.type} (${n.type}, ${Math.round(n.width || 0)}×${Math.round(n.height || 0)})`
   }).filter(Boolean).join('\n')
   updateFromDesign(`# Design State (AI Updated)\n\n${desc}`)
-  rightTab.value = 'doc'
+  rightTab.value = 'spec'
 }
 onMounted(() => window.addEventListener('sync-prd-from-design', onSyncPRD))
 onUnmounted(() => window.removeEventListener('sync-prd-from-design', onSyncPRD))
+
+function handleImportNextStep(action: string) {
+  if (action === 'analyze-ai') {
+    rightTab.value = 'create'
+    draftMessage.value = 'Analyze this imported design and suggest the highest-impact improvements.'
+  } else if (action === 'generate-spec') {
+    rightTab.value = 'spec'
+  } else if (action === 'export-assets') {
+    rightTab.value = 'ship'
+  } else if (action === 'to-design') {
+    rightTab.value = 'create'
+    draftMessage.value = 'Turn this imported PRD into a first-pass UI direction and screen structure.'
+  }
+  importNextSteps.value = null
+}
 
 function onWelcomeAction(type: string) {
   if (type === 'blank') {
     // Just dismiss overlay, canvas is already empty and ready
   } else if (type === 'ai') {
-    rightTab.value = 'ai'
+    rightTab.value = 'create'
   } else if (type === 'import' || type === 'import-fig') {
     document.querySelector<HTMLInputElement>('input[type="file"]')?.click()
+    importNextSteps.value = {
+      title: 'Design imported',
+      body: 'Nice. Now decide whether to analyze it with AI, generate a spec summary, or move straight to export.',
+      actions: [
+        { label: 'Analyze with AI', value: 'analyze-ai' },
+        { label: 'Generate spec summary', value: 'generate-spec' },
+        { label: 'Export assets', value: 'export-assets' }
+      ]
+    }
   } else if (type === 'import-prd') {
     // Open file picker for PRD import
     const input = document.createElement('input')
@@ -111,13 +138,26 @@ function onWelcomeAction(type: string) {
         const { useProductDoc } = await import('@/composables/use-product-doc')
         const { importFile } = useProductDoc()
         await importFile(file)
+        rightTab.value = 'spec'
+        importNextSteps.value = {
+          title: 'PRD imported',
+          body: 'Good. Review the spec, turn it into a design brief, or jump into AI to generate a first pass.',
+          actions: [
+            { label: 'Review spec', value: 'generate-spec' },
+            { label: 'Turn into design', value: 'to-design' },
+            { label: 'Open AI workspace', value: 'analyze-ai' }
+          ]
+        }
       }
     }
     input.click()
   }
 }
-const { disconnect: disconnectAutomation } = connectAutomation(getActiveStore)
-onUnmounted(disconnectAutomation)
+// Automation bridge only runs in dev (local WebSocket server on :7601)
+const disconnectAutomation = import.meta.env.DEV
+  ? connectAutomation(getActiveStore).disconnect
+  : undefined
+if (disconnectAutomation) onUnmounted(disconnectAutomation)
 const collab = useCollab(firstTab.store)
 provide(COLLAB_KEY, collab)
 
@@ -178,6 +218,14 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
           <Toolbar />
           <FloatingInspector />
           <WelcomeOverlay @action="onWelcomeAction" />
+          <div v-if="importNextSteps" class="absolute left-3 top-3 z-20 max-w-sm">
+            <NextStepCard
+              :title="importNextSteps.title"
+              :body="importNextSteps.body"
+              :actions="importNextSteps.actions"
+              @action="handleImportNextStep"
+            />
+          </div>
           <!-- Bottom-right: shortcuts + locale + theme -->
           <div class="absolute bottom-3 right-3 z-20 flex items-center gap-1 rounded-lg border border-border bg-panel/90 px-1.5 py-1 backdrop-blur-sm">
             <button

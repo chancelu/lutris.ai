@@ -248,7 +248,8 @@ export const DEFAULT_AI_MODEL = AI_PROVIDERS[0].defaultModel
 export const AUTOMATION_HTTP_PORT = 7600
 export const AUTOMATION_WS_PORT = 7601
 
-export const GOOGLE_FONTS_API_KEY = '<REDACTED-KEY>'
+export const GOOGLE_FONTS_API_KEY: string =
+  import.meta.env?.VITE_GOOGLE_FONTS_API_KEY ?? ''
 
 export const CJK_FALLBACK_FAMILIES_MACOS = [
   'PingFang SC',

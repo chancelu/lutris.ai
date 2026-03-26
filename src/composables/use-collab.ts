@@ -98,6 +98,10 @@ export function useCollab(store: EditorStore) {
       store.requestRender()
     })
 
+    // SECURITY: P2P rooms are unauthenticated. Any peer that knows the room ID
+    // can join and send arbitrary Yjs updates. This is acceptable for the current
+    // use-case (local/trusted collaboration) but should be hardened with HMAC-signed
+    // join tokens or a signaling server with auth before exposing publicly.
     room = joinTrysteroRoom(
       {
         appId: TRYSTERO_APP_ID,

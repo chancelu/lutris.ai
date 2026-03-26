@@ -2,15 +2,18 @@
 import { ref, computed, watchEffect } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import { useI18n } from '@/composables/use-i18n'
+import NextStepCard from './NextStepCard.vue'
+import { useAIChat } from '@/composables/use-chat'
 
 const store = useEditorStore()
 const { t } = useI18n()
+const { activeTab } = useAIChat()
 const format = ref<'PNG' | 'JPG' | 'SVG' | 'WEBP' | 'PDF'>('PNG')
+const scale = ref(2)
 const isExporting = ref(false)
 const exportSuccess = ref<string | null>(null)
 const filename = ref(store.selectedNode?.name || store.state.documentName || 'Export')
 
-// Update filename when selection changes
 watchEffect(() => {
   const name = store.selectedNode?.name
   if (name) filename.value = name
@@ -33,6 +36,27 @@ const SCALES = [
 ]
 
 const hasSelection = computed(() => store.state.selectedIds.size > 0)
+const nextStepActions = [
+  { label: 'Export another format', value: 'again' },
+  { label: 'Create handoff notes', value: 'handoff' },
+  { label: 'Review code output', value: 'code' },
+]
+
+function handleNextStep(value: string) {
+  if (value === 'handoff') {
+    activeTab.value = 'ship'
+    store.state.measurementMode = true
+  }
+  if (value === 'code') {
+    activeTab.value = 'ship'
+    store.state.measurementMode = false
+  }
+  if (value === 'again') {
+    activeTab.value = 'ship'
+    exportSuccess.value = null
+    return
+  }
+}
 
 async function handleExport() {
   isExporting.value = true
@@ -54,7 +78,6 @@ async function handleExport() {
 }
 
 async function exportAsPDF() {
-  // Render as PNG first, then embed in PDF
   const ids = [...store.state.selectedIds]
   const data = await store.renderExportImage(
     ids.length > 0 ? ids : [],
@@ -63,10 +86,8 @@ async function exportAsPDF() {
   )
   if (!data) throw new Error('Failed to render image for PDF')
 
-  // Dynamic import jsPDF
   const { jsPDF } = await import('jspdf')
 
-  // Convert Uint8Array to base64
   const base64 = btoa(
     Array.from(new Uint8Array(data))
       .map((b) => String.fromCharCode(b))
@@ -94,27 +115,28 @@ async function exportAsPDF() {
 
 <template>
   <div class="p-3">
-    <div class="mb-3 text-xs font-semibold text-surface">{{ t('action.export') }}</div>
-
-    <!-- Filename -->
     <div class="mb-3">
-      <div class="mb-1 text-[12px] text-muted">{{ t('export.filename') }}</div>
+      <div class="text-xs font-semibold text-surface">Export</div>
+      <div class="mt-1 text-[11px] leading-5 text-muted">Start with the deliverable. Code and handoff stay available, but secondary.</div>
+    </div>
+
+    <div class="mb-3 rounded-2xl border border-border bg-inset/50 p-3">
+      <div class="mb-1 text-[12px] text-muted">Filename</div>
       <input
         v-model="filename"
         type="text"
         placeholder="Export"
-        class="w-full rounded border border-border bg-transparent px-2 py-1 text-[13px] text-surface placeholder:text-muted/50 focus:border-blue-500 focus:outline-none"
+        class="w-full rounded-xl border border-border bg-transparent px-3 py-2 text-[13px] text-surface placeholder:text-muted/50 focus:border-blue-500 focus:outline-none"
       />
     </div>
 
-    <!-- Format selection -->
-    <div class="mb-3">
-      <div class="mb-1 text-[12px] text-muted">{{ t('export.format') }}</div>
+    <div class="mb-3 rounded-2xl border border-border bg-inset/50 p-3">
+      <div class="mb-1 text-[12px] text-muted">Format</div>
       <div class="grid grid-cols-5 gap-1">
         <button
           v-for="f in FORMATS"
           :key="f.value"
-          class="rounded border py-1 text-center text-[12px] transition-colors"
+          class="rounded-xl border py-2 text-center text-[12px] transition-colors"
           :class="format === f.value
             ? 'border-blue-500 bg-blue-500/10 text-surface font-semibold'
             : 'border-border text-muted hover:border-border hover:text-surface'"
@@ -128,14 +150,13 @@ async function exportAsPDF() {
       </div>
     </div>
 
-    <!-- Scale (not for SVG) -->
-    <div v-if="format !== 'SVG'" class="mb-3">
-      <div class="mb-1 text-[12px] text-muted">{{ t('export.scale') }}</div>
+    <div v-if="format !== 'SVG'" class="mb-3 rounded-2xl border border-border bg-inset/50 p-3">
+      <div class="mb-1 text-[12px] text-muted">Scale</div>
       <div class="flex gap-1">
         <button
           v-for="s in SCALES"
           :key="s.value"
-          class="rounded border px-2 py-0.5 text-[12px] transition-colors"
+          class="rounded-full border px-2.5 py-1 text-[12px] transition-colors"
           :class="scale === s.value
             ? 'border-blue-500 bg-blue-500/10 text-surface font-semibold'
             : 'border-border text-muted hover:text-surface'"
@@ -146,15 +167,9 @@ async function exportAsPDF() {
       </div>
     </div>
 
-    <!-- Selection info -->
-    <div class="mb-3 text-[11px] text-muted">
-      {{ hasSelection ? `${store.state.selectedIds.size} ${t('export.selected')}` : t('export.noSelection') }}
-    </div>
-
-    <!-- Preview -->
-    <div class="mb-3 flex items-center justify-center rounded border border-border bg-inset p-2">
-      <div class="flex flex-col items-center gap-1.5">
-        <div class="flex size-16 items-center justify-center rounded bg-panel text-muted">
+    <div class="mb-3 flex items-center justify-center rounded-2xl border border-border bg-inset/40 p-4">
+      <div class="flex flex-col items-center gap-2">
+        <div class="flex size-16 items-center justify-center rounded-2xl bg-panel text-muted">
           <icon-lucide-image v-if="format === 'PNG' || format === 'JPG' || format === 'WEBP'" class="size-8 opacity-40" />
           <icon-lucide-file-code v-else-if="format === 'SVG'" class="size-8 opacity-40" />
           <icon-lucide-file-text v-else class="size-8 opacity-40" />
@@ -163,21 +178,31 @@ async function exportAsPDF() {
           {{ filename || 'Export' }}.{{ format.toLowerCase() }}
           <span v-if="format !== 'SVG'" class="text-muted/50">@ {{ scale }}x</span>
         </div>
+        <div class="text-[11px] text-muted/70">
+          {{ hasSelection ? `${store.state.selectedIds.size} ${t('export.selected')}` : t('export.noSelection') }}
+        </div>
       </div>
     </div>
 
-    <!-- Export button -->
     <button
       :disabled="isExporting"
-      class="w-full rounded bg-blue-600 py-1.5 text-xs text-white hover:bg-blue-500 disabled:opacity-40"
+      class="w-full rounded-2xl bg-blue-600 py-2 text-xs text-white hover:bg-blue-500 disabled:opacity-40"
       @click="handleExport"
     >
       {{ isExporting ? t('export.exporting') : `${t('export.exportAs')} ${format}` }}
     </button>
 
-    <!-- Success message -->
-    <div v-if="exportSuccess" class="mt-2 rounded bg-green-500/10 px-2 py-1 text-center">
-      <span class="text-[12px] text-green-400">✅ {{ exportSuccess }}</span>
+    <div v-if="exportSuccess" class="mt-2 rounded-lg border border-green-500/20 bg-green-500/8 px-3 py-1.5 text-center">
+      <span class="text-[11px] text-green-400">{{ exportSuccess }}</span>
+    </div>
+
+    <div v-if="exportSuccess" class="mt-2">
+      <NextStepCard
+        title="Export complete"
+        body="Pick the next delivery step."
+        :actions="nextStepActions"
+        @action="handleNextStep"
+      />
     </div>
   </div>
 </template>

@@ -55,7 +55,9 @@ export function createTab(store?: EditorStore, projectId?: string): Tab {
 function activateTab(tab: Tab) {
   activeTabId.value = tab.id
   setActiveEditorStore(tab.store)
-  window.__OPEN_PENCIL_STORE__ = tab.store
+  if (import.meta.env.DEV) {
+    window.__OPEN_PENCIL_STORE__ = tab.store
+  }
 }
 
 export function switchTab(tabId: string) {

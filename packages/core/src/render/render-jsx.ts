@@ -25,7 +25,15 @@ export function buildComponent(jsxString: string): () => unknown {
     production: true
   })
 
-  return new Function('React', result.code)(React) as () => unknown
+  // Shadow dangerous globals to prevent sandbox escape via new Function()
+  const shadowGlobals = [
+    'fetch', 'XMLHttpRequest', 'document', 'window', 'localStorage',
+    'sessionStorage', 'indexedDB', 'WebSocket', 'importScripts', 'eval'
+  ]
+  const shadowArgs = shadowGlobals.join(',')
+  const shadowVals = shadowGlobals.map(() => 'undefined').join(',')
+  const wrappedCode = `return (function(${shadowArgs}){${result.code}})(${shadowVals})`
+  return new Function('React', wrappedCode)(React) as () => unknown
 }
 
 interface RenderJSXOptions {

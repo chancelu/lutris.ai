@@ -12,9 +12,7 @@ import ProjectManager from './ProjectManager.vue'
 import TemplateLibrary from './TemplateLibrary.vue'
 import ComponentLibrary from './ComponentLibrary.vue'
 import UndoHistoryPanel from './UndoHistoryPanel.vue'
-import ProductDocPanel from './ProductDocPanel.vue'
-
-const leftTab = ref<'layers' | 'assets' | 'doc' | 'templates' | 'components' | 'history'>('layers')
+const leftTab = ref<'layers' | 'assets' | 'templates' | 'components' | 'history'>('layers')
 const { t } = useI18n()
 const { projects, activeProject, switchProject, activeProjectId } = useProjects()
 
@@ -69,22 +67,6 @@ async function onSelectProject(projectId: string) {
     </div>
 
     <SplitterGroup direction="vertical" auto-save-id="layers-layout" class="flex-1 overflow-hidden">
-      <!-- PRD Section -->
-      <SplitterPanel
-        :default-size="30"
-        :min-size="10"
-        :max-size="50"
-        class="flex flex-col overflow-hidden"
-      >
-        <div class="flex shrink-0 items-center justify-between border-b border-border px-3 py-1.5">
-          <span class="text-[11px] font-semibold uppercase tracking-wider text-muted">PRD</span>
-        </div>
-        <ProductDocPanel />
-      </SplitterPanel>
-      <SplitterResizeHandle class="group relative z-10 -my-1 h-2 cursor-row-resize">
-        <div class="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-      </SplitterResizeHandle>
-
       <!-- Pages -->
       <SplitterPanel
         :default-size="20"
