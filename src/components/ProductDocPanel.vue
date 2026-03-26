@@ -206,14 +206,14 @@ const renderedContent = computed(() => {
         :class="activeSection === 'doc' ? 'bg-hover font-semibold text-surface' : 'text-muted hover:text-surface'"
         @click="activeSection = 'doc'"
       >
-        📄 {{ t('doc.document') }}
+        <icon-lucide-file-text class="inline size-3" /> {{ t('doc.document') }}
       </button>
       <button
         class="rounded px-2 py-0.5 text-[12px]"
         :class="activeSection === 'versions' ? 'bg-hover font-semibold text-surface' : 'text-muted hover:text-surface'"
         @click="activeSection = 'versions'"
       >
-        🕐 {{ t('doc.versions') }} ({{ versionCount }})
+        <icon-lucide-clock class="inline size-3" /> {{ t('doc.versions') }} ({{ versionCount }})
       </button>
       <div class="flex-1" />
       <template v-if="hasContent && activeSection === 'doc' && !isEditing">
@@ -228,7 +228,7 @@ const renderedContent = computed(() => {
           class="rounded px-1.5 py-0.5 text-[11px] text-blue-400 hover:bg-blue-500/10"
           @click="startEditing"
         >
-          ✏️ {{ t('doc.edit') }}
+          <icon-lucide-pencil class="inline size-3" /> {{ t('doc.edit') }}
         </button>
       </template>
     </div>
@@ -242,7 +242,7 @@ const renderedContent = computed(() => {
             v-if="!hasContent && !isEditing"
             class="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center"
           >
-            <span class="text-2xl">📋</span>
+            <icon-lucide-clipboard-list class="size-6 text-muted" />
             <div>
               <p class="text-xs text-surface">{{ t('doc.title') }}</p>
               <p class="mt-1 text-[12px] text-muted">
@@ -254,13 +254,13 @@ const renderedContent = computed(() => {
                 class="rounded bg-blue-600 px-3 py-1.5 text-[12px] text-white hover:bg-blue-500"
                 @click="triggerImport"
               >
-                📄 {{ t('doc.importFile') }}
+                <icon-lucide-file-text class="inline size-3" /> {{ t('doc.importFile') }}
               </button>
               <button
                 class="rounded border border-border px-3 py-1.5 text-[12px] text-muted hover:bg-hover hover:text-surface"
                 @click="startEditing"
               >
-                ✏️ {{ t('doc.write') }}
+                <icon-lucide-pencil class="inline size-3" /> {{ t('doc.write') }}
               </button>
             </div>
           </div>
@@ -321,20 +321,20 @@ const renderedContent = computed(() => {
                 class="rounded border border-border px-2 py-0.5 text-[11px] text-muted hover:bg-hover hover:text-surface"
                 @click="triggerImport"
               >
-                📄 {{ t('action.import') }}
+                <icon-lucide-file-text class="inline size-3" /> {{ t('action.import') }}
               </button>
               <button
                 class="rounded border border-border px-2 py-0.5 text-[11px] text-muted hover:bg-hover hover:text-surface"
                 @click="handleSyncToDesign"
               >
-                🎨 {{ t('doc.toDesign') }}
+                <icon-lucide-palette class="inline size-3" /> {{ t('doc.toDesign') }}
               </button>
               <button
                 :disabled="isAIParsing"
                 class="rounded border border-amber-500/50 px-2 py-0.5 text-[11px] text-amber-400 hover:bg-amber-500/10 disabled:opacity-40"
                 @click="handleAIParse"
               >
-                🤖 {{ isAIParsing ? t('doc.aiParsing') : t('doc.aiParse') }}
+                <icon-lucide-bot class="inline size-3" /> {{ isAIParsing ? t('doc.aiParsing') : t('doc.aiParse') }}
               </button>
             </div>
           </div>

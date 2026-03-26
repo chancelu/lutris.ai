@@ -99,8 +99,12 @@ export function createAITools(store: EditorStore) {
 
       toast.show(`🎨 Generating image: "${prompt.slice(0, 40)}"...`)
 
-      const result = await gen(prompt)
-      clearInterval(pulseInterval)
+      let result: Awaited<ReturnType<typeof gen>>
+      try {
+        result = await gen(prompt)
+      } finally {
+        clearInterval(pulseInterval)
+      }
 
       if (!result) {
         // Hide placeholder on failure

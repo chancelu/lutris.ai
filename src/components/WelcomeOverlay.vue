@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref } from 'vue'
 
 import { useEditorStore } from '@/stores/editor'
 import { useAIChat } from '@/composables/use-chat'
@@ -15,7 +15,6 @@ const dismissed = ref(false)
 
 const hasContent = computed(() => {
   void store.state.sceneVersion
-  void forceCheck.value
   const pageId = store.state.currentPageId
   if (!pageId) return false
   try {
@@ -38,13 +37,6 @@ function usePrompt(prompt: string) {
   activeTab.value = 'create'
   dismissed.value = true
 }
-
-const forceCheck = ref(0)
-let checkTimer: ReturnType<typeof setInterval> | null = null
-onMounted(() => {
-  checkTimer = setInterval(() => { forceCheck.value++ }, 500)
-})
-onUnmounted(() => { if (checkTimer) clearInterval(checkTimer) })
 
 const showOverlay = computed(() => !dismissed.value && !hasContent.value)
 

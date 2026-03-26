@@ -188,7 +188,7 @@ if (ENV_PROVIDER !== undefined) providerID.value = ENV_PROVIDER
 if (ENV_API_KEY !== '') apiKey.value = ENV_API_KEY
 if (ENV_BASE_URL !== '') customBaseURL.value = ENV_BASE_URL
 if (ENV_MODEL !== '') customModelID.value = ENV_MODEL
-if (ENV_API_TYPE !== 'completions') customAPIType.value = ENV_API_TYPE
+if (ENV_API_TYPE !== '' as string) customAPIType.value = ENV_API_TYPE
 
 const activeTab = ref<'create' | 'spec' | 'ship'>('create')
 const pendingMessage = ref<string | null>(null)

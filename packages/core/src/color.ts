@@ -67,7 +67,7 @@ export function colorToFill(color: string | Color) {
   const rgba = typeof color === 'string' ? parseColor(color) : color
   return {
     type: 'SOLID' as const,
-    color: { r: rgba.r, g: rgba.g, b: rgba.b, a: rgba.a },
+    color: { r: rgba.r, g: rgba.g, b: rgba.b, a: 1 },
     opacity: rgba.a,
     visible: true
   }
