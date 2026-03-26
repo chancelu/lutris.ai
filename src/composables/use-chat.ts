@@ -449,6 +449,24 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
   }
 }
 
+const aiMode = computed<'action' | 'chat-only' | 'not-configured'>(() => {
+  if (!isConfigured.value) return 'not-configured'
+  if (providerID.value === 'google') return 'chat-only'
+  return 'action'
+})
+
+const aiModeLabel = computed(() => {
+  if (aiMode.value === 'action') return 'AI ready'
+  if (aiMode.value === 'chat-only') return 'Chat only'
+  return 'Not configured'
+})
+
+const aiModeTone = computed(() => {
+  if (aiMode.value === 'action') return 'bg-green-500/15 text-green-400 border-green-500/30'
+  if (aiMode.value === 'chat-only') return 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+  return 'bg-red-500/15 text-red-400 border-red-500/30'
+})
+
 export function useAIChat() {
   // Initialize project watch on first use
   initChatProjectWatch()
@@ -471,6 +489,9 @@ export function useAIChat() {
     ensureChat,
     resetChat,
     saveChatToProject,
-    aiProgress
+    aiProgress,
+    aiMode,
+    aiModeLabel,
+    aiModeTone
   }
 }

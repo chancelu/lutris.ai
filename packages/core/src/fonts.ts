@@ -18,6 +18,7 @@ export interface FontInfo {
 }
 
 const loadedFamilies = new Map<string, ArrayBuffer>()
+const loadedFamilyNames = new Set<string>()
 let fontProvider: TypefaceFontProvider | null = null
 
 export function initFontService(_canvasKit: CanvasKit, provider: TypefaceFontProvider) {
@@ -158,6 +159,7 @@ export async function loadFont(family: string, style = 'Regular'): Promise<Array
 
         if (registerFontInCanvasKit(family, buffer)) {
           loadedFamilies.set(cacheKey, buffer)
+          loadedFamilyNames.add(family)
           registerFontInBrowser(family, style, buffer)
           return buffer
         }
@@ -173,6 +175,7 @@ export async function loadFont(family: string, style = 'Regular'): Promise<Array
       const buffer = await fetchGoogleFont(family, style)
       if (buffer && registerFontInCanvasKit(family, buffer)) {
         loadedFamilies.set(cacheKey, buffer)
+        loadedFamilyNames.add(family)
         registerFontInBrowser(family, style, buffer)
         return buffer
       }
@@ -190,6 +193,7 @@ export async function loadFont(family: string, style = 'Regular'): Promise<Array
 
       if (registerFontInCanvasKit(family, buffer)) {
         loadedFamilies.set(cacheKey, buffer)
+        loadedFamilyNames.add(family)
         registerFontInBrowser(family, style, buffer)
         return buffer
       }
@@ -245,11 +249,12 @@ export async function ensureNodeFont(family: string, weight: number): Promise<vo
 export function markFontLoaded(family: string, style: string, data: ArrayBuffer): void {
   const cacheKey = `${family}|${style}`
   loadedFamilies.set(cacheKey, data)
+  loadedFamilyNames.add(family)
   registerFontInCanvasKit(family, data)
 }
 
 export function isFontLoaded(family: string): boolean {
-  return [...loadedFamilies.keys()].some((k) => k.startsWith(`${family}|`))
+  return loadedFamilyNames.has(family)
 }
 
 export function getLoadedFontData(family: string, style: string): ArrayBuffer | null {
@@ -302,6 +307,7 @@ async function tryLoadLocalFont(family: string): Promise<ArrayBuffer | null> {
     if (!registerFontInCanvasKit(family, buffer)) return null
     const cacheKey = `${family}|Regular`
     loadedFamilies.set(cacheKey, buffer)
+    loadedFamilyNames.add(family)
     registerFontInBrowser(family, 'Regular', buffer)
     return buffer
   } catch {

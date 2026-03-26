@@ -371,6 +371,30 @@ export function useCollab(store: EditorStore) {
     return null
   }
 
+  const VALID_NODE_TYPES = new Set<string>([
+    'CANVAS', 'FRAME', 'RECTANGLE', 'ROUNDED_RECTANGLE', 'ELLIPSE', 'TEXT',
+    'LINE', 'STAR', 'POLYGON', 'VECTOR', 'GROUP', 'SECTION',
+    'COMPONENT', 'COMPONENT_SET', 'INSTANCE', 'CONNECTOR', 'SHAPE_WITH_TEXT',
+  ])
+
+  function validateRemoteNode(props: Record<string, unknown>): boolean {
+    if (typeof props.id !== 'string') {
+      console.warn('[collab] Skipping remote node: id is not a string', props.id)
+      return false
+    }
+    if (typeof props.type !== 'string' || !VALID_NODE_TYPES.has(props.type)) {
+      console.warn('[collab] Skipping remote node: invalid type', props.type)
+      return false
+    }
+    for (const key of ['x', 'y', 'width', 'height'] as const) {
+      if (key in props && typeof props[key] !== 'number') {
+        console.warn(`[collab] Skipping remote node ${props.id}: ${key} is not a number`, props[key])
+        return false
+      }
+    }
+    return true
+  }
+
   function applyYnodeToGraph(nodeId: string, ynode: Y.Map<unknown>) {
     const existing = store.graph.getNode(nodeId)
     const props: Record<string, unknown> = {}
@@ -386,6 +410,8 @@ export function useCollab(store: EditorStore) {
         props[key] = value
       }
     }
+
+    if (!validateRemoteNode(props)) return
 
     if (existing) {
       store.graph.updateNode(nodeId, props as Partial<SceneNode>)

@@ -5,7 +5,7 @@ import { useEditorStore } from '@/stores/editor'
 import { useAIChat } from '@/composables/use-chat'
 
 const store = useEditorStore()
-const { isConfigured, providerID, draftMessage, activeTab } = useAIChat()
+const { draftMessage, activeTab, aiModeLabel, aiModeTone } = useAIChat()
 
 const emit = defineEmits<{
   action: [type: 'blank' | 'template' | 'ai' | 'import' | 'import-prd' | 'import-fig' | 'import-code']
@@ -25,18 +25,6 @@ const hasContent = computed(() => {
     const page = store.graph.nodes.get(pageId)
     return !!(page?.children && page.children.length > 0)
   }
-})
-
-const aiModeLabel = computed(() => {
-  if (!isConfigured.value) return 'Set up provider'
-  if (providerID.value === 'google') return 'Chat only'
-  return 'AI ready'
-})
-
-const aiModeTone = computed(() => {
-  if (!isConfigured.value) return 'border-red-500/25 bg-red-500/10 text-red-300'
-  if (providerID.value === 'google') return 'border-amber-500/25 bg-amber-500/10 text-amber-300'
-  return 'border-green-500/25 bg-green-500/10 text-green-300'
 })
 
 const quickPrompts = [

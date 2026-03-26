@@ -1,4 +1,4 @@
-import { computed, readonly, ref } from 'vue'
+import { computed, readonly, ref, watch } from 'vue'
 
 import { useProjects } from './use-projects'
 import { createEmptySpecDocument, summarizeRequirements, type SpecDocument, type SpecSource, type SpecVersion } from '@/types/spec'
@@ -173,10 +173,21 @@ function restoreVersion(versionId: number) {
   return true
 }
 
+let projectWatchInit = false
+
 function initSpec() {
-  if (initialized) return
-  initialized = true
-  syncFromProject()
+  if (!initialized) {
+    initialized = true
+    syncFromProject()
+  }
+
+  if (!projectWatchInit) {
+    projectWatchInit = true
+    const { activeProjectId } = useProjects()
+    watch(activeProjectId, () => {
+      syncFromProject()
+    })
+  }
 }
 
 export function useSpec() {

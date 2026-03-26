@@ -1,7 +1,6 @@
 import type { SceneNode } from './scene-graph'
 import type { Rect } from './types'
-
-const SNAP_THRESHOLD = 5
+import { SNAP_THRESHOLD } from './constants'
 
 export interface SnapGuide {
   axis: 'x' | 'y'
@@ -102,9 +101,6 @@ export function computeSnap(
       if (Math.abs(d) < SNAP_THRESHOLD && Math.abs(d) <= Math.abs(bestDx)) {
         if (Math.abs(d) < Math.abs(bestDx)) {
           bestDx = d
-          guides.length = guides.filter((g) => g.axis === 'y').length
-            ? guides.length
-            : guides.length
           // Remove old x guides if we found a closer snap
           for (let i = guides.length - 1; i >= 0; i--) {
             if (guides[i].axis === 'x') guides.splice(i, 1)

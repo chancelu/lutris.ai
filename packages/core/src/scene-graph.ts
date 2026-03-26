@@ -736,10 +736,21 @@ export class SceneGraph {
     return node
   }
 
+  private static readonly POS_AFFECTING_PROPS = new Set<string>([
+    'x', 'y', 'width', 'height', 'rotation', 'parentId',
+    'layoutMode', 'layoutAlign', 'layoutGrow',
+    'primaryAxisSizingMode', 'counterAxisSizingMode',
+  ])
+
   updateNode(id: string, changes: Partial<SceneNode>): void {
     const node = this.nodes.get(id)
     if (!node) return
-    this.absPosCache.clear()
+    for (const key of Object.keys(changes)) {
+      if (SceneGraph.POS_AFFECTING_PROPS.has(key)) {
+        this.absPosCache.clear()
+        break
+      }
+    }
     if (node.type === 'INSTANCE' && 'componentId' in changes && changes.componentId !== node.componentId) {
       if (node.componentId) this.instanceIndex.get(node.componentId)?.delete(id)
       if (changes.componentId) {

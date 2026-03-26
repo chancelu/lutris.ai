@@ -32,7 +32,6 @@ const { t } = useI18n()
 const { defaultSection } = defineProps<{ defaultSection?: 'summary' | 'versions' }>()
 
 const editBuffer = ref('')
-const showVersions = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const activeSection = ref<'doc' | 'versions'>(defaultSection === 'versions' ? 'versions' : 'doc')
 const isAIParsing = ref(false)
