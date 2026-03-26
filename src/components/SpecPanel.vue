@@ -30,7 +30,7 @@ const summaryPreview = computed(() => {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden select-text">
     <div class="border-b border-border px-3 py-3">
       <div class="rounded-2xl border border-border bg-inset/60 p-3">
         <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">

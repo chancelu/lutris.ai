@@ -114,7 +114,7 @@ async function exportAsPDF() {
 </script>
 
 <template>
-  <div class="p-3">
+  <div class="select-text p-3">
     <div class="mb-3">
       <div class="text-xs font-semibold text-surface">Export</div>
       <div class="mt-1 text-[11px] leading-5 text-muted">Start with the deliverable. Code and handoff stay available, but secondary.</div>

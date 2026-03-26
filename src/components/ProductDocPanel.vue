@@ -161,7 +161,7 @@ const renderedContent = computed(() => {
 </script>
 
 <template>
-  <div data-test-id="product-doc-panel" class="flex min-h-0 flex-1 flex-col">
+  <div data-test-id="product-doc-panel" class="flex min-h-0 flex-1 flex-col select-text">
     <!-- Hidden file input -->
     <input
       ref="fileInput"
