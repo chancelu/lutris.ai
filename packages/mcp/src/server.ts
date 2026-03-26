@@ -69,7 +69,7 @@ export function createServer(version: string, options: CreateServerOptions = {})
   const server = new McpServer({ name: 'open-pencil', version })
   const enableEval = options.enableEval ?? true
   const fileRoot = options.fileRoot === null || options.fileRoot === undefined
-    ? null
+    ? resolve(process.cwd())
     : resolve(options.fileRoot)
 
   let graph: SceneGraph | null = null
@@ -99,7 +99,6 @@ export function createServer(version: string, options: CreateServerOptions = {})
 
   function resolveAndCheckPath(filePath: string): string {
     const resolved = resolve(filePath)
-    if (!fileRoot) return resolved
     const rel = relative(fileRoot, resolved)
     if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) {
       return resolved

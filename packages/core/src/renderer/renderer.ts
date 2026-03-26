@@ -76,6 +76,7 @@ import {
   drawComponentLabels as drawComponentLabelsFn
 } from './labels'
 import { LabelCache } from './label-cache'
+import { LRUCache } from './lru-cache'
 import {
   renderNode as renderNodeFn,
   renderSection as renderSectionFn,
@@ -179,14 +180,14 @@ export class SkiaRenderer {
   fontMgr: FontMgr | null = null
   fontProvider: TypefaceFontProvider | null = null
   fontsLoaded = false
-  imageCache = new Map<string, CKImage>()
-  vectorPathCache = new Map<string, Path[]>()
-  fillGeometryCache = new Map<string, Path[]>()
-  strokeGeometryCache = new Map<string, Path[]>()
+  imageCache = new LRUCache<string, CKImage>(512, (img) => img.delete())
+  vectorPathCache = new LRUCache<string, Path[]>(512, (paths) => { for (const p of paths) p.delete() })
+  fillGeometryCache = new LRUCache<string, Path[]>(512, (paths) => { for (const p of paths) p.delete() })
+  strokeGeometryCache = new LRUCache<string, Path[]>(512, (paths) => { for (const p of paths) p.delete() })
   scenePicture: SkPicture | null = null
   scenePictureVersion = -1
   scenePicturePageId: string | null = null
-  nodePictureCache = new Map<string, SkPicture>()
+  nodePictureCache = new LRUCache<string, SkPicture>(512, (pic) => pic.delete())
   readonly labelCache = new LabelCache()
   readonly profiler: RenderProfiler
 
@@ -222,6 +223,12 @@ export class SkiaRenderer {
   readonly COMPONENT_SET_DASH = COMPONENT_SET_DASH
   readonly COMPONENT_SET_DASH_GAP = COMPONENT_SET_DASH_GAP
 
+  /**
+   * Returns a shared Float32Array [r, g, b, a] for passing colors to CanvasKit.
+   * WARNING: The returned buffer is reused on every call. Callers must consume
+   * the value immediately (pass it to a CanvasKit API) before the next call to
+   * color4f(), as the underlying data will be overwritten.
+   */
   color4f(r: number, g: number, b: number, a: number): Float32Array {
     const c = this._tmpColor
     c[0] = r
@@ -231,6 +238,12 @@ export class SkiaRenderer {
     return c
   }
 
+  /**
+   * Returns a shared Float32Array [left, top, right, bottom] for passing rects to CanvasKit.
+   * WARNING: The returned buffer is reused on every call. Callers must consume
+   * the value immediately (pass it to a CanvasKit API) before the next call to
+   * ltrb(), as the underlying data will be overwritten.
+   */
   ltrb(l: number, t: number, r: number, b: number): Float32Array {
     const rc = this._tmpRect
     rc[0] = l
@@ -425,16 +438,11 @@ export class SkiaRenderer {
 
   invalidateAllPictures(): void {
     this.invalidateScenePicture()
-    for (const pic of this.nodePictureCache.values()) pic.delete()
     this.nodePictureCache.clear()
   }
 
   invalidateNodePicture(nodeId: string): void {
-    const pic = this.nodePictureCache.get(nodeId)
-    if (pic) {
-      pic.delete()
-      this.nodePictureCache.delete(nodeId)
-    }
+    this.nodePictureCache.delete(nodeId)
   }
 
   flashNode(nodeId: string): void {
@@ -746,18 +754,9 @@ export class SkiaRenderer {
   }
 
   invalidateVectorPath(nodeId: string): void {
-    const old = this.vectorPathCache.get(nodeId)
-    if (old) {
-      for (const p of old) p.delete()
-      this.vectorPathCache.delete(nodeId)
-    }
-    for (const cache of [this.fillGeometryCache, this.strokeGeometryCache]) {
-      const oldGeom = cache.get(nodeId)
-      if (oldGeom) {
-        for (const p of oldGeom) p.delete()
-        cache.delete(nodeId)
-      }
-    }
+    this.vectorPathCache.delete(nodeId)
+    this.fillGeometryCache.delete(nodeId)
+    this.strokeGeometryCache.delete(nodeId)
   }
 
   measureTextNode(node: SceneNode, maxWidth?: number): { width: number; height: number } | null {
@@ -977,14 +976,10 @@ export class SkiaRenderer {
     if (this.destroyed) return
     this.destroyed = true
 
-    for (const img of this.imageCache.values()) img.delete()
     this.imageCache.clear()
-    for (const cache of [this.vectorPathCache, this.fillGeometryCache, this.strokeGeometryCache]) {
-      for (const paths of cache.values()) {
-        for (const p of paths) p.delete()
-      }
-      cache.clear()
-    }
+    this.vectorPathCache.clear()
+    this.fillGeometryCache.clear()
+    this.strokeGeometryCache.clear()
     this.fillPaint.delete()
     this.strokePaint.delete()
     this.selectionPaint.delete()
@@ -1012,7 +1007,6 @@ export class SkiaRenderer {
     this.imageFilterCache.clear()
     for (const filter of this.maskFilterCache.values()) filter.delete()
     this.maskFilterCache.clear()
-    for (const pic of this.nodePictureCache.values()) pic.delete()
     this.nodePictureCache.clear()
     this.scenePicture?.delete()
     this._flashPaint?.delete()

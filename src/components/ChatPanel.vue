@@ -74,7 +74,7 @@ function scrollToBottom() {
   })
 }
 
-watch(messages, scrollToBottom, { deep: true })
+watch(() => messages.value.length, scrollToBottom)
 
 watch(pendingMessage, (msg) => {
   if (!msg) return
