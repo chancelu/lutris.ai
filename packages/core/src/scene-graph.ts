@@ -346,9 +346,9 @@ export function generateId(): string {
   return `0:${nextLocalID++}`
 }
 
-function createDefaultNode(type: NodeType, overrides: Partial<SceneNode> = {}): SceneNode {
+function createDefaultNode(type: NodeType, overrides: Partial<SceneNode> = {}, id?: string): SceneNode {
   return {
-    id: generateId(),
+    id: id ?? generateId(),
     type,
     name: type.charAt(0) + type.slice(1).toLowerCase(),
     parentId: null,
@@ -467,17 +467,22 @@ export class SceneGraph {
   readonly emitter: Emitter<SceneGraphEvents> = createNanoEvents()
   private absPosCache = new Map<string, Vector>()
   private instanceIndex = new Map<string, Set<string>>()
+  private nextLocalID = 1
 
   constructor() {
     const root = createDefaultNode('FRAME', {
       name: 'Document',
       width: 0,
       height: 0
-    })
+    }, this.generateId())
     this.rootId = root.id
     this.nodes.set(root.id, root)
 
     this.addPage('Page 1')
+  }
+
+  generateId(): string {
+    return `0:${this.nextLocalID++}`
   }
 
   addPage(name: string): SceneNode {
@@ -538,7 +543,7 @@ export class SceneGraph {
   ): Variable {
     const collection = this.variableCollections.get(collectionId)
     if (!collection) throw new Error(`Collection "${collectionId}" not found`)
-    const id = generateId()
+    const id = this.generateId()
     let defaultValue: VariableValue
     if (value !== undefined) {
       defaultValue = value
@@ -569,8 +574,8 @@ export class SceneGraph {
   }
 
   createCollection(name: string): VariableCollection {
-    const id = generateId()
-    const modeId = generateId()
+    const id = this.generateId()
+    const modeId = this.generateId()
     const collection: VariableCollection = {
       id,
       name,
@@ -714,7 +719,7 @@ export class SceneGraph {
     if ('characters' in overrides && overrides.characters != null && !('text' in overrides)) {
       (overrides as Partial<SceneNode>).text = overrides.characters
     }
-    const node = createDefaultNode(type, overrides as Partial<SceneNode>)
+    const node = createDefaultNode(type, overrides as Partial<SceneNode>, this.generateId())
     node.parentId = parentId
     this.nodes.set(node.id, node)
 

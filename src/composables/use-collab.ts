@@ -52,6 +52,7 @@ export function useCollab(store: EditorStore) {
   let suppressGraphSync = false
   let suppressYjsEvents = false
   let unbindGraphEvents: (() => void) | null = null
+  let stopZoomWatch: (() => void) | null = null
   let sendYjsUpdate: ((data: Uint8Array, peerId?: string) => void) | null = null
   let sendAwareness: ((data: Uint8Array, peerId?: string) => void) | null = null
   let sendSyncStep1: ((data: Uint8Array, peerId?: string) => void) | null = null
@@ -198,7 +199,7 @@ export function useCollab(store: EditorStore) {
     state.value.connected = true
     broadcastAwareness()
 
-    watch(
+    stopZoomWatch = watch(
       () => store.state.zoom,
       (zoom) => {
         if (!awareness) return
@@ -246,6 +247,8 @@ export function useCollab(store: EditorStore) {
   }
 
   function disconnect() {
+    stopZoomWatch?.()
+    stopZoomWatch = null
     unbindGraphEvents?.()
     unbindGraphEvents = null
     void room?.leave()

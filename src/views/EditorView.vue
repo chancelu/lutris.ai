@@ -38,6 +38,7 @@ import WelcomeOverlay from '@/components/WelcomeOverlay.vue'
 import FloatingInspector from '@/components/FloatingInspector.vue'
 
 const shortcutsPanelRef = ref<InstanceType<typeof ShortcutsPanel> | null>(null)
+const designFileInput = ref<HTMLInputElement | null>(null)
 
 function onToggleShortcuts() { shortcutsPanelRef.value?.toggle() }
 onMounted(() => window.addEventListener('toggle-shortcuts', onToggleShortcuts))
@@ -111,13 +112,26 @@ function handleImportNextStep(action: string) {
   importNextSteps.value = null
 }
 
+async function handleDesignFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  try {
+    const { useAssetLibrary } = await import('@/composables/use-asset-library')
+    const { loadLibrary } = useAssetLibrary()
+    await loadLibrary(file)
+  } finally {
+    input.value = ''
+  }
+}
+
 function onWelcomeAction(type: string) {
   if (type === 'blank') {
     // Just dismiss overlay, canvas is already empty and ready
   } else if (type === 'ai') {
     rightTab.value = 'create'
   } else if (type === 'import' || type === 'import-fig') {
-    document.querySelector<HTMLInputElement>('input[type="file"]')?.click()
+    designFileInput.value?.click()
     importNextSteps.value = {
       title: 'Design imported',
       body: 'Nice. Now decide whether to analyze it with AI, generate a spec summary, or move straight to export.',
@@ -184,6 +198,14 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
 
 <template>
   <div data-test-id="editor-root" class="flex h-screen w-screen flex-col overflow-hidden">
+    <!-- Hidden file input for design import -->
+    <input
+      ref="designFileInput"
+      type="file"
+      accept=".fig"
+      class="hidden"
+      @change="handleDesignFileChange"
+    />
     <!-- Offline banner -->
     <div
       v-if="!isOnline"
