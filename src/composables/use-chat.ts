@@ -451,7 +451,6 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
 
 const aiMode = computed<'action' | 'chat-only' | 'not-configured'>(() => {
   if (!isConfigured.value) return 'not-configured'
-  if (providerID.value === 'google') return 'chat-only'
   return 'action'
 })
 
