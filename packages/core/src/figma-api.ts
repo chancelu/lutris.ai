@@ -13,49 +13,11 @@ import type {
 } from './scene-graph'
 import type { Rect, Vector } from './types'
 import { copyFills, copyStrokes, copyEffects } from './copy'
+import { weightToStyle, styleToWeight } from './fonts'
 
 const MIXED = Symbol('mixed')
 
 type FigmaFontName = { family: string; style: string }
-
-function weightToStyleName(weight: number, italic: boolean): string {
-  const names: Record<number, string> = {
-    100: 'Thin',
-    200: 'Extra Light',
-    300: 'Light',
-    400: 'Regular',
-    500: 'Medium',
-    600: 'Semi Bold',
-    700: 'Bold',
-    800: 'Extra Bold',
-    900: 'Black'
-  }
-  const base = names[weight] ?? 'Regular'
-  return italic ? `${base} Italic` : base
-}
-
-function styleNameToWeight(style: string): { weight: number; italic: boolean } {
-  const lower = style.toLowerCase()
-  const italic = lower.includes('italic')
-  const clean = lower.replace(/italic/i, '').trim()
-  const map: Record<string, number> = {
-    thin: 100,
-    'extra light': 200,
-    'ultra light': 200,
-    light: 300,
-    regular: 400,
-    '': 400,
-    medium: 500,
-    'semi bold': 600,
-    'demi bold': 600,
-    bold: 700,
-    'extra bold': 800,
-    'ultra bold': 800,
-    black: 900,
-    heavy: 900
-  }
-  return { weight: map[clean] ?? 400, italic }
-}
 
 export function computeImageHash(data: Uint8Array): string {
   let h1 = 0x811c9dc5 >>> 0
@@ -439,11 +401,12 @@ class FigmaNodeProxy {
 
   get fontName(): FigmaFontName {
     const n = this._raw()
-    return { family: n.fontFamily, style: weightToStyleName(n.fontWeight, n.italic) }
+    return { family: n.fontFamily, style: weightToStyle(n.fontWeight, n.italic) }
   }
 
   set fontName(v: FigmaFontName) {
-    const { weight, italic } = styleNameToWeight(v.style)
+    const weight = styleToWeight(v.style)
+    const italic = v.style.toLowerCase().includes('italic')
     this[INTERNAL_GRAPH].updateNode(this[INTERNAL_ID], {
       fontFamily: v.family,
       fontWeight: weight,

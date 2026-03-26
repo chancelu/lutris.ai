@@ -20,7 +20,7 @@ import type { UIMessage } from 'ai'
 
 const IS_DEV = import.meta.env.DEV
 
-const { isConfigured, ensureChat, resetChat, pendingMessage, aiProgress, providerID, isServerConfigured, activeTab } = useAIChat()
+const { isConfigured, ensureChat, resetChat, pendingMessage, aiProgress, providerID, isServerConfigured, activeTab, aiMode, aiModeLabel, aiModeTone } = useAIChat()
 const { hasContext, buildContextPrompt, clearAIContext } = useAISelect()
 const { t } = useI18n()
 
@@ -52,21 +52,6 @@ const progressLabel = computed(() => {
 })
 
 const providerDef = computed(() => AI_PROVIDERS.find((p) => p.id === providerID.value))
-const aiMode = computed<'action' | 'chat-only' | 'not-configured'>(() => {
-  if (!isConfigured.value) return 'not-configured'
-  if (providerID.value === 'google') return 'chat-only'
-  return 'action'
-})
-const aiModeLabel = computed(() => {
-  if (aiMode.value === 'action') return 'AI ready'
-  if (aiMode.value === 'chat-only') return 'Chat only'
-  return 'Not configured'
-})
-const aiModeTone = computed(() => {
-  if (aiMode.value === 'action') return 'bg-green-500/15 text-green-400 border-green-500/30'
-  if (aiMode.value === 'chat-only') return 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-  return 'bg-red-500/15 text-red-400 border-red-500/30'
-})
 
 function scrollToBottom() {
   nextTick(() => {
