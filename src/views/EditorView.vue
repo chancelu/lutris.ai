@@ -220,14 +220,14 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       :key="activeTab?.id"
       class="relative min-h-0 flex-1 overflow-hidden"
     >
-      <!-- Full-bleed canvas -->
-      <div class="absolute inset-0 z-0 flex" :style="{ left: '44px', right: '320px' }">
+      <!-- Full-bleed canvas (takes all space except right panel) -->
+      <div class="absolute inset-0 z-0 flex" :style="{ right: '320px' }">
         <EditorCanvas />
         <FloatingInspector />
         <WelcomeOverlay @action="onWelcomeAction" />
       </div>
       <ShortcutsPanel ref="shortcutsPanelRef" />
-      <div v-if="importNextSteps" class="absolute left-16 top-3 z-20 max-w-sm">
+      <div v-if="importNextSteps" class="absolute left-3 top-14 z-20 max-w-sm">
         <NextStepCard
           :title="importNextSteps.title"
           :body="importNextSteps.body"
@@ -236,37 +236,40 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
         />
       </div>
 
-      <!-- Top-left: doc name -->
-      <div class="pointer-events-auto absolute left-14 top-3 z-20 flex items-center gap-2">
+      <!-- Top-left: logo + editable doc name + left panel icons (small floating pill) -->
+      <div class="pointer-events-auto absolute left-3 top-3 z-20 flex items-center gap-2">
         <img src="/favicon-32.png" class="size-4 opacity-60" alt="Lutris.ai" />
-        <span class="max-w-40 truncate text-[12px] text-muted">{{ store.state.documentName }}</span>
-      </div>
-
-      <!-- Left edge: vertical icon bar (Layers / Assets / Pages) -->
-      <div class="pointer-events-auto absolute left-0 top-0 bottom-0 z-20 flex w-11 flex-col items-center gap-1 border-r border-border/5 bg-panel pt-3">
+        <input
+          :value="store.state.documentName"
+          class="max-w-40 truncate border-none bg-transparent text-[12px] text-muted outline-none focus:text-surface"
+          spellcheck="false"
+          @input="store.state.documentName = ($event.target as HTMLInputElement).value"
+          @keydown.enter="($event.target as HTMLInputElement).blur()"
+        />
+        <div class="mx-1 h-4 w-px bg-border/30" />
         <button
-          class="flex size-8 items-center justify-center rounded-lg transition"
-          :class="store.state.leftPanelTab === 'layers' ? 'bg-hover text-surface' : 'text-muted/60 hover:text-muted'"
+          class="flex size-6 items-center justify-center rounded-md transition"
+          :class="store.state.leftPanelTab === 'layers' ? 'bg-accent/15 text-accent' : 'text-muted/50 hover:text-muted'"
           title="Layers"
           @click="store.state.leftPanelTab = store.state.leftPanelTab === 'layers' ? null : 'layers'"
         >
-          <icon-lucide-layers class="size-4" />
+          <icon-lucide-layers class="size-3.5" />
         </button>
         <button
-          class="flex size-8 items-center justify-center rounded-lg transition"
-          :class="store.state.leftPanelTab === 'assets' ? 'bg-hover text-surface' : 'text-muted/60 hover:text-muted'"
+          class="flex size-6 items-center justify-center rounded-md transition"
+          :class="store.state.leftPanelTab === 'assets' ? 'bg-accent/15 text-accent' : 'text-muted/50 hover:text-muted'"
           title="Assets"
           @click="store.state.leftPanelTab = store.state.leftPanelTab === 'assets' ? null : 'assets'"
         >
-          <icon-lucide-box class="size-4" />
+          <icon-lucide-box class="size-3.5" />
         </button>
         <button
-          class="flex size-8 items-center justify-center rounded-lg transition"
-          :class="store.state.leftPanelTab === 'pages' ? 'bg-hover text-surface' : 'text-muted/60 hover:text-muted'"
+          class="flex size-6 items-center justify-center rounded-md transition"
+          :class="store.state.leftPanelTab === 'pages' ? 'bg-accent/15 text-accent' : 'text-muted/50 hover:text-muted'"
           title="Pages"
           @click="store.state.leftPanelTab = store.state.leftPanelTab === 'pages' ? null : 'pages'"
         >
-          <icon-lucide-file class="size-4" />
+          <icon-lucide-file class="size-3.5" />
         </button>
       </div>
 
@@ -279,25 +282,25 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       >
         <div
           v-if="store.state.leftPanelTab"
-          class="pointer-events-auto absolute left-11 top-0 bottom-0 z-20 flex w-60 flex-col overflow-hidden border-r border-border/5 bg-panel"
+          class="pointer-events-auto absolute left-3 top-12 bottom-14 z-20 flex w-60 flex-col overflow-hidden rounded-lg bg-panel shadow-xl shadow-black/10"
         >
           <LayersPanel @collapse="store.state.leftPanelTab = null" />
         </div>
       </Transition>
 
-      <!-- Top-right: collab + user (inside right panel area) -->
-      <div class="pointer-events-auto absolute right-0 top-0 z-20 flex w-80 items-center justify-between border-b border-border/5 bg-panel px-3 py-2">
+      <!-- Top-right: collab + user -->
+      <div class="pointer-events-auto absolute right-0 top-0 z-20 flex w-80 items-center justify-between border-b border-border/10 bg-panel px-3 py-2">
         <CollabPanel />
         <UserMenu />
       </div>
 
-      <!-- Right panel: flush edge, no border-radius, natural extension -->
-      <div class="pointer-events-auto absolute right-0 top-10 bottom-0 z-10 flex w-80 flex-col overflow-hidden border-l border-border/5 bg-panel">
+      <!-- Right panel: flush edge, no border-radius -->
+      <div class="pointer-events-auto absolute right-0 top-10 bottom-0 z-10 flex w-80 flex-col overflow-hidden border-l border-border/10 bg-panel">
         <PropertiesPanel />
       </div>
 
-      <!-- Bottom center: unified toolbar -->
-      <div :style="{ left: '44px', right: '320px' }" class="absolute bottom-0">
+      <!-- Bottom center: unified single toolbar (includes QuickActions) -->
+      <div class="absolute bottom-0 z-10" :style="{ left: '0', right: '320px' }">
         <Toolbar />
       </div>
     </div>

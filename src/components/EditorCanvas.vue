@@ -245,7 +245,7 @@ function handleComponentDrop(e: DragEvent) {
         :style="aiMarqueeStyle"
       />
       <!-- Quick action toolbar -->
-      <QuickActions />
+      <!-- QuickActions merged into Toolbar -->
       <!-- AI Select confirmation popup -->
       <Transition
         enter-active-class="transition-all duration-150"

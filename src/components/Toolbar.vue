@@ -18,12 +18,16 @@ import { menuContent, menuItem } from '@/components/ui/menu'
 import { TOOLS, OVERFLOW_TOOLS, useEditorStore } from '@/stores/editor'
 import { toolIcons } from '@/utils/tools'
 import { useI18n } from '@/composables/use-i18n'
+import { useAISelect } from '@/composables/use-ai-select'
+import { useAIChat } from '@/composables/use-chat'
 
 import type { Component } from 'vue'
 import type { Tool, ToolDef } from '@/stores/editor'
 
 const store = useEditorStore()
 const { t } = useI18n()
+const { aiSelectMode, toggleAISelectMode, hasContext, contextCount } = useAISelect()
+const { activeTab } = useAIChat()
 const breakpoints = useBreakpoints({ mobile: 768 })
 const isMobile = breakpoints.smaller('mobile')
 
@@ -224,6 +228,37 @@ function goNext() {
           </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>
+
+      <!-- Separator -->
+      <div class="mx-0.5 h-5 w-px bg-border/30" />
+
+      <!-- AI Select -->
+      <button
+        class="flex size-8 cursor-pointer items-center justify-center rounded-lg border-none text-[14px] transition-colors"
+        :class="aiSelectMode ? 'bg-accent/20 text-accent' : 'bg-transparent text-muted hover:bg-hover hover:text-surface'"
+        title="AI Select"
+        @click="toggleAISelectMode"
+      >
+        🎯
+      </button>
+
+      <!-- Context badge -->
+      <div
+        v-if="hasContext"
+        class="flex items-center rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] text-accent"
+      >
+        {{ contextCount }}
+      </div>
+
+      <!-- AI Chat shortcut -->
+      <button
+        class="flex size-8 cursor-pointer items-center justify-center rounded-lg border-none text-[14px] transition-colors"
+        :class="'bg-transparent text-muted hover:bg-hover hover:text-surface'"
+        title="AI Chat"
+        @click="activeTab = 'create'"
+      >
+        ✨
+      </button>
     </div>
   </div>
 
