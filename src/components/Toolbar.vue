@@ -109,7 +109,7 @@ function goNext() {
   <div v-if="!isMobile" class="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center">
     <div
       data-test-id="toolbar"
-      class="flex gap-0.5 rounded-xl border border-border bg-panel p-1 shadow-lg"
+      class="flex gap-0.5 rounded-xl bg-panel/90 p-1 shadow-lg shadow-black/10 backdrop-blur-sm"
     >
       <template v-for="tool in TOOLS" :key="tool.key">
         <div v-if="tool.flyout && tool.flyout.length > 1" class="flex items-center">
@@ -224,22 +224,6 @@ function goNext() {
           </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>
-
-      <!-- Separator + Measurement toggle -->
-      <div class="mx-1 h-5 w-px bg-border" />
-      <button
-        data-test-id="toolbar-measurement"
-        class="flex size-8 cursor-pointer items-center justify-center rounded-lg border-none transition-colors"
-        :class="
-          store.state.measurementMode
-            ? 'bg-accent text-white'
-            : 'bg-transparent text-muted hover:bg-hover hover:text-surface'
-        "
-        title="Measurement mode (Alt+hover)"
-        @click="store.state.measurementMode = !store.state.measurementMode"
-      >
-        <icon-lucide-ruler class="size-4" />
-      </button>
     </div>
   </div>
 
