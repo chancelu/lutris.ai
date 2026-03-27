@@ -4,7 +4,7 @@ import NextStepCard from '@/components/NextStepCard.vue'
 import { useBreakpoints, useEventListener, useUrlSearchParams } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
-import { SplitterGroup, SplitterPanel, SplitterResizeHandle } from 'reka-ui'
+import { SplitterGroup, SplitterPanel, SplitterResizeHandle, DropdownMenuRoot, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal } from 'reka-ui'
 
 import { useKeyboard } from '@/composables/use-keyboard'
 import { useAIChat } from '@/composables/use-chat'
@@ -55,7 +55,7 @@ const { t } = useI18n()
 const { activeTab: rightTab, draftMessage } = useAIChat()
 const { updateFromDesign } = useProductDoc()
 const importNextSteps = ref<{ title: string; body: string; actions: Array<{ label: string; value: string }> } | null>(null)
-const { init: initProjects, switchProject, activeProjectId, startAutosave, stopAutosave } = useProjects()
+const { init: initProjects, switchProject, activeProjectId, activeProject, projects: projectsList, createProject, startAutosave, stopAutosave } = useProjects()
 
 // ── Project initialization ──
 onMounted(async () => {
@@ -121,6 +121,18 @@ async function handleDesignFileChange(event: Event) {
   } finally {
     input.value = ''
   }
+}
+
+async function onSwitchProject(projectId: string) {
+  if (projectId === activeProjectId.value) return
+  await switchProject(projectId, store)
+  store.state.documentName = activeProject.value?.name ?? 'Untitled'
+}
+
+async function onCreateProject() {
+  const meta = await createProject('Untitled Project')
+  await switchProject(meta.id, store)
+  store.state.documentName = meta.name
 }
 
 function onWelcomeAction(type: string) {
@@ -236,16 +248,51 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
         />
       </div>
 
-      <!-- Top-left: logo + editable doc name + left panel icons (small floating pill) -->
+      <!-- Top-left: logo + project switcher + left panel icons (small floating pill) -->
       <div class="pointer-events-auto absolute left-3 top-3 z-20 flex items-center gap-2 rounded-xl bg-white/70 px-2.5 py-1.5 shadow-sm ring-1 ring-black/[0.04] backdrop-blur-sm">
         <img src="/favicon-32.png" class="size-4 opacity-60" alt="Lutris.ai" />
-        <input
-          :value="store.state.documentName"
-          class="max-w-40 truncate border-none bg-transparent text-[12px] text-muted outline-none focus:text-surface"
-          spellcheck="false"
-          @input="store.state.documentName = ($event.target as HTMLInputElement).value"
-          @keydown.enter="($event.target as HTMLInputElement).blur()"
-        />
+
+        <!-- Project switcher dropdown -->
+        <DropdownMenuRoot>
+          <DropdownMenuTrigger as-child>
+            <button class="flex items-center gap-1 text-[12px] text-muted transition hover:text-surface">
+              <span class="max-w-36 truncate">{{ activeProject?.name || store.state.documentName }}</span>
+              <icon-lucide-chevron-down class="size-3 opacity-50" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuPortal>
+            <DropdownMenuContent
+              side="bottom"
+              :side-offset="8"
+              align="start"
+              class="z-50 min-w-48 rounded-lg border border-border/50 bg-panel p-1 shadow-xl"
+            >
+              <!-- Project list -->
+              <DropdownMenuItem
+                v-for="proj in projectsList"
+                :key="proj.id"
+                class="flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] outline-none transition"
+                :class="proj.id === activeProjectId ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-hover hover:text-surface'"
+                @select="onSwitchProject(proj.id)"
+              >
+                <icon-lucide-file-text class="size-3.5 shrink-0" />
+                <span class="flex-1 truncate">{{ proj.name }}</span>
+                <span v-if="proj.id === activeProjectId" class="text-[10px] text-accent">●</span>
+              </DropdownMenuItem>
+
+              <!-- Separator + New project -->
+              <div class="my-1 h-px bg-border/30" />
+              <DropdownMenuItem
+                class="flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] text-muted outline-none transition hover:bg-hover hover:text-surface"
+                @select="onCreateProject"
+              >
+                <icon-lucide-plus class="size-3.5" />
+                <span>New Project</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenuPortal>
+        </DropdownMenuRoot>
+
         <div class="mx-1 h-4 w-px bg-border/30" />
         <button
           class="flex size-6 items-center justify-center rounded-md transition"
