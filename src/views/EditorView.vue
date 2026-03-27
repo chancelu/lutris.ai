@@ -237,7 +237,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       </div>
 
       <!-- Top-left: logo + editable doc name + left panel icons (small floating pill) -->
-      <div class="pointer-events-auto absolute left-3 top-3 z-20 flex items-center gap-2">
+      <div class="pointer-events-auto absolute left-3 top-3 z-20 flex items-center gap-2 rounded-xl bg-white/70 px-2.5 py-1.5 shadow-sm ring-1 ring-black/[0.04] backdrop-blur-sm">
         <img src="/favicon-32.png" class="size-4 opacity-60" alt="Lutris.ai" />
         <input
           :value="store.state.documentName"
