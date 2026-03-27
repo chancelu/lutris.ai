@@ -13,20 +13,9 @@ import { AnimatePresence, motion } from 'motion-v'
 import IconChevronDown from '~icons/lucide/chevron-down'
 import IconChevronLeft from '~icons/lucide/chevron-left'
 import IconChevronRight from '~icons/lucide/chevron-right'
-import IconCopy from '~icons/lucide/copy'
-import IconClipboard from '~icons/lucide/clipboard'
-import IconScissors from '~icons/lucide/scissors'
-import IconCopyPlus from '~icons/lucide/copy-plus'
-import IconTrash2 from '~icons/lucide/trash-2'
-import IconArrowUpToLine from '~icons/lucide/arrow-up-to-line'
-import IconArrowDownToLine from '~icons/lucide/arrow-down-to-line'
-import IconGroup from '~icons/lucide/group'
-import IconUngroup from '~icons/lucide/ungroup'
-import IconLock from '~icons/lucide/lock'
 
 import { menuContent, menuItem } from '@/components/ui/menu'
-import { ACTION_TOAST_DURATION } from '@/constants'
-import { TOOLS, useEditorStore } from '@/stores/editor'
+import { TOOLS, OVERFLOW_TOOLS, useEditorStore } from '@/stores/editor'
 import { toolIcons } from '@/utils/tools'
 import { useI18n } from '@/composables/use-i18n'
 
@@ -79,29 +68,7 @@ function activeKeyForTool(tool: ToolDef): Tool {
   return tool.key
 }
 
-interface ActionItem {
-  icon: Component
-  label: string
-  action: () => void
-}
-
-const editActions: ActionItem[] = [
-  { icon: IconCopy, label: 'Copy', action: () => store.mobileCopy() },
-  { icon: IconClipboard, label: 'Paste', action: () => store.mobilePaste() },
-  { icon: IconScissors, label: 'Cut', action: () => store.mobileCut() },
-  { icon: IconCopyPlus, label: 'Duplicate', action: () => store.duplicateSelected() },
-  { icon: IconTrash2, label: 'Delete', action: () => store.deleteSelected() }
-]
-
-const arrangeActions: ActionItem[] = [
-  { icon: IconArrowUpToLine, label: 'Front', action: () => store.bringToFront() },
-  { icon: IconArrowDownToLine, label: 'Back', action: () => store.sendToBack() },
-  { icon: IconGroup, label: 'Group', action: () => store.groupSelected() },
-  { icon: IconUngroup, label: 'Ungroup', action: () => store.ungroupSelected() },
-  { icon: IconLock, label: 'Lock', action: () => store.toggleLock() }
-]
-
-const CATEGORY_COUNT = 3
+const CATEGORY_COUNT = 1
 const mobileCategory = ref(0)
 const hasPrev = computed(() => mobileCategory.value > 0)
 const hasNext = computed(() => mobileCategory.value < CATEGORY_COUNT - 1)
@@ -219,6 +186,44 @@ function goNext() {
           <component :is="toolIcons[tool.key]" class="size-4" />
         </button>
       </template>
+
+      <!-- Overflow tools "+" menu -->
+      <DropdownMenuRoot v-if="OVERFLOW_TOOLS.length > 0">
+        <DropdownMenuTrigger as-child>
+          <button
+            data-test-id="toolbar-overflow"
+            class="flex size-8 cursor-pointer items-center justify-center rounded-lg border-none transition-colors"
+            :class="
+              OVERFLOW_TOOLS.some(ot => ot.key === store.state.activeTool)
+                ? 'bg-accent text-white'
+                : 'bg-transparent text-muted hover:bg-hover hover:text-surface'
+            "
+            title="More tools"
+          >
+            <icon-lucide-plus class="size-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuPortal>
+          <DropdownMenuContent
+            side="top"
+            :side-offset="8"
+            align="start"
+            :class="menuContent({ class: 'min-w-36' })"
+          >
+            <DropdownMenuItem
+              v-for="ot in OVERFLOW_TOOLS"
+              :key="ot.key"
+              :data-test-id="`toolbar-overflow-${ot.key.toLowerCase()}`"
+              :class="menuItem({ class: store.state.activeTool === ot.key ? 'bg-accent text-white' : undefined })"
+              @select="store.setTool(ot.key)"
+            >
+              <component :is="toolIcons[ot.key]" class="size-3.5" />
+              <span class="flex-1">{{ toolLabel(ot.key) }}</span>
+              <span v-if="ot.shortcut" class="text-[12px] text-muted">{{ ot.shortcut }}</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenuPortal>
+      </DropdownMenuRoot>
 
       <!-- Separator + Measurement toggle -->
       <div class="mx-1 h-5 w-px bg-border" />
@@ -347,50 +352,6 @@ function goNext() {
               <component :is="toolIcons[tool.key]" class="size-4" />
             </button>
           </template>
-        </motion.div>
-
-        <motion.div
-          v-else-if="mobileCategory === 1"
-          key="edit"
-          data-test-id="mobile-toolbar-edit"
-          class="flex gap-0.5"
-          :variants="slideVariants"
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          :transition="{ duration: 0.15 }"
-        >
-          <button
-            v-for="item in editActions"
-            :key="item.label"
-            :data-test-id="`mobile-toolbar-${item.label.toLowerCase()}`"
-            class="flex size-8 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent text-muted transition-colors select-none active:bg-hover active:text-surface"
-            @click="onActionTap(item)"
-          >
-            <component :is="item.icon" class="size-4" />
-          </button>
-        </motion.div>
-
-        <motion.div
-          v-else
-          key="arrange"
-          data-test-id="mobile-toolbar-arrange"
-          class="flex gap-0.5"
-          :variants="slideVariants"
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          :transition="{ duration: 0.15 }"
-        >
-          <button
-            v-for="item in arrangeActions"
-            :key="item.label"
-            :data-test-id="`mobile-toolbar-${item.label.toLowerCase()}`"
-            class="flex size-8 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent text-muted transition-colors select-none active:bg-hover active:text-surface"
-            @click="onActionTap(item)"
-          >
-            <component :is="item.icon" class="size-4" />
-          </button>
         </motion.div>
       </AnimatePresence>
     </motion.div>

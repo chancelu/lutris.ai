@@ -49,6 +49,7 @@ export interface EditorState {
   mobileDrawerSnap: 'closed' | 'half' | 'full'
   clipboardHtml: string
   autosaveEnabled: boolean
+  leftPanelCollapsed: boolean
 }
 
 export interface EditorContext {

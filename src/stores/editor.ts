@@ -70,16 +70,20 @@ export interface ToolDef {
 
 export const TOOLS: ToolDef[] = [
   { key: 'SELECT', label: 'Move', shortcut: 'V' },
-  { key: 'FRAME', label: 'Frame', shortcut: 'F', flyout: ['FRAME', 'SECTION'] },
-  {
-    key: 'RECTANGLE',
-    label: 'Rectangle',
-    shortcut: 'R',
-    flyout: ['RECTANGLE', 'LINE', 'ELLIPSE', 'POLYGON', 'STAR']
-  },
-  { key: 'PEN', label: 'Pen', shortcut: 'P' },
+  { key: 'FRAME', label: 'Frame', shortcut: 'F' },
+  { key: 'RECTANGLE', label: 'Rectangle', shortcut: 'R' },
   { key: 'TEXT', label: 'Text', shortcut: 'T' },
   { key: 'HAND', label: 'Hand', shortcut: 'H' }
+]
+
+/** Overflow tools shown in the "+" menu */
+export const OVERFLOW_TOOLS: ToolDef[] = [
+  { key: 'SECTION', label: 'Section', shortcut: 'S' },
+  { key: 'ELLIPSE', label: 'Ellipse', shortcut: 'O' },
+  { key: 'LINE', label: 'Line', shortcut: 'L' },
+  { key: 'POLYGON', label: 'Polygon', shortcut: '' },
+  { key: 'STAR', label: 'Star', shortcut: '' },
+  { key: 'PEN', label: 'Pen', shortcut: 'P' }
 ]
 
 export const TOOL_SHORTCUTS: Partial<Record<string, Tool>> = {
@@ -187,7 +191,8 @@ export function createEditorStore() {
     actionToast: null as string | null,
     mobileDrawerSnap: 'closed' as 'closed' | 'half' | 'full',
     clipboardHtml: '',
-    autosaveEnabled: true
+    autosaveEnabled: true,
+    leftPanelCollapsed: true
   })
 
   const AUTOSAVE_DELAY = 3000

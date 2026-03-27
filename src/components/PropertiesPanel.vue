@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
+import { ref, watch } from 'vue'
 
 import { useAIChat } from '@/composables/use-chat'
 import { useEditorStore } from '@/stores/editor'
@@ -18,78 +17,53 @@ const store = useEditorStore()
 const { activeTab } = useAIChat()
 
 const specTab = ref<'summary' | 'requirements' | 'versions'>('summary')
-const shipTab = ref<'export' | 'code' | 'handoff'>('export')
 const showBrandSettings = ref(false)
+const showShipMore = ref(false)
 
-watch(shipTab, (tab) => {
-  store.state.measurementMode = tab === 'handoff'
-})
-
-const panelTitle = computed(() => {
-  if (activeTab.value === 'create') return 'Create'
-  if (activeTab.value === 'spec') return 'Spec'
-  return 'Ship'
-})
-
-const panelDescription = computed(() => {
-  if (activeTab.value === 'create') return 'Prompt first. Generate something simple, then refine.'
-  if (activeTab.value === 'spec') return 'Capture product intent, requirements, and design decisions.'
-  return 'Export first. Code and handoff stay close, but secondary.'
+watch(showShipMore, (show) => {
+  store.state.measurementMode = false
+  if (!show) store.state.measurementMode = false
 })
 </script>
 
 <template>
   <aside
     data-test-id="properties-panel"
-    class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-l border-border bg-panel select-text"
+    class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-panel select-text"
   >
-    <div class="border-b border-border px-3 py-3">
-      <div class="mb-2 flex items-center gap-1 rounded-lg bg-inset p-1">
+    <!-- Tab switcher only — no title/description -->
+    <div class="px-3 pt-3 pb-2">
+      <div class="flex items-center gap-1 rounded-xl bg-inset p-1">
         <button
-          class="flex-1 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors"
+          class="flex-1 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
           :class="activeTab === 'create' ? 'bg-accent text-white' : 'text-muted hover:text-surface'"
           @click="activeTab = 'create'"
         >
           Create
         </button>
         <button
-          class="flex-1 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors"
+          class="flex-1 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
           :class="activeTab === 'spec' ? 'bg-accent text-white' : 'text-muted hover:text-surface'"
           @click="activeTab = 'spec'"
         >
           Spec
         </button>
         <button
-          class="flex-1 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors"
+          class="flex-1 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
           :class="activeTab === 'ship' ? 'bg-accent text-white' : 'text-muted hover:text-surface'"
           @click="activeTab = 'ship'"
         >
           Ship
         </button>
       </div>
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <div class="text-[13px] font-semibold text-surface">{{ panelTitle }}</div>
-          <div class="mt-0.5 text-[11px] leading-relaxed text-muted">{{ panelDescription }}</div>
-        </div>
-        <button
-          v-if="activeTab === 'create'"
-          class="rounded-full border border-border px-2.5 py-1 text-[10px] text-muted transition hover:bg-hover hover:text-surface"
-          @click="showBrandSettings = !showBrandSettings"
-        >
-          {{ showBrandSettings ? 'Hide brand' : 'Brand' }}
-        </button>
-      </div>
     </div>
 
+    <!-- Create tab: clean prompt + optional brand via ⚙️ -->
     <div v-if="activeTab === 'create'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
       <ChatPanel class="flex-1" />
-      <div v-if="showBrandSettings" class="max-h-[42%] border-t border-border bg-inset/20">
-        <div class="flex items-center justify-between border-b border-border px-3 py-2">
-          <div>
-            <div class="text-[12px] font-semibold text-surface">Brand</div>
-            <div class="text-[10px] text-muted">Project-level style controls</div>
-          </div>
+      <div v-if="showBrandSettings" class="max-h-[42%] border-t border-border/10 bg-inset/20">
+        <div class="flex items-center justify-between px-3 py-2">
+          <div class="text-[12px] font-semibold text-surface">Brand</div>
           <button class="text-[11px] text-muted hover:text-surface" @click="showBrandSettings = false">
             Close
           </button>
@@ -98,26 +72,37 @@ const panelDescription = computed(() => {
           <BrandSettings />
         </div>
       </div>
+      <!-- Settings icon for Brand + Provider -->
+      <div v-if="!showBrandSettings" class="flex shrink-0 justify-end px-3 pb-2">
+        <button
+          class="flex size-7 items-center justify-center rounded-lg text-muted transition hover:bg-hover hover:text-surface"
+          title="Brand & provider settings"
+          @click="showBrandSettings = true"
+        >
+          <icon-lucide-settings class="size-3.5" />
+        </button>
+      </div>
     </div>
 
+    <!-- Spec tab: collapsed by default, expand on click -->
     <div v-else-if="activeTab === 'spec'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div class="flex shrink-0 items-center gap-1 border-b border-border px-2 py-1.5">
+      <div class="flex shrink-0 items-center gap-1 px-2 py-1.5">
         <button
-          class="rounded px-2 py-1 text-[11px]"
+          class="rounded-lg px-2 py-1 text-[11px]"
           :class="specTab === 'summary' ? 'bg-hover font-semibold text-surface' : 'text-muted hover:text-surface'"
           @click="specTab = 'summary'"
         >
           Summary
         </button>
         <button
-          class="rounded px-2 py-1 text-[11px]"
+          class="rounded-lg px-2 py-1 text-[11px]"
           :class="specTab === 'requirements' ? 'bg-hover font-semibold text-surface' : 'text-muted hover:text-surface'"
           @click="specTab = 'requirements'"
         >
           Requirements
         </button>
         <button
-          class="rounded px-2 py-1 text-[11px]"
+          class="rounded-lg px-2 py-1 text-[11px]"
           :class="specTab === 'versions' ? 'bg-hover font-semibold text-surface' : 'text-muted hover:text-surface'"
           @click="specTab = 'versions'"
         >
@@ -129,44 +114,34 @@ const panelDescription = computed(() => {
       <ProductDocPanel v-else default-section="versions" class="flex-1 overflow-y-auto" />
     </div>
 
+    <!-- Ship tab: Export as main, Code/Handoff in "More options" -->
     <div v-else class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <TabsRoot v-model="shipTab" class="flex min-h-0 flex-1 flex-col">
-        <TabsList class="flex shrink-0 items-center gap-1 border-b border-border px-2 py-1.5">
-          <TabsTrigger
-            value="export"
-            data-test-id="properties-tab-export"
-            class="rounded px-2 py-1 text-[11px] text-muted hover:text-surface data-[state=active]:bg-hover data-[state=active]:font-semibold data-[state=active]:text-surface"
-          >
-            Export
-          </TabsTrigger>
-          <TabsTrigger
-            value="code"
-            data-test-id="properties-tab-code"
-            class="rounded px-2 py-1 text-[11px] text-muted hover:text-surface data-[state=active]:bg-hover data-[state=active]:font-semibold data-[state=active]:text-surface"
-          >
-            Code
-          </TabsTrigger>
-          <TabsTrigger
-            value="handoff"
-            data-test-id="properties-tab-handoff"
-            class="rounded px-2 py-1 text-[11px] text-muted hover:text-surface data-[state=active]:bg-hover data-[state=active]:font-semibold data-[state=active]:text-surface"
-          >
-            Handoff
-          </TabsTrigger>
-        </TabsList>
-
-        <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div v-if="shipTab === 'export'" class="flex min-h-0 flex-1 flex-col overflow-y-auto">
-            <ExportPanel />
-          </div>
-          <div v-else-if="shipTab === 'code'" class="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <ExportPanel />
+      </div>
+      <!-- More options: Code + Handoff collapsed -->
+      <div class="shrink-0 border-t border-border/10">
+        <button
+          class="flex w-full items-center justify-between px-3 py-2 text-[11px] text-muted transition hover:text-surface"
+          @click="showShipMore = !showShipMore"
+        >
+          <span>More options</span>
+          <icon-lucide-chevron-down
+            class="size-3 transition-transform"
+            :class="showShipMore ? 'rotate-180' : ''"
+          />
+        </button>
+        <div v-if="showShipMore" class="max-h-[50%] overflow-y-auto">
+          <div class="border-t border-border/10 px-3 py-2">
+            <div class="mb-1 text-[11px] font-medium text-surface">Code</div>
             <CodePanel />
           </div>
-          <div v-else class="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <div class="border-t border-border/10 px-3 py-2">
+            <div class="mb-1 text-[11px] font-medium text-surface">Handoff</div>
             <HandoffPanel />
           </div>
         </div>
-      </TabsRoot>
+      </div>
     </div>
   </aside>
 </template>

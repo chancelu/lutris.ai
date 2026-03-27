@@ -219,6 +219,8 @@ const messages: Messages = {
   'file.saveAs': { en: 'Save as…', zh: '另存为…' },
   'file.exportSelection': { en: 'Export selection…', zh: '导出选中…' },
   'file.autosave': { en: 'Auto-save to local file', zh: '自动保存到本地文件' },
+  'file.switchProject': { en: 'Switch Project', zh: '切换项目' },
+  'file.newProject': { en: 'New Project…', zh: '新建项目…' },
 
   // Edit menu items
   'edit.undo': { en: 'Undo', zh: '撤销' },

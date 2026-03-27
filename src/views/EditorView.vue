@@ -30,8 +30,6 @@ import SafariBanner from '@/components/SafariBanner.vue'
 import TabBar from '@/components/TabBar.vue'
 import Toolbar from '@/components/Toolbar.vue'
 import UserMenu from '@/components/UserMenu.vue'
-import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
-import LocaleSwitcher from '@/components/LocaleSwitcher.vue'
 // eslint-disable-next-line typescript/consistent-type-imports -- used in template
 import ShortcutsPanel from '@/components/ShortcutsPanel.vue'
 import WelcomeOverlay from '@/components/WelcomeOverlay.vue'
@@ -218,64 +216,108 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
     <TabBar />
 
     <!-- Desktop layout -->
-    <SplitterGroup
+    <div
       v-if="!isMobile && showChrome && store.state.showUI"
       :key="activeTab?.id"
-      direction="horizontal"
-      class="min-h-0 flex-1 overflow-hidden"
-      auto-save-id="editor-layout"
+      class="flex min-h-0 flex-1 overflow-hidden"
     >
-      <SplitterPanel :default-size="18" :min-size="10" :max-size="30" class="flex min-h-0">
-        <LayersPanel />
-      </SplitterPanel>
-      <SplitterResizeHandle
-        data-test-id="left-splitter-handle"
-        class="group relative z-10 -mx-1 w-2 cursor-col-resize"
+      <!-- Left panel: collapsed narrow strip or full panel -->
+      <div
+        v-if="store.state.leftPanelCollapsed"
+        class="flex w-12 shrink-0 flex-col items-center gap-2 bg-panel py-2"
       >
-        <div class="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2" />
-      </SplitterResizeHandle>
-      <SplitterPanel :default-size="64" :min-size="30" class="flex min-h-0">
-        <div class="relative flex min-w-0 flex-1">
-          <EditorCanvas />
-          <Toolbar />
-          <FloatingInspector />
-          <WelcomeOverlay @action="onWelcomeAction" />
-          <div v-if="importNextSteps" class="absolute left-3 top-3 z-20 max-w-sm">
-            <NextStepCard
-              :title="importNextSteps.title"
-              :body="importNextSteps.body"
-              :actions="importNextSteps.actions"
-              @action="handleImportNextStep"
-            />
-          </div>
-          <!-- Bottom-right: shortcuts + locale + theme -->
-          <div class="absolute bottom-3 right-3 z-20 flex items-center gap-1 rounded-lg border border-border bg-panel/90 px-1.5 py-1 backdrop-blur-sm">
-            <button
-              class="rounded p-1.5 text-muted transition-colors hover:bg-hover hover:text-surface"
-              :title="`${t('shortcuts.title')} (Ctrl+?)`"
-              @click="shortcutsPanelRef?.toggle()"
-            >
-              <icon-lucide-keyboard class="size-4" />
-            </button>
-            <LocaleSwitcher />
-            <ThemeSwitcher />
-          </div>
-          <ShortcutsPanel ref="shortcutsPanelRef" />
-        </div>
-      </SplitterPanel>
-      <SplitterResizeHandle class="group relative z-10 -mx-1 w-2 cursor-col-resize">
-        <div class="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2" />
-      </SplitterResizeHandle>
-      <SplitterPanel :default-size="18" :min-size="10" :max-size="30" class="flex min-h-0 flex-col overflow-hidden">
-        <div
-          class="flex shrink-0 items-center justify-between border-b border-border px-1.5 py-1.5"
+        <img src="/favicon-32.png" class="size-5" alt="Lutris.ai" />
+        <button
+          class="flex size-7 items-center justify-center rounded-lg text-muted transition hover:bg-hover hover:text-surface"
+          title="Show left panel"
+          @click="store.state.leftPanelCollapsed = false"
         >
-          <CollabPanel />
-          <UserMenu />
-        </div>
-        <PropertiesPanel />
-      </SplitterPanel>
-    </SplitterGroup>
+          <icon-lucide-panel-left class="size-4" />
+        </button>
+      </div>
+      <SplitterGroup
+        v-if="!store.state.leftPanelCollapsed"
+        direction="horizontal"
+        class="min-h-0 flex-1 overflow-hidden"
+        auto-save-id="editor-layout"
+      >
+        <SplitterPanel :default-size="18" :min-size="10" :max-size="30" class="flex min-h-0">
+          <LayersPanel @collapse="store.state.leftPanelCollapsed = true" />
+        </SplitterPanel>
+        <SplitterResizeHandle
+          data-test-id="left-splitter-handle"
+          class="group relative z-10 -mx-1 w-2 cursor-col-resize"
+        >
+          <div class="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2" />
+        </SplitterResizeHandle>
+        <SplitterPanel :default-size="64" :min-size="30" class="flex min-h-0">
+          <div class="relative flex min-w-0 flex-1">
+            <EditorCanvas />
+            <Toolbar />
+            <FloatingInspector />
+            <WelcomeOverlay @action="onWelcomeAction" />
+            <div v-if="importNextSteps" class="absolute left-3 top-3 z-20 max-w-sm">
+              <NextStepCard
+                :title="importNextSteps.title"
+                :body="importNextSteps.body"
+                :actions="importNextSteps.actions"
+                @action="handleImportNextStep"
+              />
+            </div>
+            <ShortcutsPanel ref="shortcutsPanelRef" />
+          </div>
+        </SplitterPanel>
+        <SplitterResizeHandle class="group relative z-10 -mx-1 w-2 cursor-col-resize">
+          <div class="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2" />
+        </SplitterResizeHandle>
+        <SplitterPanel :default-size="18" :min-size="10" :max-size="30" class="flex min-h-0 flex-col overflow-hidden bg-panel">
+          <div
+            class="flex shrink-0 items-center justify-between px-1.5 py-1"
+          >
+            <CollabPanel />
+            <UserMenu />
+          </div>
+          <PropertiesPanel />
+        </SplitterPanel>
+      </SplitterGroup>
+      <!-- When left panel is collapsed, show canvas + right panel without left splitter -->
+      <SplitterGroup
+        v-else
+        direction="horizontal"
+        class="min-h-0 flex-1 overflow-hidden"
+        auto-save-id="editor-layout-collapsed"
+      >
+        <SplitterPanel :default-size="75" :min-size="40" class="flex min-h-0">
+          <div class="relative flex min-w-0 flex-1">
+            <EditorCanvas />
+            <Toolbar />
+            <FloatingInspector />
+            <WelcomeOverlay @action="onWelcomeAction" />
+            <div v-if="importNextSteps" class="absolute left-3 top-3 z-20 max-w-sm">
+              <NextStepCard
+                :title="importNextSteps.title"
+                :body="importNextSteps.body"
+                :actions="importNextSteps.actions"
+                @action="handleImportNextStep"
+              />
+            </div>
+            <ShortcutsPanel ref="shortcutsPanelRef" />
+          </div>
+        </SplitterPanel>
+        <SplitterResizeHandle class="group relative z-10 -mx-1 w-2 cursor-col-resize">
+          <div class="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2" />
+        </SplitterResizeHandle>
+        <SplitterPanel :default-size="25" :min-size="10" :max-size="40" class="flex min-h-0 flex-col overflow-hidden bg-panel">
+          <div
+            class="flex shrink-0 items-center justify-between px-1.5 py-1"
+          >
+            <CollabPanel />
+            <UserMenu />
+          </div>
+          <PropertiesPanel />
+        </SplitterPanel>
+      </SplitterGroup>
+    </div>
 
     <!-- Mobile layout -->
     <div
