@@ -133,7 +133,7 @@ export function useCanvas(canvasRef: Ref<HTMLCanvasElement | null>, store: Edito
   const isMobile = breakpoints.smaller('mobile')
 
   function showRulers() {
-    return !noRulersParam && !isMobile.value
+    return false // Rulers removed for clean canvas (Lovart-style)
   }
 
   function renderNow() {
