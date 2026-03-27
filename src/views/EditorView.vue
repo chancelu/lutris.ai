@@ -213,7 +213,6 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       <span>{{ t('offline.banner') }}</span>
     </div>
     <SafariBanner />
-    <TabBar />
 
     <!-- Desktop layout: Full-canvas + floating panels (Lovart-style) -->
     <div
@@ -222,11 +221,11 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       class="relative min-h-0 flex-1 overflow-hidden"
     >
       <!-- Full-bleed canvas -->
-      <div class="absolute inset-0 z-0">
+      <div class="absolute inset-0 z-0" :style="{ right: '320px' }">
         <EditorCanvas />
         <FloatingInspector />
+        <WelcomeOverlay @action="onWelcomeAction" />
       </div>
-      <WelcomeOverlay @action="onWelcomeAction" />
       <ShortcutsPanel ref="shortcutsPanelRef" />
       <div v-if="importNextSteps" class="absolute left-16 top-3 z-20 max-w-sm">
         <NextStepCard
@@ -237,32 +236,30 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
         />
       </div>
 
-      <!-- Top-left: logo + doc name + left panel icons -->
-      <div class="pointer-events-auto absolute left-3 top-3 z-20 flex items-center gap-1">
-        <div class="flex items-center gap-2 rounded-xl bg-panel/90 px-2.5 py-1.5 shadow-lg shadow-black/10 backdrop-blur-sm">
-          <img src="/favicon-32.png" class="size-4" alt="Lutris.ai" />
-          <span class="max-w-32 truncate text-[12px] font-medium text-surface">{{ store.state.documentName }}</span>
-        </div>
-        <div class="flex items-center gap-0.5 rounded-xl bg-panel/90 p-1 shadow-lg shadow-black/10 backdrop-blur-sm">
+      <!-- Top-left: minimal logo + doc name + panel icons -->
+      <div class="pointer-events-auto absolute left-3 top-3 z-20 flex items-center gap-2">
+        <img src="/favicon-32.png" class="size-4 opacity-60" alt="Lutris.ai" />
+        <span class="max-w-40 truncate text-[12px] text-muted">{{ store.state.documentName }}</span>
+        <div class="ml-1 flex items-center gap-0.5">
           <button
-            class="flex size-7 items-center justify-center rounded-lg transition"
-            :class="store.state.leftPanelTab === 'layers' ? 'bg-hover text-surface' : 'text-muted hover:text-surface'"
+            class="flex size-6 items-center justify-center rounded-md transition"
+            :class="store.state.leftPanelTab === 'layers' ? 'bg-white/10 text-surface' : 'text-muted/50 hover:text-muted'"
             title="Layers"
             @click="store.state.leftPanelTab = store.state.leftPanelTab === 'layers' ? null : 'layers'"
           >
             <icon-lucide-layers class="size-3.5" />
           </button>
           <button
-            class="flex size-7 items-center justify-center rounded-lg transition"
-            :class="store.state.leftPanelTab === 'assets' ? 'bg-hover text-surface' : 'text-muted hover:text-surface'"
+            class="flex size-6 items-center justify-center rounded-md transition"
+            :class="store.state.leftPanelTab === 'assets' ? 'bg-white/10 text-surface' : 'text-muted/50 hover:text-muted'"
             title="Assets"
             @click="store.state.leftPanelTab = store.state.leftPanelTab === 'assets' ? null : 'assets'"
           >
             <icon-lucide-box class="size-3.5" />
           </button>
           <button
-            class="flex size-7 items-center justify-center rounded-lg transition"
-            :class="store.state.leftPanelTab === 'pages' ? 'bg-hover text-surface' : 'text-muted hover:text-surface'"
+            class="flex size-6 items-center justify-center rounded-md transition"
+            :class="store.state.leftPanelTab === 'pages' ? 'bg-white/10 text-surface' : 'text-muted/50 hover:text-muted'"
             title="Pages"
             @click="store.state.leftPanelTab = store.state.leftPanelTab === 'pages' ? null : 'pages'"
           >
@@ -280,27 +277,27 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       >
         <div
           v-if="store.state.leftPanelTab"
-          class="pointer-events-auto absolute left-3 top-14 bottom-16 z-20 flex w-64 flex-col overflow-hidden rounded-xl bg-panel/95 shadow-xl shadow-black/15 backdrop-blur-sm"
+          class="pointer-events-auto absolute left-2 top-12 bottom-14 z-20 flex w-60 flex-col overflow-hidden rounded-lg bg-panel/95 shadow-xl shadow-black/20 backdrop-blur-md"
         >
           <LayersPanel @collapse="store.state.leftPanelTab = null" />
         </div>
       </Transition>
 
-      <!-- Top-right: collab + user -->
-      <div class="pointer-events-auto absolute right-3 top-3 z-20 flex items-center gap-1">
-        <div class="flex items-center gap-1 rounded-xl bg-panel/90 px-2 py-1 shadow-lg shadow-black/10 backdrop-blur-sm">
-          <CollabPanel />
-          <UserMenu />
-        </div>
+      <!-- Top-right: collab + user (inside right panel area) -->
+      <div class="pointer-events-auto absolute right-0 top-0 z-20 flex w-80 items-center justify-between border-b border-border/5 bg-panel px-3 py-2">
+        <CollabPanel />
+        <UserMenu />
       </div>
 
-      <!-- Right floating panel: AI chat -->
-      <div class="pointer-events-auto absolute right-3 top-14 bottom-16 z-20 flex w-80 flex-col overflow-hidden rounded-xl bg-panel/95 shadow-xl shadow-black/15 backdrop-blur-sm">
+      <!-- Right panel: flush edge, no border-radius, natural extension -->
+      <div class="pointer-events-auto absolute right-0 top-10 bottom-0 z-10 flex w-80 flex-col overflow-hidden border-l border-border/5 bg-panel">
         <PropertiesPanel />
       </div>
 
       <!-- Bottom center: unified toolbar -->
-      <Toolbar />
+      <div :style="{ right: '320px' }">
+        <Toolbar />
+      </div>
     </div>
 
     <!-- Mobile layout -->
