@@ -16,7 +16,7 @@ import {
 
 import IconChevronRight from '~icons/lucide/chevron-right'
 
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 import { useInlineRename } from '@/composables/use-inline-rename'
 import { menuContent, menuItem, menuSeparator } from '@/components/ui/menu'
@@ -24,9 +24,16 @@ import { IS_TAURI } from '@/constants'
 import { openFileDialog } from '@/composables/use-menu'
 import { useEditorStore } from '@/stores/editor'
 import { useI18n } from '@/composables/use-i18n'
+import { useProjects } from '@/composables/use-projects'
 
 const store = useEditorStore()
 const { t } = useI18n()
+const { projects, activeProjectId, switchProject, createProject } = useProjects()
+
+function handleNewProject() {
+  const name = window.prompt(t('projects.name'))
+  if (name?.trim()) createProject(name.trim())
+}
 
 const DOCUMENT_NAME_ID = 'document-name'
 const rename = useInlineRename<'document-name'>((_id, name) => {
@@ -87,6 +94,21 @@ const fileMenu: MenuItem[] = [
     },
     onCheckedChange: (v: boolean) => {
       store.state.autosaveEnabled = v
+    }
+  },
+  { separator: true },
+  {
+    label: t('file.switchProject'),
+    get sub(): MenuItem[] {
+      return [
+        ...projects.value.map((p) => ({
+          label: p.name,
+          checked: p.id === activeProjectId.value,
+          onCheckedChange: () => switchProject(p.id)
+        })),
+        { label: '', separator: true },
+        { label: t('file.newProject'), action: handleNewProject }
+      ]
     }
   }
 ]
@@ -233,6 +255,17 @@ const topMenus = computed(() => [
                     <MenubarSubContent :side-offset="4" :class="menuContent({ class: 'min-w-44' })">
                       <template v-for="(sub, j) in item.sub" :key="j">
                         <MenubarSeparator v-if="sub.separator" :class="menuSeparator()" />
+                        <MenubarCheckboxItem
+                          v-else-if="sub.onCheckedChange"
+                          :model-value="sub.checked"
+                          :class="menuItem()"
+                          @update:model-value="sub.onCheckedChange?.($event as boolean)"
+                        >
+                          <span class="flex-1">{{ sub.label }}</span>
+                          <MenubarItemIndicator class="text-surface">
+                            <icon-lucide-check class="size-3.5" />
+                          </MenubarItemIndicator>
+                        </MenubarCheckboxItem>
                         <MenubarItem
                           v-else
                           :class="menuItem()"

@@ -9,7 +9,6 @@ import ChatMessage from '@/components/chat/ChatMessage.vue'
 import ProviderSetup from '@/components/chat/ProviderSetup.vue'
 import AIContextCards from '@/components/AIContextCards.vue'
 import { useAIChat } from '@/composables/use-chat'
-import { AI_PROVIDERS } from '@open-pencil/core'
 import { useAISelect } from '@/composables/use-ai-select'
 import { useSpec } from '@/composables/use-spec'
 import { useI18n } from '@/composables/use-i18n'
@@ -20,7 +19,7 @@ import type { UIMessage } from 'ai'
 
 const IS_DEV = import.meta.env.DEV
 
-const { isConfigured, ensureChat, resetChat, pendingMessage, aiProgress, providerID, isServerConfigured, activeTab, aiMode, aiModeLabel, aiModeTone } = useAIChat()
+const { isConfigured, ensureChat, resetChat, pendingMessage, aiProgress, providerID, isServerConfigured, activeTab, aiMode } = useAIChat()
 const { hasContext, buildContextPrompt, clearAIContext } = useAISelect()
 const { t } = useI18n()
 
@@ -149,16 +148,6 @@ function handleCreateSpecFromAll() {
 
 <template>
   <div data-test-id="chat-panel" class="flex min-w-0 flex-1 flex-col overflow-hidden select-text">
-    <div class="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
-      <div class="min-w-0">
-        <div class="text-[12px] font-semibold text-surface">Create</div>
-        <div class="text-[10px] text-muted">{{ providerDef?.name || 'Provider' }}<span v-if="isServerConfigured"> · Hosted</span><span v-else> · BYOK</span></div>
-      </div>
-      <div class="rounded-full border px-2 py-1 text-[10px] font-medium" :class="aiModeTone">
-        {{ aiModeLabel }}
-      </div>
-    </div>
-
     <ProviderSetup v-if="!isConfigured" />
 
     <template v-else>
@@ -167,22 +156,10 @@ function handleCreateSpecFromAll() {
           <div
             v-if="messages.length === 0"
             data-test-id="chat-empty-state"
-            class="flex h-full flex-col justify-center px-4 py-4"
+            class="flex h-full flex-col items-center justify-center px-4 py-4"
           >
-            <div class="mx-auto flex w-full max-w-md flex-col items-center text-center">
-              <div class="rounded-full border border-white/10 bg-white/[0.03] p-3 text-white/70">
-                <icon-lucide-sparkles class="size-5" />
-              </div>
-              <p class="mt-4 text-sm font-medium text-surface">Start with a prompt</p>
-              <p class="mt-1 max-w-sm text-[11px] leading-5 text-muted">
-                Describe a screen, flow, or idea. Refine after the first pass.
-              </p>
-              <div class="mt-4 flex flex-wrap justify-center gap-2">
-                <button class="rounded-full border border-border px-2.5 py-1.5 text-[11px] text-muted transition hover:bg-hover hover:text-surface" @click="prefillPrompt('Create a clean SaaS landing page with pricing and testimonials')">Landing page</button>
-                <button class="rounded-full border border-border px-2.5 py-1.5 text-[11px] text-muted transition hover:bg-hover hover:text-surface" @click="prefillPrompt('Design a modern analytics dashboard for a startup founder')">Dashboard</button>
-                <button class="rounded-full border border-border px-2.5 py-1.5 text-[11px] text-muted transition hover:bg-hover hover:text-surface" @click="prefillPrompt('Turn this product idea into a mobile onboarding flow')">Mobile app</button>
-              </div>
-            </div>
+            <icon-lucide-sparkles class="size-5 text-muted/50" />
+            <p class="mt-3 text-[12px] text-muted">Describe what you want to create</p>
           </div>
 
           <div v-else data-test-id="chat-messages" class="flex flex-col gap-3">
