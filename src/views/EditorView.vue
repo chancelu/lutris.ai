@@ -221,7 +221,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       class="relative min-h-0 flex-1 overflow-hidden"
     >
       <!-- Full-bleed canvas -->
-      <div class="absolute inset-0 z-0" :style="{ right: '320px' }">
+      <div class="absolute inset-0 z-0 flex" :style="{ left: '44px', right: '320px' }">
         <EditorCanvas />
         <FloatingInspector />
         <WelcomeOverlay @action="onWelcomeAction" />
@@ -236,36 +236,38 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
         />
       </div>
 
-      <!-- Top-left: minimal logo + doc name + panel icons -->
-      <div class="pointer-events-auto absolute left-3 top-3 z-20 flex items-center gap-2">
+      <!-- Top-left: doc name -->
+      <div class="pointer-events-auto absolute left-14 top-3 z-20 flex items-center gap-2">
         <img src="/favicon-32.png" class="size-4 opacity-60" alt="Lutris.ai" />
         <span class="max-w-40 truncate text-[12px] text-muted">{{ store.state.documentName }}</span>
-        <div class="ml-1 flex items-center gap-0.5">
-          <button
-            class="flex size-6 items-center justify-center rounded-md transition"
-            :class="store.state.leftPanelTab === 'layers' ? 'bg-white/10 text-surface' : 'text-muted/50 hover:text-muted'"
-            title="Layers"
-            @click="store.state.leftPanelTab = store.state.leftPanelTab === 'layers' ? null : 'layers'"
-          >
-            <icon-lucide-layers class="size-3.5" />
-          </button>
-          <button
-            class="flex size-6 items-center justify-center rounded-md transition"
-            :class="store.state.leftPanelTab === 'assets' ? 'bg-white/10 text-surface' : 'text-muted/50 hover:text-muted'"
-            title="Assets"
-            @click="store.state.leftPanelTab = store.state.leftPanelTab === 'assets' ? null : 'assets'"
-          >
-            <icon-lucide-box class="size-3.5" />
-          </button>
-          <button
-            class="flex size-6 items-center justify-center rounded-md transition"
-            :class="store.state.leftPanelTab === 'pages' ? 'bg-white/10 text-surface' : 'text-muted/50 hover:text-muted'"
-            title="Pages"
-            @click="store.state.leftPanelTab = store.state.leftPanelTab === 'pages' ? null : 'pages'"
-          >
-            <icon-lucide-file class="size-3.5" />
-          </button>
-        </div>
+      </div>
+
+      <!-- Left edge: vertical icon bar (Layers / Assets / Pages) -->
+      <div class="pointer-events-auto absolute left-0 top-0 bottom-0 z-20 flex w-11 flex-col items-center gap-1 border-r border-border/5 bg-panel pt-3">
+        <button
+          class="flex size-8 items-center justify-center rounded-lg transition"
+          :class="store.state.leftPanelTab === 'layers' ? 'bg-hover text-surface' : 'text-muted/60 hover:text-muted'"
+          title="Layers"
+          @click="store.state.leftPanelTab = store.state.leftPanelTab === 'layers' ? null : 'layers'"
+        >
+          <icon-lucide-layers class="size-4" />
+        </button>
+        <button
+          class="flex size-8 items-center justify-center rounded-lg transition"
+          :class="store.state.leftPanelTab === 'assets' ? 'bg-hover text-surface' : 'text-muted/60 hover:text-muted'"
+          title="Assets"
+          @click="store.state.leftPanelTab = store.state.leftPanelTab === 'assets' ? null : 'assets'"
+        >
+          <icon-lucide-box class="size-4" />
+        </button>
+        <button
+          class="flex size-8 items-center justify-center rounded-lg transition"
+          :class="store.state.leftPanelTab === 'pages' ? 'bg-hover text-surface' : 'text-muted/60 hover:text-muted'"
+          title="Pages"
+          @click="store.state.leftPanelTab = store.state.leftPanelTab === 'pages' ? null : 'pages'"
+        >
+          <icon-lucide-file class="size-4" />
+        </button>
       </div>
 
       <!-- Left floating panel (when a tab is active) -->
@@ -277,7 +279,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       >
         <div
           v-if="store.state.leftPanelTab"
-          class="pointer-events-auto absolute left-2 top-12 bottom-14 z-20 flex w-60 flex-col overflow-hidden rounded-lg bg-panel/95 shadow-xl shadow-black/20 backdrop-blur-md"
+          class="pointer-events-auto absolute left-11 top-0 bottom-0 z-20 flex w-60 flex-col overflow-hidden border-r border-border/5 bg-panel"
         >
           <LayersPanel @collapse="store.state.leftPanelTab = null" />
         </div>
@@ -295,7 +297,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       </div>
 
       <!-- Bottom center: unified toolbar -->
-      <div :style="{ right: '320px' }">
+      <div :style="{ left: '44px', right: '320px' }" class="absolute bottom-0">
         <Toolbar />
       </div>
     </div>
