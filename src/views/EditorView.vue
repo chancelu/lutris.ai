@@ -222,8 +222,10 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       class="relative min-h-0 flex-1 overflow-hidden"
     >
       <!-- Full-bleed canvas -->
-      <EditorCanvas class="absolute inset-0" />
-      <FloatingInspector />
+      <div class="absolute inset-0 z-0">
+        <EditorCanvas />
+        <FloatingInspector />
+      </div>
       <WelcomeOverlay @action="onWelcomeAction" />
       <ShortcutsPanel ref="shortcutsPanelRef" />
       <div v-if="importNextSteps" class="absolute left-16 top-3 z-20 max-w-sm">
@@ -236,7 +238,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       </div>
 
       <!-- Top-left: logo + doc name + left panel icons -->
-      <div class="absolute left-3 top-3 z-20 flex items-center gap-1">
+      <div class="pointer-events-auto absolute left-3 top-3 z-20 flex items-center gap-1">
         <div class="flex items-center gap-2 rounded-xl bg-panel/90 px-2.5 py-1.5 shadow-lg shadow-black/10 backdrop-blur-sm">
           <img src="/favicon-32.png" class="size-4" alt="Lutris.ai" />
           <span class="max-w-32 truncate text-[12px] font-medium text-surface">{{ store.state.documentName }}</span>
@@ -278,14 +280,14 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       >
         <div
           v-if="store.state.leftPanelTab"
-          class="absolute left-3 top-14 bottom-16 z-20 flex w-64 flex-col overflow-hidden rounded-xl bg-panel/95 shadow-xl shadow-black/15 backdrop-blur-sm"
+          class="pointer-events-auto absolute left-3 top-14 bottom-16 z-20 flex w-64 flex-col overflow-hidden rounded-xl bg-panel/95 shadow-xl shadow-black/15 backdrop-blur-sm"
         >
           <LayersPanel @collapse="store.state.leftPanelTab = null" />
         </div>
       </Transition>
 
       <!-- Top-right: collab + user -->
-      <div class="absolute right-3 top-3 z-20 flex items-center gap-1">
+      <div class="pointer-events-auto absolute right-3 top-3 z-20 flex items-center gap-1">
         <div class="flex items-center gap-1 rounded-xl bg-panel/90 px-2 py-1 shadow-lg shadow-black/10 backdrop-blur-sm">
           <CollabPanel />
           <UserMenu />
@@ -293,7 +295,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       </div>
 
       <!-- Right floating panel: AI chat -->
-      <div class="absolute right-3 top-14 bottom-16 z-20 flex w-80 flex-col overflow-hidden rounded-xl bg-panel/95 shadow-xl shadow-black/15 backdrop-blur-sm">
+      <div class="pointer-events-auto absolute right-3 top-14 bottom-16 z-20 flex w-80 flex-col overflow-hidden rounded-xl bg-panel/95 shadow-xl shadow-black/15 backdrop-blur-sm">
         <PropertiesPanel />
       </div>
 
