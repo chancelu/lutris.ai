@@ -50,6 +50,7 @@ export interface EditorState {
   clipboardHtml: string
   autosaveEnabled: boolean
   leftPanelCollapsed: boolean
+  leftPanelTab: 'layers' | 'assets' | 'pages' | null
 }
 
 export interface EditorContext {

@@ -215,108 +215,90 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
     <SafariBanner />
     <TabBar />
 
-    <!-- Desktop layout -->
+    <!-- Desktop layout: Full-canvas + floating panels (Lovart-style) -->
     <div
       v-if="!isMobile && showChrome && store.state.showUI"
       :key="activeTab?.id"
-      class="flex min-h-0 flex-1 overflow-hidden"
+      class="relative min-h-0 flex-1 overflow-hidden"
     >
-      <!-- Left panel: collapsed narrow strip or full panel -->
-      <div
-        v-if="store.state.leftPanelCollapsed"
-        class="flex w-12 shrink-0 flex-col items-center gap-2 bg-panel py-2"
-      >
-        <img src="/favicon-32.png" class="size-5" alt="Lutris.ai" />
-        <button
-          class="flex size-7 items-center justify-center rounded-lg text-muted transition hover:bg-hover hover:text-surface"
-          title="Show left panel"
-          @click="store.state.leftPanelCollapsed = false"
-        >
-          <icon-lucide-panel-left class="size-4" />
-        </button>
+      <!-- Full-bleed canvas -->
+      <EditorCanvas class="absolute inset-0" />
+      <FloatingInspector />
+      <WelcomeOverlay @action="onWelcomeAction" />
+      <ShortcutsPanel ref="shortcutsPanelRef" />
+      <div v-if="importNextSteps" class="absolute left-16 top-3 z-20 max-w-sm">
+        <NextStepCard
+          :title="importNextSteps.title"
+          :body="importNextSteps.body"
+          :actions="importNextSteps.actions"
+          @action="handleImportNextStep"
+        />
       </div>
-      <SplitterGroup
-        v-if="!store.state.leftPanelCollapsed"
-        direction="horizontal"
-        class="min-h-0 flex-1 overflow-hidden"
-        auto-save-id="editor-layout"
+
+      <!-- Top-left: logo + doc name + left panel icons -->
+      <div class="absolute left-3 top-3 z-20 flex items-center gap-1">
+        <div class="flex items-center gap-2 rounded-xl bg-panel/90 px-2.5 py-1.5 shadow-lg shadow-black/10 backdrop-blur-sm">
+          <img src="/favicon-32.png" class="size-4" alt="Lutris.ai" />
+          <span class="max-w-32 truncate text-[12px] font-medium text-surface">{{ store.state.documentName }}</span>
+        </div>
+        <div class="flex items-center gap-0.5 rounded-xl bg-panel/90 p-1 shadow-lg shadow-black/10 backdrop-blur-sm">
+          <button
+            class="flex size-7 items-center justify-center rounded-lg transition"
+            :class="store.state.leftPanelTab === 'layers' ? 'bg-hover text-surface' : 'text-muted hover:text-surface'"
+            title="Layers"
+            @click="store.state.leftPanelTab = store.state.leftPanelTab === 'layers' ? null : 'layers'"
+          >
+            <icon-lucide-layers class="size-3.5" />
+          </button>
+          <button
+            class="flex size-7 items-center justify-center rounded-lg transition"
+            :class="store.state.leftPanelTab === 'assets' ? 'bg-hover text-surface' : 'text-muted hover:text-surface'"
+            title="Assets"
+            @click="store.state.leftPanelTab = store.state.leftPanelTab === 'assets' ? null : 'assets'"
+          >
+            <icon-lucide-box class="size-3.5" />
+          </button>
+          <button
+            class="flex size-7 items-center justify-center rounded-lg transition"
+            :class="store.state.leftPanelTab === 'pages' ? 'bg-hover text-surface' : 'text-muted hover:text-surface'"
+            title="Pages"
+            @click="store.state.leftPanelTab = store.state.leftPanelTab === 'pages' ? null : 'pages'"
+          >
+            <icon-lucide-file class="size-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Left floating panel (when a tab is active) -->
+      <Transition
+        enter-active-class="transition-all duration-200"
+        enter-from-class="opacity-0 -translate-x-2"
+        leave-active-class="transition-all duration-150"
+        leave-to-class="opacity-0 -translate-x-2"
       >
-        <SplitterPanel :default-size="18" :min-size="10" :max-size="30" class="flex min-h-0">
-          <LayersPanel @collapse="store.state.leftPanelCollapsed = true" />
-        </SplitterPanel>
-        <SplitterResizeHandle
-          data-test-id="left-splitter-handle"
-          class="group relative z-10 -mx-1 w-2 cursor-col-resize"
+        <div
+          v-if="store.state.leftPanelTab"
+          class="absolute left-3 top-14 bottom-16 z-20 flex w-64 flex-col overflow-hidden rounded-xl bg-panel/95 shadow-xl shadow-black/15 backdrop-blur-sm"
         >
-          <div class="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2" />
-        </SplitterResizeHandle>
-        <SplitterPanel :default-size="64" :min-size="30" class="flex min-h-0">
-          <div class="relative flex min-w-0 flex-1">
-            <EditorCanvas />
-            <Toolbar />
-            <FloatingInspector />
-            <WelcomeOverlay @action="onWelcomeAction" />
-            <div v-if="importNextSteps" class="absolute left-3 top-3 z-20 max-w-sm">
-              <NextStepCard
-                :title="importNextSteps.title"
-                :body="importNextSteps.body"
-                :actions="importNextSteps.actions"
-                @action="handleImportNextStep"
-              />
-            </div>
-            <ShortcutsPanel ref="shortcutsPanelRef" />
-          </div>
-        </SplitterPanel>
-        <SplitterResizeHandle class="group relative z-10 -mx-1 w-2 cursor-col-resize">
-          <div class="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2" />
-        </SplitterResizeHandle>
-        <SplitterPanel :default-size="18" :min-size="10" :max-size="30" class="flex min-h-0 flex-col overflow-hidden bg-panel">
-          <div
-            class="flex shrink-0 items-center justify-between px-1.5 py-1"
-          >
-            <CollabPanel />
-            <UserMenu />
-          </div>
-          <PropertiesPanel />
-        </SplitterPanel>
-      </SplitterGroup>
-      <!-- When left panel is collapsed, show canvas + right panel without left splitter -->
-      <SplitterGroup
-        v-else
-        direction="horizontal"
-        class="min-h-0 flex-1 overflow-hidden"
-        auto-save-id="editor-layout-collapsed"
-      >
-        <SplitterPanel :default-size="75" :min-size="40" class="flex min-h-0">
-          <div class="relative flex min-w-0 flex-1">
-            <EditorCanvas />
-            <Toolbar />
-            <FloatingInspector />
-            <WelcomeOverlay @action="onWelcomeAction" />
-            <div v-if="importNextSteps" class="absolute left-3 top-3 z-20 max-w-sm">
-              <NextStepCard
-                :title="importNextSteps.title"
-                :body="importNextSteps.body"
-                :actions="importNextSteps.actions"
-                @action="handleImportNextStep"
-              />
-            </div>
-            <ShortcutsPanel ref="shortcutsPanelRef" />
-          </div>
-        </SplitterPanel>
-        <SplitterResizeHandle class="group relative z-10 -mx-1 w-2 cursor-col-resize">
-          <div class="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2" />
-        </SplitterResizeHandle>
-        <SplitterPanel :default-size="25" :min-size="10" :max-size="40" class="flex min-h-0 flex-col overflow-hidden bg-panel">
-          <div
-            class="flex shrink-0 items-center justify-between px-1.5 py-1"
-          >
-            <CollabPanel />
-            <UserMenu />
-          </div>
-          <PropertiesPanel />
-        </SplitterPanel>
-      </SplitterGroup>
+          <LayersPanel @collapse="store.state.leftPanelTab = null" />
+        </div>
+      </Transition>
+
+      <!-- Top-right: collab + user -->
+      <div class="absolute right-3 top-3 z-20 flex items-center gap-1">
+        <div class="flex items-center gap-1 rounded-xl bg-panel/90 px-2 py-1 shadow-lg shadow-black/10 backdrop-blur-sm">
+          <CollabPanel />
+          <UserMenu />
+        </div>
+      </div>
+
+      <!-- Right floating panel: AI chat -->
+      <div class="absolute right-3 top-14 bottom-16 z-20 flex w-80 flex-col overflow-hidden rounded-xl bg-panel/95 shadow-xl shadow-black/15 backdrop-blur-sm">
+        <PropertiesPanel />
+      </div>
+
+      <!-- Bottom center: unified toolbar -->
+      <Toolbar />
     </div>
 
     <!-- Mobile layout -->

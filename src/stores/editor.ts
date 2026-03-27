@@ -192,7 +192,8 @@ export function createEditorStore() {
     mobileDrawerSnap: 'closed' as 'closed' | 'half' | 'full',
     clipboardHtml: '',
     autosaveEnabled: true,
-    leftPanelCollapsed: true
+    leftPanelCollapsed: true,
+    leftPanelTab: null as 'layers' | 'assets' | 'pages' | null
   })
 
   const AUTOSAVE_DELAY = 3000
