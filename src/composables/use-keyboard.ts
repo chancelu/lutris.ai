@@ -1,4 +1,4 @@
-import { useBreakpoints, useEventListener, useMagicKeys, whenever } from '@vueuse/core'
+import { useEventListener, useMagicKeys, whenever } from '@vueuse/core'
 import { computed } from 'vue'
 
 import { extractImageFilesFromClipboard } from '@/composables/use-canvas-drop'
@@ -60,8 +60,6 @@ function shouldPreventDefault(e: KeyboardEvent, hasPenState: boolean): boolean {
 export function useKeyboard() {
   const { activeTab } = useAIChat()
   const store = useEditorStore()
-  const breakpoints = useBreakpoints({ mobile: 768 })
-  const isMobile = breakpoints.smaller('mobile')
 
   useEventListener(window, 'copy', (e: ClipboardEvent) => {
     if (isEditing(e)) return
@@ -159,14 +157,7 @@ export function useKeyboard() {
     store.state.showUI = !store.state.showUI
   })
   whenever(mod('keyj'), () => {
-    if (isMobile.value) {
-      store.state.activeRibbonTab = store.state.activeRibbonTab === 'ai' ? 'panels' : 'ai'
-      if (store.state.mobileDrawerSnap === 'closed') {
-        store.state.mobileDrawerSnap = 'half'
-      }
-    } else {
-      activeTab.value = activeTab.value === 'create' ? 'ship' : 'create'
-    }
+    activeTab.value = activeTab.value === 'create' ? 'ship' : 'create'
   })
   whenever(mod('keyw'), () => {
     if (activeTabRef.value) closeTab(activeTabRef.value.id)

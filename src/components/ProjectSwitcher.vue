@@ -1,0 +1,47 @@
+<script setup lang="ts">
+import { DropdownMenuRoot, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal } from 'reka-ui'
+
+defineProps<{
+  projectName: string
+  projects: Array<{ id: string; name: string }>
+  activeProjectId: string | null
+}>()
+
+const emit = defineEmits<{
+  switch: [projectId: string]
+  create: []
+}>()
+</script>
+
+<template>
+  <DropdownMenuRoot>
+    <DropdownMenuTrigger as-child>
+      <button class="flex items-center gap-1 text-[12px] text-muted transition hover:text-surface">
+        <span class="max-w-36 truncate">{{ projectName }}</span>
+        <icon-lucide-chevron-down class="size-3 opacity-50" />
+      </button>
+    </DropdownMenuTrigger>
+    <DropdownMenuPortal>
+      <DropdownMenuContent side="bottom" :side-offset="8" align="start" class="z-50 min-w-48 rounded-lg border border-border/50 bg-panel p-1 shadow-xl">
+        <DropdownMenuItem
+          v-for="proj in projects" :key="proj.id"
+          class="flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] outline-none transition"
+          :class="proj.id === activeProjectId ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-hover hover:text-surface'"
+          @select="emit('switch', proj.id)"
+        >
+          <icon-lucide-file-text class="size-3.5 shrink-0" />
+          <span class="flex-1 truncate">{{ proj.name }}</span>
+          <span v-if="proj.id === activeProjectId" class="text-[10px] text-accent">●</span>
+        </DropdownMenuItem>
+        <div class="my-1 h-px bg-border/30" />
+        <DropdownMenuItem
+          class="flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] text-muted outline-none transition hover:bg-hover hover:text-surface"
+          @select="emit('create')"
+        >
+          <icon-lucide-plus class="size-3.5" />
+          <span>New Project</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenuPortal>
+  </DropdownMenuRoot>
+</template>
