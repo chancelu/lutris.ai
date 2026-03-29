@@ -246,8 +246,4 @@ export function useKeyboard() {
     activeTab.value = 'spec'
   })
 
-  // Ctrl+? → Shortcuts panel (dispatches custom event)
-  whenever(mod('shift+slash'), () => {
-    window.dispatchEvent(new CustomEvent('toggle-shortcuts'))
-  })
 }

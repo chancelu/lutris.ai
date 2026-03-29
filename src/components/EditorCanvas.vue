@@ -7,7 +7,6 @@ import { useCanvasInput } from '@/composables/use-canvas-input'
 import { useTextEdit } from '@/composables/use-text-edit'
 import { useEditorStore } from '@/stores/editor'
 import CanvasContextMenu from './CanvasContextMenu.vue'
-import QuickActions from './QuickActions.vue'
 import { useAISelect } from '@/composables/use-ai-select'
 import { useAIChat } from '@/composables/use-chat'
 
@@ -167,7 +166,6 @@ function handleCanvasClick(e: MouseEvent) {
         :style="aiMarqueeStyle"
       />
       <!-- Quick action toolbar -->
-      <!-- QuickActions merged into Toolbar -->
       <!-- AI Select confirmation popup -->
       <Transition
         enter-active-class="transition-all duration-150"
