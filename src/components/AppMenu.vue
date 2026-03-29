@@ -1,22 +1,13 @@
 <script setup lang="ts">
 import {
-  MenubarCheckboxItem,
   MenubarContent,
   MenubarItem,
-  MenubarItemIndicator,
   MenubarMenu,
   MenubarPortal,
   MenubarRoot,
   MenubarSeparator,
-  MenubarSub,
-  MenubarSubContent,
-  MenubarSubTrigger,
-  MenubarTrigger
+  MenubarTrigger,
 } from 'reka-ui'
-
-import IconChevronRight from '~icons/lucide/chevron-right'
-
-import { computed, ref } from 'vue'
 
 import { menuContent, menuItem, menuSeparator } from '@/components/ui/menu'
 import { IS_TAURI } from '@/constants'
@@ -25,201 +16,39 @@ import { useEditorStore } from '@/stores/editor'
 import { useProjects } from '@/composables/use-projects'
 
 const store = useEditorStore()
-const { projects, activeProjectId, switchProject, createProject } = useProjects()
+const { createProject } = useProjects()
+
+const isMac = navigator.platform.includes('Mac')
+const mod = isMac ? '⌘' : 'Ctrl+'
 
 function handleNewProject() {
   const name = window.prompt('Project name')
   if (name?.trim()) createProject(name.trim())
 }
 
-const DOCUMENT_NAME_ID = 'document-name'
-const editingName = ref(false)
-const editNameValue = ref('')
-
-function startRename() {
-  editNameValue.value = store.state.documentName
-  editingName.value = true
+function handleExport() {
+  if (store.state.selectedIds.size > 0) store.exportSelection(1, 'PNG')
 }
 
-function commitRename(input: HTMLInputElement) {
-  const val = input.value.trim()
-  if (val) store.state.documentName = val
-  editingName.value = false
-}
-
-function setNameInputRef(el: HTMLInputElement | null) {
-  if (el) {
-    el.focus()
-    el.select()
-  }
-}
-
-const isMac = navigator.platform.includes('Mac')
-const mod = isMac ? '⌘' : 'Ctrl+'
-
-interface MenuItem {
-  label: string
-  shortcut?: string
-  action?: () => void
-  separator?: boolean
-  disabled?: boolean
-  checked?: boolean
-  onCheckedChange?: (checked: boolean) => void
-  sub?: MenuItem[]
-}
-
-const fileMenu: MenuItem[] = [
-  {
-    label: 'New',
-    shortcut: `${mod}N`,
-    action: () => import('@/stores/tabs').then((m) => m.createTab())
-  },
-  { label: 'Open', shortcut: `${mod}O`, action: () => openFileDialog() },
+const fileItems = [
+  { label: 'New Project', action: handleNewProject },
+  { label: 'Open .fig File', shortcut: `${mod}O`, action: () => openFileDialog() },
   { separator: true },
-  { label: 'Save', shortcut: `${mod}S`, action: () => store.saveFigFile() },
-  { label: 'Save As', shortcut: `${mod}⇧S`, action: () => store.saveFigFileAs() },
+  { label: 'Export Selection', shortcut: `${mod}⇧E`, action: handleExport },
   { separator: true },
-  {
-    label: 'Export Selection',
-    shortcut: `${mod}⇧E`,
-    action: () => {
-      if (store.state.selectedIds.size > 0) store.exportSelection(1, 'PNG')
-    },
-    disabled: store.state.selectedIds.size === 0
-  },
-  { separator: true },
-  {
-    label: 'Autosave',
-    get checked() {
-      return store.state.autosaveEnabled
-    },
-    onCheckedChange: (v: boolean) => {
-      store.state.autosaveEnabled = v
-    }
-  },
-  { separator: true },
-  {
-    label: 'Switch Project',
-    get sub(): MenuItem[] {
-      return [
-        ...projects.value.map((p) => ({
-          label: p.name,
-          checked: p.id === activeProjectId.value,
-          onCheckedChange: () => switchProject(p.id)
-        })),
-        { label: '', separator: true },
-        { label: 'New Project', action: handleNewProject }
-      ]
-    }
-  }
+  { label: 'Theme Toggle', action: () => document.documentElement.classList.toggle('dark') },
+  { label: 'Keyboard Shortcuts', shortcut: '?', action: () => window.open('https://github.com/nicepkg/open-pencil#shortcuts', '_blank') },
 ]
-
-const editMenu: MenuItem[] = [
-  { label: 'Undo', shortcut: `${mod}Z`, action: () => store.undoAction() },
-  { label: 'Redo', shortcut: `${mod}⇧Z`, action: () => store.redoAction() },
-  { separator: true },
-  { label: 'Copy', shortcut: `${mod}C` },
-  { label: 'Paste', shortcut: `${mod}V` },
-  { label: 'Duplicate', shortcut: `${mod}D`, action: () => store.duplicateSelected() },
-  { label: 'Delete', shortcut: '⌫', action: () => store.deleteSelected() },
-  { separator: true },
-  { label: 'Select All', shortcut: `${mod}A`, action: () => store.selectAll() }
-]
-
-const viewMenu: MenuItem[] = [
-  { label: 'Zoom to 100%', shortcut: `${mod}0`, action: () => store.zoomTo100() },
-  { label: 'Zoom to Fit', shortcut: `${mod}1`, action: () => store.zoomToFit() },
-  { label: 'Zoom to Selection', shortcut: `${mod}2`, action: () => store.zoomToSelection() },
-  {
-    label: 'Zoom In',
-    shortcut: `${mod}=`,
-    action: () => store.applyZoom(-100, window.innerWidth / 2, window.innerHeight / 2)
-  },
-  {
-    label: 'Zoom Out',
-    shortcut: `${mod}-`,
-    action: () => store.applyZoom(100, window.innerWidth / 2, window.innerHeight / 2)
-  },
-  { separator: true },
-  {
-    label: 'Profiler',
-    get checked() {
-      return store.renderer?.profiler.hudVisible ?? false
-    },
-    onCheckedChange: () => {
-      store.toggleProfiler()
-    }
-  }
-]
-
-const objectMenu: MenuItem[] = [
-  { label: 'Group', shortcut: `${mod}G`, action: () => store.groupSelected() },
-  { label: 'Ungroup', shortcut: `${mod}⇧G`, action: () => store.ungroupSelected() },
-  { separator: true },
-  {
-    label: 'Create Component',
-    shortcut: `${mod}⌥K`,
-    action: () => store.createComponentFromSelection()
-  },
-  {
-    label: 'Create Component Set',
-    action: () => store.createComponentSetFromComponents()
-  },
-  { label: 'Detach Instance', action: () => store.detachInstance() },
-  { separator: true },
-  { label: 'Bring to Front', shortcut: ']', action: () => store.bringToFront() },
-  { label: 'Send to Back', shortcut: '[', action: () => store.sendToBack() }
-]
-
-const textMenu: MenuItem[] = [
-  { label: 'Bold', shortcut: `${mod}B` },
-  { label: 'Italic', shortcut: `${mod}I` },
-  { label: 'Underline', shortcut: `${mod}U` }
-]
-
-const arrangeMenu: MenuItem[] = [
-  { label: 'Auto Layout', shortcut: '⇧A', action: () => store.wrapInAutoLayout() },
-  { separator: true },
-  { label: 'Align Left', shortcut: '⌥A' },
-  { label: 'Align Center', shortcut: '⌥H' },
-  { label: 'Align Right', shortcut: '⌥D' },
-  { separator: true },
-  { label: 'Align Top', shortcut: '⌥W' },
-  { label: 'Align Middle', shortcut: '⌥V' },
-  { label: 'Align Bottom', shortcut: '⌥S' }
-]
-
-const topMenus = computed(() => [
-  { label: 'File', items: fileMenu },
-  { label: 'Edit', items: editMenu },
-  { label: 'View', items: viewMenu },
-  { label: 'Object', items: objectMenu },
-  { label: 'Text', items: textMenu },
-  { label: 'Arrange', items: arrangeMenu }
-])
 </script>
 
 <template>
   <div class="shrink-0 border-b border-border">
     <div class="flex items-center gap-2 px-2 py-1.5">
       <img data-test-id="app-logo" src="/favicon-32.png" class="size-4" alt="Lutris.ai" />
-      <input
-        v-if="editingName"
-        :ref="(el) => setNameInputRef(el as HTMLInputElement | null)"
-        data-test-id="app-document-name-input"
-        class="min-w-0 flex-1 rounded border border-accent bg-input px-1 py-0.5 text-xs text-surface outline-none"
-        :value="store.state.documentName"
-        @blur="commitRename($event.target as HTMLInputElement)"
-        @keydown.enter="($event.target as HTMLInputElement).blur()"
-        @keydown.escape="editingName = false"
-      />
       <span
-        v-else
         data-test-id="app-document-name"
-        class="min-w-0 flex-1 cursor-default truncate rounded px-1 py-0.5 text-xs text-surface hover:bg-hover"
-        @dblclick="startRename"
-        >{{ store.state.documentName }}</span
-      >
+        class="min-w-0 flex-1 truncate text-xs text-surface"
+      >{{ store.state.documentName }}</span>
       <button
         data-test-id="app-toggle-ui"
         class="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-muted transition-colors hover:bg-hover hover:text-surface"
@@ -230,79 +59,21 @@ const topMenus = computed(() => [
       </button>
     </div>
     <div v-if="!IS_TAURI" class="flex items-center px-1 pb-1">
-      <MenubarRoot class="scrollbar-none flex items-center gap-0.5 overflow-x-auto">
-        <MenubarMenu v-for="menu in topMenus" :key="menu.label">
+      <MenubarRoot class="flex items-center gap-0.5">
+        <MenubarMenu>
           <MenubarTrigger
-            :data-test-id="`menubar-${menu.label.toLowerCase()}`"
+            data-test-id="menubar-file"
             class="flex cursor-pointer items-center rounded px-2 py-1 text-xs text-muted transition-colors select-none hover:bg-hover hover:text-surface data-[state=open]:bg-hover data-[state=open]:text-surface"
           >
-            {{ menu.label }}
+            File
           </MenubarTrigger>
-
           <MenubarPortal>
-            <MenubarContent
-              :side-offset="4"
-              align="start"
-              :class="menuContent({ class: 'min-w-52' })"
-            >
-              <template v-for="(item, i) in menu.items" :key="i">
-                <MenubarSeparator v-if="item.separator" :class="menuSeparator()" />
-                <MenubarSub v-else-if="item.sub">
-                  <MenubarSubTrigger :class="menuItem()">
-                    <span class="flex-1">{{ item.label }}</span>
-                    <IconChevronRight class="size-3 text-muted" />
-                  </MenubarSubTrigger>
-                  <MenubarPortal>
-                    <MenubarSubContent :side-offset="4" :class="menuContent({ class: 'min-w-44' })">
-                      <template v-for="(sub, j) in item.sub" :key="j">
-                        <MenubarSeparator v-if="sub.separator" :class="menuSeparator()" />
-                        <MenubarCheckboxItem
-                          v-else-if="sub.onCheckedChange"
-                          :model-value="sub.checked"
-                          :class="menuItem()"
-                          @update:model-value="sub.onCheckedChange?.($event as boolean)"
-                        >
-                          <span class="flex-1">{{ sub.label }}</span>
-                          <MenubarItemIndicator class="text-surface">
-                            <icon-lucide-check class="size-3.5" />
-                          </MenubarItemIndicator>
-                        </MenubarCheckboxItem>
-                        <MenubarItem
-                          v-else
-                          :class="menuItem()"
-                          :disabled="sub.disabled"
-                          @select="sub.action?.()"
-                        >
-                          <span class="flex-1">{{ sub.label }}</span>
-                          <span v-if="sub.shortcut" class="text-[12px] text-muted">{{
-                            sub.shortcut
-                          }}</span>
-                        </MenubarItem>
-                      </template>
-                    </MenubarSubContent>
-                  </MenubarPortal>
-                </MenubarSub>
-                <MenubarCheckboxItem
-                  v-else-if="item.onCheckedChange"
-                  :model-value="item.checked"
-                  :class="menuItem()"
-                  @update:model-value="item.onCheckedChange?.($event as boolean)"
-                >
+            <MenubarContent :side-offset="4" align="start" :class="menuContent({ class: 'min-w-48' })">
+              <template v-for="(item, i) in fileItems" :key="i">
+                <MenubarSeparator v-if="'separator' in item && item.separator" :class="menuSeparator()" />
+                <MenubarItem v-else :class="menuItem()" @select="item.action?.()">
                   <span class="flex-1">{{ item.label }}</span>
-                  <MenubarItemIndicator class="text-surface">
-                    <icon-lucide-check class="size-3.5" />
-                  </MenubarItemIndicator>
-                </MenubarCheckboxItem>
-                <MenubarItem
-                  v-else
-                  :class="menuItem()"
-                  :disabled="item.disabled"
-                  @select="item.action?.()"
-                >
-                  <span class="flex-1">{{ item.label }}</span>
-                  <span v-if="item.shortcut" class="text-[12px] text-muted">{{
-                    item.shortcut
-                  }}</span>
+                  <span v-if="'shortcut' in item && item.shortcut" class="text-[12px] text-muted">{{ item.shortcut }}</span>
                 </MenubarItem>
               </template>
             </MenubarContent>
