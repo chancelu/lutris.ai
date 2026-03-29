@@ -16,9 +16,8 @@ import { createTab, getActiveStore } from '@/stores/tabs'
 
 import EditorCanvas from '@/components/EditorCanvas.vue'
 import PropertiesPanel from '@/components/PropertiesPanel.vue'
-import ProjectSwitcher from '@/components/ProjectSwitcher.vue'
+import TopBar from '@/components/TopBar.vue'
 import Toolbar from '@/components/Toolbar.vue'
-import UserMenu from '@/components/UserMenu.vue'
 import WelcomeOverlay from '@/components/WelcomeOverlay.vue'
 import ContextDrawer from '@/components/ContextDrawer.vue'
 
@@ -120,29 +119,41 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
 </script>
 
 <template>
-  <div data-test-id="editor-root" class="relative h-screen w-screen overflow-hidden">
+  <div data-test-id="editor-root" class="flex h-screen w-screen flex-col overflow-hidden">
     <input ref="designFileInput" type="file" accept=".fig" class="hidden" @change="handleDesignFileChange" />
-    <div class="absolute inset-0 z-0" :style="showChrome && store.state.showUI ? 'right:360px' : ''">
-      <EditorCanvas />
-      <WelcomeOverlay v-if="showChrome" @action="onWelcomeAction" />
-    </div>
-    <template v-if="showChrome && store.state.showUI">
-      <div class="pointer-events-auto absolute left-3 top-3 z-20 flex items-center gap-2 rounded-xl bg-white/70 px-2.5 py-1.5 shadow-sm ring-1 ring-black/[0.04] backdrop-blur-sm">
-        <img src="/favicon-32.png" class="size-4 opacity-60" alt="Lutris.ai" />
-        <ProjectSwitcher :project-name="activeProject?.name || store.state.documentName" :projects="projectsList" :active-project-id="activeProjectId" @switch="onSwitchProject" @create="onCreateProject" />
-        <UserMenu />
-      </div>
-      <div class="pointer-events-auto absolute right-0 top-0 bottom-0 z-10 flex w-[360px] flex-col border-l border-border/10 bg-panel">
+
+    <TopBar
+      v-if="showChrome && store.state.showUI"
+      :project-name="activeProject?.name || store.state.documentName"
+      :projects="projectsList"
+      :active-project-id="activeProjectId"
+      @switch-project="onSwitchProject"
+      @create-project="onCreateProject"
+    />
+
+    <div class="relative flex flex-1 overflow-hidden">
+      <!-- Left: AI Panel -->
+      <div v-if="showChrome && store.state.showUI" class="flex w-[360px] shrink-0 flex-col border-r border-border/10 bg-panel">
         <PropertiesPanel />
       </div>
-      <div class="pointer-events-auto absolute right-[360px] top-0 bottom-0 z-10">
+
+      <!-- Center: Canvas + Toolbar + WelcomeOverlay -->
+      <div class="relative flex-1">
+        <EditorCanvas />
+        <WelcomeOverlay v-if="showChrome" @action="onWelcomeAction" />
+        <div v-if="showChrome && store.state.showUI" class="absolute bottom-0 left-0 right-0 z-10">
+          <Toolbar />
+        </div>
+      </div>
+
+      <!-- Right: Context Drawer (on-demand, overlays canvas edge) -->
+      <div v-if="showChrome && store.state.showUI" class="absolute right-0 top-0 bottom-0 z-10">
         <ContextDrawer />
       </div>
-      <div class="absolute bottom-0 z-10" :style="{ left:'0', right:'360px' }">
-        <Toolbar />
-      </div>
-    </template>
-    <div v-else-if="showChrome" class="absolute top-7 left-7 z-10 flex items-center gap-2 rounded-lg border border-border bg-panel px-2 py-1 shadow-sm">
+    </div>
+
+    <!-- Minimal UI when showUI is false -->
+    <div v-if="showChrome && !store.state.showUI" class="absolute top-7 left-7 z-10 flex items-center gap-2 rounded-lg border border-border bg-panel px-2 py-1 shadow-sm">
       <img src="/favicon-32.png" class="size-4" alt="Lutris.ai" />
       <span data-test-id="editor-document-name" class="text-xs text-surface">{{ store.state.documentName }}</span>
       <button data-test-id="editor-show-ui" class="ml-1 flex size-6 cursor-pointer items-center justify-center rounded text-muted transition-colors hover:bg-hover hover:text-surface" title="Show UI" @click="store.state.showUI = true">

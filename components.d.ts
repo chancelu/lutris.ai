@@ -117,6 +117,7 @@ declare module 'vue' {
     ThemeSwitcher: typeof import('./src/components/ThemeSwitcher.vue')['default']
     TokenBindButton: typeof import('./src/components/properties/TokenBindButton.vue')['default']
     Toolbar: typeof import('./src/components/Toolbar.vue')['default']
+    TopBar: typeof import('./src/components/TopBar.vue')['default']
     TypographySection: typeof import('./src/components/properties/TypographySection.vue')['default']
     UserMenu: typeof import('./src/components/UserMenu.vue')['default']
     VariablesSection: typeof import('./src/components/properties/VariablesSection.vue')['default']
