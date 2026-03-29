@@ -27,7 +27,8 @@ import {
 
 import { createClipboardOps } from './editor-clipboard'
 import { createExportOps } from './editor-export'
-import { createViewportOps } from './editor-viewport'
+import { createViewportOps, type PageViewport } from './canvas'
+import { createSelectionOps } from './selection'
 
 import type {
   Color,
@@ -48,47 +49,10 @@ import type {
 import type { CanvasKit } from 'canvaskit-wasm'
 import type { EditorContext } from './editor-types'
 
-export type Tool =
-  | 'SELECT'
-  | 'FRAME'
-  | 'SECTION'
-  | 'RECTANGLE'
-  | 'ELLIPSE'
-  | 'LINE'
-  | 'POLYGON'
-  | 'STAR'
-  | 'TEXT'
-  | 'PEN'
-  | 'HAND'
-
-export interface ToolDef {
-  key: Tool
-  label: string
-  shortcut: string
-  flyout?: Tool[]
-}
-
-export const TOOLS: ToolDef[] = [
-  { key: 'SELECT', label: 'Move', shortcut: 'V' },
-  { key: 'FRAME', label: 'Frame', shortcut: 'F' },
-  { key: 'TEXT', label: 'Text', shortcut: 'T' },
-  { key: 'HAND', label: 'Hand', shortcut: 'H' }
-]
-
-/** Overflow tools shown in the "+" menu */
-export const OVERFLOW_TOOLS: ToolDef[] = []
-
-export const TOOL_SHORTCUTS: Partial<Record<string, Tool>> = {
-  v: 'SELECT',
-  f: 'FRAME',
-  s: 'SECTION',
-  r: 'RECTANGLE',
-  o: 'ELLIPSE',
-  l: 'LINE',
-  t: 'TEXT',
-  p: 'PEN',
-  h: 'HAND'
-}
+// Re-export tool types and constants from dedicated module
+export { TOOLS, OVERFLOW_TOOLS, TOOL_SHORTCUTS } from './tools'
+export type { Tool, ToolDef } from './tools'
+import type { Tool } from './tools'
 
 const BLACK_FILL: Fill = {
   type: 'SOLID',
@@ -106,13 +70,6 @@ const DEFAULT_FILLS: Record<string, Fill> = {
   STAR: DEFAULT_SHAPE_FILL,
   LINE: BLACK_FILL,
   TEXT: BLACK_FILL
-}
-
-interface PageViewport {
-  panX: number
-  panY: number
-  zoom: number
-  pageColor: Color
 }
 
 export function createEditorStore() {
@@ -252,7 +209,7 @@ export function createEditorStore() {
 
     // Switch
     state.currentPageId = pageId
-    clearSelection()
+    selectionOps.clearSelection()
 
     // Restore viewport
     const vp = pageViewports.get(pageId)
@@ -299,54 +256,6 @@ export function createEditorStore() {
 
   function setTool(tool: Tool) {
     state.activeTool = tool
-  }
-
-  function select(ids: string[], additive = false) {
-    if (additive) {
-      const next = new Set(state.selectedIds)
-      for (const id of ids) {
-        if (next.has(id)) next.delete(id)
-        else next.add(id)
-      }
-      state.selectedIds = next
-    } else {
-      state.selectedIds = new Set(ids)
-    }
-  }
-
-  function clearSelection() {
-    state.selectedIds = new Set()
-  }
-
-  function setMarquee(rect: Rect | null) {
-    state.marquee = rect
-    requestRepaint()
-  }
-
-  function setSnapGuides(guides: SnapGuide[]) {
-    state.snapGuides = guides
-    requestRepaint()
-  }
-
-  function setRotationPreview(preview: { nodeId: string; angle: number } | null) {
-    state.rotationPreview = preview
-    requestRepaint()
-  }
-
-  function setHoveredNode(id: string | null) {
-    if (state.hoveredNodeId === id) return
-    state.hoveredNodeId = id
-    requestRepaint()
-  }
-
-  function setDropTarget(id: string | null) {
-    state.dropTargetId = id
-    requestRepaint()
-  }
-
-  function setLayoutInsertIndicator(indicator: typeof state.layoutInsertIndicator) {
-    state.layoutInsertIndicator = indicator
-    requestRepaint()
   }
 
   function doReorderChild(nodeId: string, parentId: string, insertIndex: number) {
@@ -552,7 +461,7 @@ export function createEditorStore() {
             }
           ]
     })
-    select([nodeId])
+    selectionOps.select([nodeId])
 
     state.penState = null
     state.penCursorX = null
@@ -699,6 +608,7 @@ export function createEditorStore() {
   const clipboardOps = createClipboardOps(editorCtx)
   const exportOps = createExportOps(editorCtx)
   const viewportOps = createViewportOps(editorCtx)
+  const selectionOps = createSelectionOps(editorCtx)
 
   // Autosave watcher (placed after ops creation so exportOps is available)
   watch(
@@ -1516,7 +1426,7 @@ export function createEditorStore() {
     for (const id of ids) {
       graph.reparentNode(id, pageId)
     }
-    clearSelection()
+    selectionOps.clearSelection()
   }
 
   function renameNode(id: string, name: string) {
@@ -1597,7 +1507,7 @@ export function createEditorStore() {
       curX += p.w + IMAGE_GAP
     }
     if (ids.length) {
-      select(ids)
+      selectionOps.select(ids)
       requestRender()
     }
   }
@@ -1729,11 +1639,6 @@ export function createEditorStore() {
         }
       }
     })
-  }
-
-  function selectAll() {
-    const children = graph.getChildren(state.currentPageId)
-    state.selectedIds = new Set(children.map((n) => n.id))
   }
 
   function commitMove(originals: Map<string, Vector>) {
@@ -1904,15 +1809,15 @@ export function createEditorStore() {
     requestRepaint,
     flashNodes,
     setTool,
-    select,
-    clearSelection,
-    selectAll,
-    setMarquee,
-    setSnapGuides,
-    setRotationPreview,
-    setHoveredNode,
-    setDropTarget,
-    setLayoutInsertIndicator,
+    select: selectionOps.select,
+    clearSelection: selectionOps.clearSelection,
+    selectAll: selectionOps.selectAll,
+    setMarquee: selectionOps.setMarquee,
+    setSnapGuides: selectionOps.setSnapGuides,
+    setRotationPreview: selectionOps.setRotationPreview,
+    setHoveredNode: selectionOps.setHoveredNode,
+    setDropTarget: selectionOps.setDropTarget,
+    setLayoutInsertIndicator: selectionOps.setLayoutInsertIndicator,
     reorderInAutoLayout,
     reparentNodes,
     reorderChildWithUndo,
