@@ -156,10 +156,11 @@ function handleCreateSpecFromAll() {
           <div
             v-if="messages.length === 0"
             data-test-id="chat-empty-state"
-            class="flex h-full flex-col items-center justify-center px-4 py-4"
+            class="flex h-full flex-col items-center justify-center px-6 py-8"
           >
-            <icon-lucide-sparkles class="size-5 text-muted/50" />
-            <p class="mt-3 text-[12px] text-muted">Describe what you want to create</p>
+            <icon-lucide-sparkles class="size-6 text-accent/60" />
+            <p class="mt-4 text-[14px] font-medium text-surface/80">What would you like to create?</p>
+            <p class="mt-1 text-[11px] text-muted/60">Describe a screen, component, or layout</p>
           </div>
 
           <div v-else data-test-id="chat-messages" class="flex flex-col gap-3">

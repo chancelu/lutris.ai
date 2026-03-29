@@ -32,6 +32,10 @@ function toggleInline(panel: 'spec' | 'export') {
     >
       <!-- Main: ChatPanel (full height when no inline panel) -->
       <div v-if="!inlinePanel" key="chat" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div class="flex items-center gap-1.5 border-b border-border/10 px-3 py-2">
+          <icon-lucide-sparkles class="size-3 text-accent/60" />
+          <span class="text-[11px] font-medium text-muted">AI Assistant</span>
+        </div>
         <ChatPanel class="flex-1" />
       </div>
 
@@ -54,23 +58,25 @@ function toggleInline(panel: 'spec' | 'export') {
       </div>
     </Transition>
 
-    <!-- Bottom bar: Spec + Export + Settings -->
+    <!-- Bottom bar: Spec + Export -->
     <div class="flex shrink-0 items-center justify-end gap-1 border-t border-border/10 px-3 py-1.5">
       <button
-        class="flex size-7 items-center justify-center rounded-lg transition"
+        class="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] transition"
         :class="inlinePanel === 'spec' ? 'bg-accent/15 text-accent' : 'text-muted hover:bg-hover hover:text-surface'"
         title="Spec"
         @click="toggleInline('spec')"
       >
         <icon-lucide-file-text class="size-3.5" />
+        <span>Spec</span>
       </button>
       <button
-        class="flex size-7 items-center justify-center rounded-lg transition"
+        class="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] transition"
         :class="inlinePanel === 'export' ? 'bg-accent/15 text-accent' : 'text-muted hover:bg-hover hover:text-surface'"
         title="Export"
         @click="toggleInline('export')"
       >
         <icon-lucide-download class="size-3.5" />
+        <span>Export</span>
       </button>
     </div>
   </aside>

@@ -43,25 +43,27 @@ function handleAction(type: Parameters<typeof emit>[1]) {
   >
     <div
       v-if="showOverlay"
-      class="pointer-events-auto absolute inset-0 z-10 flex items-center justify-center bg-black/10 backdrop-blur-[1px]"
+      class="pointer-events-auto absolute inset-0 z-10 flex items-center justify-center"
     >
-      <div class="w-full max-w-md px-4 text-center">
-        <h2 class="text-[22px] font-semibold text-surface sm:text-[26px]">What do you want to make?</h2>
+      <div class="w-full max-w-lg px-6 text-center">
+        <icon-lucide-sparkles class="mx-auto size-8 text-accent/50" />
+        <h2 class="mt-4 text-[24px] font-semibold tracking-tight text-surface sm:text-[28px]">What do you want to create?</h2>
+        <p class="mt-2 text-[13px] text-muted/60">Describe any interface and watch it come to life</p>
 
         <button
-          class="mt-5 w-full rounded-xl bg-inset/40 px-5 py-3.5 text-left text-[14px] text-muted/70 transition hover:bg-inset/60 hover:text-muted"
+          class="group mt-6 w-full rounded-2xl border border-accent/15 bg-panel/80 px-6 py-4 text-left text-[15px] text-muted/60 shadow-sm backdrop-blur-sm transition-all hover:border-accent/30 hover:shadow-md hover:shadow-accent/5"
           @click="handleAction('ai')"
         >
-          Describe the interface you want…
+          <span class="flex items-center gap-3">
+            <icon-lucide-message-square class="size-4 text-accent/40 transition group-hover:text-accent/70" />
+            Describe the interface you want...
+          </span>
         </button>
 
-        <div class="mt-4 flex items-center justify-center gap-3 text-[12px] text-muted/50">
-          <span>or</span>
-          <button class="transition hover:text-surface" @click="handleAction('import-fig')">import .fig</button>
-          <span>·</span>
-          <button class="transition hover:text-surface" @click="handleAction('import-prd')">import PRD</button>
-          <span>·</span>
-          <button class="transition hover:text-surface" @click="handleAction('blank')">blank canvas</button>
+        <div class="mt-5 flex items-center justify-center gap-2 text-[12px]">
+          <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('import-fig')">Import .fig file</button>
+          <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('import-prd')">Import PRD</button>
+          <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('blank')">Start from template</button>
         </div>
       </div>
     </div>
