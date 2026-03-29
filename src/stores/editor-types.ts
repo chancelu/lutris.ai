@@ -1,6 +1,6 @@
 import type { Color, Rect, SceneGraph, SceneNode, SkiaRenderer, SnapGuide, UndoManager } from '@open-pencil/core'
 import type { CanvasKit } from 'canvaskit-wasm'
-import type { Tool } from './editor'
+import type { Tool } from './tools'
 
 export interface EditorState {
   activeTool: Tool

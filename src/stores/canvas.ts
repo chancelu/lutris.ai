@@ -4,7 +4,15 @@ import {
   ZOOM_SCALE_MAX
 } from '@/constants'
 
+import type { Color } from '@open-pencil/core'
 import type { EditorContext } from './editor-types'
+
+export interface PageViewport {
+  panX: number
+  panY: number
+  zoom: number
+  pageColor: Color
+}
 
 export function createViewportOps(ctx: EditorContext) {
   function screenToCanvas(sx: number, sy: number) {
