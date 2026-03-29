@@ -42,7 +42,7 @@ describe('weightToStyle', () => {
     expect(weightToStyle(100)).toBe('Thin')
     expect(weightToStyle(200)).toBe('ExtraLight')
     expect(weightToStyle(300)).toBe('Light')
-    expect(weightToStyle(400)).toBe('Medium')
+    expect(weightToStyle(400)).toBe('Regular')
     expect(weightToStyle(500)).toBe('Medium')
     expect(weightToStyle(600)).toBe('SemiBold')
     expect(weightToStyle(700)).toBe('Bold')
@@ -51,7 +51,7 @@ describe('weightToStyle', () => {
   })
 
   test('appends Italic suffix', () => {
-    expect(weightToStyle(400, true)).toBe('Medium Italic')
+    expect(weightToStyle(400, true)).toBe('Regular Italic')
     expect(weightToStyle(700, true)).toBe('Bold Italic')
   })
 })
@@ -113,7 +113,7 @@ describe('collectFontKeys', () => {
       fontWeight: 400,
     }).id
     const keys = collectFontKeys(graph, [id])
-    expect(keys).toEqual([['Roboto', 'Medium']])
+    expect(keys).toEqual([['Roboto', 'Regular']])
   })
 
   test('collects bold weight', () => {
@@ -146,7 +146,7 @@ describe('collectFontKeys', () => {
       italic: true,
     }).id
     const keys = collectFontKeys(graph, [id])
-    expect(keys).toEqual([['Roboto', 'Medium Italic']])
+    expect(keys).toEqual([['Roboto', 'Regular Italic']])
   })
 
   test('deduplicates same family+style', () => {
@@ -174,7 +174,7 @@ describe('collectFontKeys', () => {
     })
     const ids = graph.getChildren(page).map((n) => n.id)
     const keys = collectFontKeys(graph, ids)
-    expect(keys).toEqual([['Roboto', 'Medium']])
+    expect(keys).toEqual([['Roboto', 'Regular']])
   })
 
   test('collects multiple families', () => {
@@ -203,7 +203,7 @@ describe('collectFontKeys', () => {
     const ids = graph.getChildren(page).map((n) => n.id)
     const keys = collectFontKeys(graph, ids)
     expect(keys).toHaveLength(2)
-    expect(keys).toContainEqual(['Roboto', 'Medium'])
+    expect(keys).toContainEqual(['Roboto', 'Regular'])
     expect(keys).toContainEqual(['Open Sans', 'Bold'])
   })
 
@@ -257,7 +257,7 @@ describe('collectFontKeys', () => {
     }).id
     const keys = collectFontKeys(graph, [id])
     expect(keys).toHaveLength(2)
-    expect(keys).toContainEqual(['Roboto', 'Medium'])
+    expect(keys).toContainEqual(['Roboto', 'Regular'])
     expect(keys).toContainEqual(['Montserrat', 'Bold'])
   })
 
