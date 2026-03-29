@@ -258,6 +258,7 @@ export function useCanvasInput(
       startPanX: store.state.panX,
       startPanY: store.state.panY
     }
+    cursorOverride.value = 'grabbing'
   }
 
   function handleTextEditClick(cx: number, cy: number, shiftKey: boolean): boolean {
@@ -1005,7 +1006,7 @@ export function useCanvasInput(
     }
 
     drag.value = null
-    cursorOverride.value = null
+    cursorOverride.value = isSpaceDown.value ? 'grab' : null
   }
 
   let wheelAccum = {
