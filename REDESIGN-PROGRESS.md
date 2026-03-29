@@ -70,22 +70,49 @@ tools.ts              0.8KB  ← 新
 
 ---
 
-## Phase 3: 布局重构 ⏳ 进行中
+## Phase 3: 布局重构 ✅ 完成（16:07）
 
-### 目标
 - AI Panel 从右侧移到左侧（主交互区）
-- 右侧面板默认隐藏，选中元素时弹出
-- 新的三栏布局：AI Panel | Canvas | Context Drawer
-- 顶部极简 TopBar
+- 新建 TopBar.vue（极简顶栏：logo + 项目名 + Export + UserMenu）
+- ContextDrawer 在右侧按需弹出（选中元素时出现）
+- 新三栏布局：TopBar | AI Panel (left) | Canvas (center) | ContextDrawer (right, on-demand)
 
 ---
+
+## Phase 4: 体验打磨 ✅ 完成（16:51）
+
+- AI 生成时画布顶部显示 accent 色脉冲动画
+- ContextDrawer "Modify with AI" 按钮自动填充选中元素上下文到 AI Chat
+- WelcomeOverlay → AI Panel 自动聚焦 chat input
+- TopBar Export 按钮联动 PropertiesPanel inline export 面板
+- ContextDrawer 滑入/滑出过渡动画（150ms）
+- PropertiesPanel inline 面板切换 fade 动画（100ms）
+- AI 生成失败显示 Retry 按钮
+- .fig 导入失败显示 toast
+
+---
+
+## 最终成果汇总
+
+| 指标 | 改前 | 改后 | 变化 |
+|------|------|------|------|
+| 组件数 | 54 | 34 | -37% |
+| 总代码量 | 900KB | ~570KB | -37% |
+| 文件数 | 142 | ~110 | -23% |
+| EditorView | 16KB | 6.8KB | -57% |
+| Toolbar | 14KB | 1KB | -93% |
+| 最大组件 | 24KB | 9.2KB | -62% |
+| Build 时间 | ~14s | ~12.6s | -10% |
+| 主 bundle | 1548KB | 1456KB | -6% |
 
 ## Git Commits
 ```
 b83179c Phase 1 partial: delete 17 components + 12 composables, -6056 lines
 584550a Phase 1 round 2: EditorView 16KB->6.8KB, Toolbar 14KB->1KB, PropertiesPanel simplified
-23c11fa Phase 1 round 3: deep cut - AssetsPanel deleted, 8 components simplified, 33 components / 567KB total
-0c22891 Phase 2 partial: extract tools.ts, canvas.ts, selection.ts from editor.ts (facade pattern)
+23c11fa Phase 1 round 3: deep cut - AssetsPanel deleted, 8 components simplified
+0c22891 Phase 2 partial: extract tools.ts, canvas.ts, selection.ts from editor.ts
+a722e5a Phase 3: layout restructure - AI Panel moved to left, TopBar added
+2e4b85b Phase 4: UX polish - loading states, AI flow, transitions, export wiring
 ```
 
 ---
