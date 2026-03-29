@@ -9,6 +9,7 @@ import { useAIChat } from '@/composables/use-chat'
 import { useMenu } from '@/composables/use-menu'
 import { useProductDoc } from '@/composables/use-product-doc'
 import { useProjects } from '@/composables/use-projects'
+import { toast } from '@/composables/use-toast'
 import { connectAutomation } from '@/automation/server'
 import { createDemoShapes } from '@/demo'
 import { useEditorStore } from '@/stores/editor'
@@ -22,13 +23,14 @@ import WelcomeOverlay from '@/components/WelcomeOverlay.vue'
 import ContextDrawer from '@/components/ContextDrawer.vue'
 
 const designFileInput = ref<HTMLInputElement | null>(null)
+const aiPanelHighlight = ref(false)
 const route = useRoute()
 const router = useRouter()
 const firstTab = createTab()
 const store = useEditorStore()
 useKeyboard()
 useMenu()
-const { activeTab: rightTab } = useAIChat()
+const { activeTab: rightTab, focusRequested, inlinePanel } = useAIChat()
 const { updateFromDesign } = useProductDoc()
 const {
   init: initProjects, switchProject, activeProjectId,
@@ -68,6 +70,8 @@ async function handleDesignFileChange(event: Event) {
     const { useAssetLibrary } = await import('@/composables/use-asset-library')
     const { loadLibrary } = useAssetLibrary()
     await loadLibrary(file)
+  } catch (err) {
+    toast.show(`Failed to import .fig: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
   } finally { input.value = '' }
 }
 
@@ -85,7 +89,13 @@ async function onCreateProject() {
 
 function onWelcomeAction(type: string) {
   if (type === 'blank') return
-  if (type === 'ai') { rightTab.value = 'create'; return }
+  if (type === 'ai') {
+    rightTab.value = 'create'
+    focusRequested.value++
+    aiPanelHighlight.value = true
+    setTimeout(() => { aiPanelHighlight.value = false }, 800)
+    return
+  }
   if (type === 'import' || type === 'import-fig') { designFileInput.value?.click(); return }
   if (type === 'import-prd') {
     const input = document.createElement('input')
@@ -102,6 +112,19 @@ function onWelcomeAction(type: string) {
     }
     input.click()
   }
+}
+
+function onExportClick() {
+  const pageId = store.state.currentPageId
+  if (pageId) {
+    const page = store.graph.nodes.get(pageId)
+    const childIds = page?.children || []
+    if (childIds.length === 0) {
+      toast.show('Nothing to export', 'warning')
+      return
+    }
+  }
+  inlinePanel.value = inlinePanel.value === 'export' ? null : 'export'
 }
 
 const disconnectAutomation = import.meta.env.DEV ? connectAutomation(getActiveStore).disconnect : undefined
@@ -129,11 +152,16 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       :active-project-id="activeProjectId"
       @switch-project="onSwitchProject"
       @create-project="onCreateProject"
+      @export-click="onExportClick"
     />
 
     <div class="relative flex flex-1 overflow-hidden">
       <!-- Left: AI Panel -->
-      <div v-if="showChrome && store.state.showUI" class="flex w-[360px] shrink-0 flex-col border-r border-border/10 bg-panel">
+      <div
+        v-if="showChrome && store.state.showUI"
+        class="flex w-[360px] shrink-0 flex-col border-r border-border/10 bg-panel transition-shadow duration-300"
+        :class="aiPanelHighlight && 'animate-[ai-panel-highlight_0.8s_ease-in-out]'"
+      >
         <PropertiesPanel />
       </div>
 

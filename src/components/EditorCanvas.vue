@@ -29,7 +29,7 @@ const { cursorOverride } = useCanvasInput(
 useTextEdit(canvasRef, store)
 const { isDraggingOver } = useCanvasDrop(canvasRef, store)
 const { aiSelectMode, addNodeToAIContext, addNodesInRect } = useAISelect()
-const { activeTab } = useAIChat()
+const { activeTab, isGenerating } = useAIChat()
 
 // AI Select confirmation popup
 const showAISelectPopup = ref(false)
@@ -153,6 +153,13 @@ function handleCanvasClick(e: MouseEvent) {
       @mousemove="handleAIMarqueeMove"
       @mouseup="handleAIMarqueeUp"
     >
+      <!-- AI generating indicator bar -->
+      <div
+        v-if="isGenerating"
+        class="absolute inset-x-0 top-0 z-30 h-0.5 overflow-hidden"
+      >
+        <div class="h-full w-1/3 animate-[ai-slide_1.2s_ease-in-out_infinite] rounded-full bg-accent/70" />
+      </div>
       <canvas
         ref="canvasRef"
         data-test-id="canvas-element"

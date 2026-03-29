@@ -26,6 +26,7 @@ const chat = ref<Chat<UIMessage> | null>(existing ? markRaw(existing) : null)
 const messagesEnd = ref<HTMLDivElement>()
 const debugCopied = ref(false)
 const chatError = ref<string | null>(null)
+const lastUserMessage = ref<string | null>(null)
 
 const messages = computed(() => chat.value?.messages ?? [])
 const status = computed(() => chat.value?.status ?? 'ready')
@@ -65,6 +66,7 @@ watch(pendingMessage, (msg) => {
 })
 
 function handleSubmit(text: string) {
+  lastUserMessage.value = text
   const requiresAction = hasContext.value || /(create|generate|build|design|edit|modify|update|redesign|make|layout|screen|page|component|render)/i.test(text)
   if (requiresAction && aiMode.value === 'chat-only') {
     chatError.value = 'Current provider is chat-only. Switch to an action-capable model/provider to generate or modify designs.'
@@ -241,6 +243,13 @@ function handleCreateSpecFromAll() {
       >
         <icon-lucide-alert-circle class="size-3 shrink-0" />
         <span class="min-w-0 flex-1 truncate">{{ chatError }}</span>
+        <button
+          v-if="lastUserMessage"
+          class="shrink-0 rounded px-1.5 py-0.5 text-red-400 transition hover:bg-red-500/15 hover:text-red-300"
+          @click="chatError = null; handleSubmit(lastUserMessage!)"
+        >
+          Retry
+        </button>
         <button class="shrink-0 text-red-400 hover:text-red-300" @click="chatError = null">✕</button>
       </div>
 

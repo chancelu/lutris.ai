@@ -1,18 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-
-import { useAIChat } from '@/composables/use-chat'
+import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
+import { useAIChat } from '@/composables/use-chat'
 
 import ChatPanel from './ChatPanel.vue'
 import ExportPanel from './ExportPanel.vue'
 import SpecPanel from './SpecPanel.vue'
 
 const store = useEditorStore()
-const { activeTab } = useAIChat()
+const { activeTab, inlinePanel } = useAIChat()
 
-/** Which inline sub-panel is open (null = chat only) */
-const inlinePanel = ref<'spec' | 'export' | null>(null)
+const panelKey = computed(() => inlinePanel.value ?? 'chat')
 
 function toggleInline(panel: 'spec' | 'export') {
   inlinePanel.value = inlinePanel.value === panel ? null : panel
@@ -24,28 +22,37 @@ function toggleInline(panel: 'spec' | 'export') {
     data-test-id="properties-panel"
     class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-panel select-text"
   >
-    <!-- Main: ChatPanel (full height when no inline panel) -->
-    <div v-if="!inlinePanel" class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <ChatPanel class="flex-1" />
-    </div>
-
-    <!-- Inline: SpecPanel -->
-    <div v-else-if="inlinePanel === 'spec'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div class="flex items-center justify-between border-b border-border/10 px-3 py-2">
-        <span class="text-[12px] font-semibold text-surface">Spec</span>
-        <button class="text-[11px] text-muted hover:text-surface" @click="inlinePanel = null">Close</button>
+    <!-- Panel content with fade transition -->
+    <Transition
+      mode="out-in"
+      enter-active-class="transition-opacity duration-100"
+      enter-from-class="opacity-0"
+      leave-active-class="transition-opacity duration-75"
+      leave-to-class="opacity-0"
+    >
+      <!-- Main: ChatPanel (full height when no inline panel) -->
+      <div v-if="!inlinePanel" key="chat" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <ChatPanel class="flex-1" />
       </div>
-      <SpecPanel class="flex-1" />
-    </div>
 
-    <!-- Inline: ExportPanel -->
-    <div v-else class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div class="flex items-center justify-between border-b border-border/10 px-3 py-2">
-        <span class="text-[12px] font-semibold text-surface">Export</span>
-        <button class="text-[11px] text-muted hover:text-surface" @click="inlinePanel = null">Close</button>
+      <!-- Inline: SpecPanel -->
+      <div v-else-if="inlinePanel === 'spec'" key="spec" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div class="flex items-center justify-between border-b border-border/10 px-3 py-2">
+          <span class="text-[12px] font-semibold text-surface">Spec</span>
+          <button class="text-[11px] text-muted hover:text-surface" @click="inlinePanel = null">Close</button>
+        </div>
+        <SpecPanel class="flex-1" />
       </div>
-      <ExportPanel class="flex-1" />
-    </div>
+
+      <!-- Inline: ExportPanel -->
+      <div v-else key="export" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div class="flex items-center justify-between border-b border-border/10 px-3 py-2">
+          <span class="text-[12px] font-semibold text-surface">Export</span>
+          <button class="text-[11px] text-muted hover:text-surface" @click="inlinePanel = null">Close</button>
+        </div>
+        <ExportPanel class="flex-1" />
+      </div>
+    </Transition>
 
     <!-- Bottom bar: Spec + Export + Settings -->
     <div class="flex shrink-0 items-center justify-end gap-1 border-t border-border/10 px-3 py-1.5">

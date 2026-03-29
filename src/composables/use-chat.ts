@@ -193,6 +193,8 @@ if (ENV_API_TYPE !== '' as string) customAPIType.value = ENV_API_TYPE
 const activeTab = ref<'create' | 'spec' | 'ship'>('create')
 const pendingMessage = ref<string | null>(null)
 const draftMessage = ref<string>('')
+const focusRequested = ref(0)
+const inlinePanel = ref<'spec' | 'export' | null>(null)
 
 const providerDef = computed(
   () => AI_PROVIDERS.find((p) => p.id === providerID.value) ?? AI_PROVIDERS[0]
@@ -449,6 +451,8 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
   }
 }
 
+const isGenerating = computed(() => aiProgress.value !== 'idle')
+
 const aiMode = computed<'action' | 'chat-only' | 'not-configured'>(() => {
   if (!isConfigured.value) return 'not-configured'
   return 'action'
@@ -491,6 +495,9 @@ export function useAIChat() {
     aiProgress,
     aiMode,
     aiModeLabel,
-    aiModeTone
+    aiModeTone,
+    isGenerating,
+    focusRequested,
+    inlinePanel
   }
 }
