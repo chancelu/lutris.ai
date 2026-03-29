@@ -117,4 +117,50 @@ a722e5a Phase 3: layout restructure - AI Panel moved to left, TopBar added
 
 ---
 
-_下一步：Phase 3 布局重构 → Phase 4 体验打磨_
+## Phase 5: 测试 + 修复 + 部署 ✅ 完成
+
+### 测试清理（commit `c554d07`）
+- 删除过时测试：variables-dialog.spec.ts, code-review.test.ts, roles.test.ts
+- 修复 E2E specs：toolbar.spec.ts, panels.spec.ts, chat-panel.spec.ts
+- 新增：ai-flow.spec.ts, redesign-layout.spec.ts, stores-redesign.test.ts
+
+### Engine 测试修复（commit `45cf067`）
+- 修复 9 个 font weight 测试：`weightToStyle(400)` → `"Regular"` not `"Medium"`
+- 全部 1212 engine tests 通过
+
+### UI 修复
+- 浮动工具栏恢复 6 个主工具 + flyout 子菜单（commit `4d6bb2f`）
+- WelcomeOverlay 不再阻挡画布点击（pointer-events-none/auto 模式）
+- Canvas 高度 + toolbar pointer-events 修复（commit `1bfeded`）
+- 空格拖拽光标：grab → grabbing → grab 状态机（commit `626cfbe`）
+
+### .fig 拖拽导入（commit `473dc6f`）
+- 拖拽 .fig 文件到画布直接导入（方案 B）
+- 三种导入方式：拖拽到画布 / WelcomeOverlay 按钮 / File → Open（Ctrl+O）
+
+### 吉祥物 Logo 替换（commit `d4807ea`, `09d9694`）
+- 海獭吉祥物替换全部 logo（favicon/PWA/各页面）
+- Gemini 3 Pro 修图（去文字 + 修蓝绿色）→ Python PIL 去白底透明
+- 所有 logo 引用改为 `h-X w-auto object-contain` 保持原始比例
+- 去掉 LoginView bounce 跳动动画
+
+### 部署
+- 线上地址：https://lutris-ai.vercel.app
+- Build: 2246 modules, main bundle ~1416KB (gzip 422KB)
+
+## Git Commits（Phase 5）
+```
+c554d07 test: cleanup and fix E2E specs for redesigned layout
+45cf067 fix: engine font weight tests
+f8ae161 polish: floating toolbar, simplified panels, global transitions
+4d6bb2f feat: restore 6 main tools with flyout sub-menus
+1bfeded fix: canvas height + toolbar pointer-events
+626cfbe fix: space+drag cursor shows grab/grabbing correctly
+473dc6f feat: drag-and-drop .fig files onto canvas to import
+d4807ea feat: replace all logos with otter mascot, remove bounce animation
+09d9694 fix: proper transparent bg for mascot, fix aspect ratios
+```
+
+---
+
+_下一步：用户持续测试反馈 → 迭代修复_
