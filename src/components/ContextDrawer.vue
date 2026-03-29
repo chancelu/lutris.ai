@@ -44,10 +44,11 @@ function modifyWithAI() {
       </div>
       <div class="shrink-0 border-t border-border/10 p-3">
         <button
-          class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-medium text-white transition hover:bg-accent/80"
+          class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2.5 text-[12px] font-medium text-white shadow-sm shadow-accent/20 transition hover:bg-accent/80"
           @click="modifyWithAI"
         >
-          Modify with AI
+          <icon-lucide-sparkles class="size-3.5" />
+          Edit with AI
         </button>
       </div>
     </aside>
