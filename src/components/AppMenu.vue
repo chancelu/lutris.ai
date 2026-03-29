@@ -44,7 +44,7 @@ const fileItems = [
 <template>
   <div class="shrink-0 border-b border-border">
     <div class="flex items-center gap-2 px-2 py-1.5">
-      <img data-test-id="app-logo" src="/lutris-mascot.png" class="size-4" alt="Lutris.ai" />
+      <img data-test-id="app-logo" src="/lutris-mascot.png" class="h-4 w-auto object-contain" alt="Lutris.ai" />
       <span
         data-test-id="app-document-name"
         class="min-w-0 flex-1 truncate text-xs text-surface"

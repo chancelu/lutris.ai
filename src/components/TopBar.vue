@@ -35,7 +35,7 @@ function commitName() {
 <template>
   <header class="flex h-12 shrink-0 items-center bg-panel px-3 shadow-sm shadow-black/5">
     <div class="flex items-center gap-2.5">
-      <img src="/lutris-mascot.png" class="size-5 opacity-70" alt="Lutris.ai" />
+      <img src="/lutris-mascot.png" class="h-5 w-auto object-contain opacity-70" alt="Lutris.ai" />
       <span class="rounded-full bg-accent/10 px-1.5 py-0.5 text-[9px] font-medium text-accent">AI</span>
       <ProjectSwitcher
         :project-name="projectName"
