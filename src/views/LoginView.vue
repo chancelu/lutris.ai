@@ -64,7 +64,7 @@ function backToEmail() {
     <div class="relative z-10 w-full max-w-sm">
       <!-- Mascot -->
       <div class="mb-6 text-center">
-        <img src="/lutris-otter.png" alt="Lutris.ai" class="mx-auto mb-3 h-16 w-auto object-contain drop-shadow-md" style="animation: bounce 2.5s ease-in-out infinite" />
+        <img src="/lutris-mascot.png" alt="Lutris.ai" class="mx-auto mb-3 h-16 w-auto object-contain drop-shadow-md" />
         <h1 class="text-2xl font-bold text-[#2D2A26]" style="font-family: Georgia, serif">Lutris.ai</h1>
         <p class="mt-1 text-sm text-[#8B7E6A]">AI-native design tool</p>
       </div>
@@ -161,10 +161,3 @@ function backToEmail() {
     </div>
   </div>
 </template>
-
-<style scoped>
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-</style>
