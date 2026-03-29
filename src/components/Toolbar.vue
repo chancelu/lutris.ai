@@ -2,23 +2,7 @@
 import { TOOLS, useEditorStore } from '@/stores/editor'
 import { toolIcons } from '@/utils/tools'
 
-import type { Tool, ToolDef } from '@/stores/editor'
-
 const store = useEditorStore()
-
-const toolLabels: Record<Tool, string> = {
-  SELECT: 'Move',
-  FRAME: 'Frame',
-  SECTION: 'Section',
-  RECTANGLE: 'Rectangle',
-  ELLIPSE: 'Ellipse',
-  LINE: 'Line',
-  POLYGON: 'Polygon',
-  STAR: 'Star',
-  PEN: 'Pen',
-  TEXT: 'Text',
-  HAND: 'Hand'
-}
 </script>
 
 <template>
@@ -37,7 +21,7 @@ const toolLabels: Record<Tool, string> = {
             ? 'bg-accent text-white'
             : 'bg-transparent text-muted hover:bg-hover hover:text-surface'
         "
-        :title="`${toolLabels[tool.key]} (${tool.shortcut})`"
+        :title="`${tool.label} (${tool.shortcut})`"
         @click="store.setTool(tool.key)"
       >
         <component :is="toolIcons[tool.key]" class="size-4" />
