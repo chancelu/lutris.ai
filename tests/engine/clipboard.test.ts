@@ -402,7 +402,7 @@ describe('importClipboardNodes', () => {
     const button = children[0]
     expect(button.type).toBe('FRAME')
     expect(button.name).toBe('Button')
-    expect(button.componentId).toBe('')
+    expect(button.componentId).toBe(null)
     expect(button.fills).toHaveLength(1)
     expect(button.fills[0].color.b).toBe(1)
     expect(button.cornerRadius).toBe(8)
