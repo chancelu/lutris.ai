@@ -20,7 +20,9 @@ export interface ToolDef {
 
 export const TOOLS: ToolDef[] = [
   { key: 'SELECT', label: 'Move', shortcut: 'V' },
-  { key: 'FRAME', label: 'Frame', shortcut: 'F' },
+  { key: 'FRAME', label: 'Frame', shortcut: 'F', flyout: ['FRAME', 'SECTION'] },
+  { key: 'RECTANGLE', label: 'Rectangle', shortcut: 'R', flyout: ['RECTANGLE', 'ELLIPSE', 'LINE', 'POLYGON', 'STAR'] },
+  { key: 'PEN', label: 'Pen', shortcut: 'P' },
   { key: 'TEXT', label: 'Text', shortcut: 'T' },
   { key: 'HAND', label: 'Hand', shortcut: 'H' }
 ]

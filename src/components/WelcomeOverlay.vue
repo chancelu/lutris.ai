@@ -43,9 +43,9 @@ function handleAction(type: Parameters<typeof emit>[1]) {
   >
     <div
       v-if="showOverlay"
-      class="pointer-events-auto absolute inset-0 z-10 flex items-center justify-center"
+      class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
     >
-      <div class="w-full max-w-lg px-6 text-center">
+      <div class="pointer-events-auto w-full max-w-lg rounded-2xl bg-canvas/80 px-6 py-8 text-center backdrop-blur-sm">
         <icon-lucide-sparkles class="mx-auto size-8 text-accent/50" />
         <h2 class="mt-4 text-[24px] font-semibold tracking-tight text-surface sm:text-[28px]">What do you want to create?</h2>
         <p class="mt-2 text-[13px] text-muted/60">Describe any interface and watch it come to life</p>
