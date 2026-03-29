@@ -16,41 +16,42 @@ import {
 
 import IconChevronRight from '~icons/lucide/chevron-right'
 
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
-import { useInlineRename } from '@/composables/use-inline-rename'
 import { menuContent, menuItem, menuSeparator } from '@/components/ui/menu'
 import { IS_TAURI } from '@/constants'
 import { openFileDialog } from '@/composables/use-menu'
 import { useEditorStore } from '@/stores/editor'
-import { useI18n } from '@/composables/use-i18n'
 import { useProjects } from '@/composables/use-projects'
 
 const store = useEditorStore()
-const { t } = useI18n()
 const { projects, activeProjectId, switchProject, createProject } = useProjects()
 
 function handleNewProject() {
-  const name = window.prompt(t('projects.name'))
+  const name = window.prompt('Project name')
   if (name?.trim()) createProject(name.trim())
 }
 
 const DOCUMENT_NAME_ID = 'document-name'
-const rename = useInlineRename<'document-name'>((_id, name) => {
-  store.state.documentName = name
-})
-const editingName = computed(() => rename.editingId.value === DOCUMENT_NAME_ID)
-
-function setNameInputRef(el: HTMLInputElement | null) {
-  if (el) void rename.focusInput(el)
-}
+const editingName = ref(false)
+const editNameValue = ref('')
 
 function startRename() {
-  rename.start(DOCUMENT_NAME_ID, store.state.documentName)
+  editNameValue.value = store.state.documentName
+  editingName.value = true
 }
 
 function commitRename(input: HTMLInputElement) {
-  rename.commit(DOCUMENT_NAME_ID, input)
+  const val = input.value.trim()
+  if (val) store.state.documentName = val
+  editingName.value = false
+}
+
+function setNameInputRef(el: HTMLInputElement | null) {
+  if (el) {
+    el.focus()
+    el.select()
+  }
 }
 
 const isMac = navigator.platform.includes('Mac')
@@ -69,17 +70,17 @@ interface MenuItem {
 
 const fileMenu: MenuItem[] = [
   {
-    label: t('file.new'),
+    label: 'New',
     shortcut: `${mod}N`,
     action: () => import('@/stores/tabs').then((m) => m.createTab())
   },
-  { label: t('file.open'), shortcut: `${mod}O`, action: () => openFileDialog() },
+  { label: 'Open', shortcut: `${mod}O`, action: () => openFileDialog() },
   { separator: true },
-  { label: t('file.save'), shortcut: `${mod}S`, action: () => store.saveFigFile() },
-  { label: t('file.saveAs'), shortcut: `${mod}⇧S`, action: () => store.saveFigFileAs() },
+  { label: 'Save', shortcut: `${mod}S`, action: () => store.saveFigFile() },
+  { label: 'Save As', shortcut: `${mod}⇧S`, action: () => store.saveFigFileAs() },
   { separator: true },
   {
-    label: t('file.exportSelection'),
+    label: 'Export Selection',
     shortcut: `${mod}⇧E`,
     action: () => {
       if (store.state.selectedIds.size > 0) store.exportSelection(1, 'PNG')
@@ -88,7 +89,7 @@ const fileMenu: MenuItem[] = [
   },
   { separator: true },
   {
-    label: t('file.autosave'),
+    label: 'Autosave',
     get checked() {
       return store.state.autosaveEnabled
     },
@@ -98,7 +99,7 @@ const fileMenu: MenuItem[] = [
   },
   { separator: true },
   {
-    label: t('file.switchProject'),
+    label: 'Switch Project',
     get sub(): MenuItem[] {
       return [
         ...projects.value.map((p) => ({
@@ -107,41 +108,41 @@ const fileMenu: MenuItem[] = [
           onCheckedChange: () => switchProject(p.id)
         })),
         { label: '', separator: true },
-        { label: t('file.newProject'), action: handleNewProject }
+        { label: 'New Project', action: handleNewProject }
       ]
     }
   }
 ]
 
 const editMenu: MenuItem[] = [
-  { label: t('edit.undo'), shortcut: `${mod}Z`, action: () => store.undoAction() },
-  { label: t('edit.redo'), shortcut: `${mod}⇧Z`, action: () => store.redoAction() },
+  { label: 'Undo', shortcut: `${mod}Z`, action: () => store.undoAction() },
+  { label: 'Redo', shortcut: `${mod}⇧Z`, action: () => store.redoAction() },
   { separator: true },
-  { label: t('edit.copy'), shortcut: `${mod}C` },
-  { label: t('edit.paste'), shortcut: `${mod}V` },
-  { label: t('edit.duplicate'), shortcut: `${mod}D`, action: () => store.duplicateSelected() },
-  { label: t('edit.delete'), shortcut: '⌫', action: () => store.deleteSelected() },
+  { label: 'Copy', shortcut: `${mod}C` },
+  { label: 'Paste', shortcut: `${mod}V` },
+  { label: 'Duplicate', shortcut: `${mod}D`, action: () => store.duplicateSelected() },
+  { label: 'Delete', shortcut: '⌫', action: () => store.deleteSelected() },
   { separator: true },
-  { label: t('edit.selectAll'), shortcut: `${mod}A`, action: () => store.selectAll() }
+  { label: 'Select All', shortcut: `${mod}A`, action: () => store.selectAll() }
 ]
 
 const viewMenu: MenuItem[] = [
-  { label: t('view.zoom100'), shortcut: `${mod}0`, action: () => store.zoomTo100() },
-  { label: t('view.zoomFit'), shortcut: `${mod}1`, action: () => store.zoomToFit() },
-  { label: t('view.zoomSelection'), shortcut: `${mod}2`, action: () => store.zoomToSelection() },
+  { label: 'Zoom to 100%', shortcut: `${mod}0`, action: () => store.zoomTo100() },
+  { label: 'Zoom to Fit', shortcut: `${mod}1`, action: () => store.zoomToFit() },
+  { label: 'Zoom to Selection', shortcut: `${mod}2`, action: () => store.zoomToSelection() },
   {
-    label: t('view.zoomIn'),
+    label: 'Zoom In',
     shortcut: `${mod}=`,
     action: () => store.applyZoom(-100, window.innerWidth / 2, window.innerHeight / 2)
   },
   {
-    label: t('view.zoomOut'),
+    label: 'Zoom Out',
     shortcut: `${mod}-`,
     action: () => store.applyZoom(100, window.innerWidth / 2, window.innerHeight / 2)
   },
   { separator: true },
   {
-    label: t('view.profiler'),
+    label: 'Profiler',
     get checked() {
       return store.renderer?.profiler.hudVisible ?? false
     },
@@ -152,49 +153,49 @@ const viewMenu: MenuItem[] = [
 ]
 
 const objectMenu: MenuItem[] = [
-  { label: t('object.group'), shortcut: `${mod}G`, action: () => store.groupSelected() },
-  { label: t('object.ungroup'), shortcut: `${mod}⇧G`, action: () => store.ungroupSelected() },
+  { label: 'Group', shortcut: `${mod}G`, action: () => store.groupSelected() },
+  { label: 'Ungroup', shortcut: `${mod}⇧G`, action: () => store.ungroupSelected() },
   { separator: true },
   {
-    label: t('object.createComponent'),
+    label: 'Create Component',
     shortcut: `${mod}⌥K`,
     action: () => store.createComponentFromSelection()
   },
   {
-    label: t('object.createComponentSet'),
+    label: 'Create Component Set',
     action: () => store.createComponentSetFromComponents()
   },
-  { label: t('object.detachInstance'), action: () => store.detachInstance() },
+  { label: 'Detach Instance', action: () => store.detachInstance() },
   { separator: true },
-  { label: t('object.bringToFront'), shortcut: ']', action: () => store.bringToFront() },
-  { label: t('object.sendToBack'), shortcut: '[', action: () => store.sendToBack() }
+  { label: 'Bring to Front', shortcut: ']', action: () => store.bringToFront() },
+  { label: 'Send to Back', shortcut: '[', action: () => store.sendToBack() }
 ]
 
 const textMenu: MenuItem[] = [
-  { label: t('text.bold'), shortcut: `${mod}B` },
-  { label: t('text.italic'), shortcut: `${mod}I` },
-  { label: t('text.underline'), shortcut: `${mod}U` }
+  { label: 'Bold', shortcut: `${mod}B` },
+  { label: 'Italic', shortcut: `${mod}I` },
+  { label: 'Underline', shortcut: `${mod}U` }
 ]
 
 const arrangeMenu: MenuItem[] = [
-  { label: t('arrange.autoLayout'), shortcut: '⇧A', action: () => store.wrapInAutoLayout() },
+  { label: 'Auto Layout', shortcut: '⇧A', action: () => store.wrapInAutoLayout() },
   { separator: true },
-  { label: t('arrange.alignLeft'), shortcut: '⌥A' },
-  { label: t('arrange.alignCenter'), shortcut: '⌥H' },
-  { label: t('arrange.alignRight'), shortcut: '⌥D' },
+  { label: 'Align Left', shortcut: '⌥A' },
+  { label: 'Align Center', shortcut: '⌥H' },
+  { label: 'Align Right', shortcut: '⌥D' },
   { separator: true },
-  { label: t('arrange.alignTop'), shortcut: '⌥W' },
-  { label: t('arrange.alignMiddle'), shortcut: '⌥V' },
-  { label: t('arrange.alignBottom'), shortcut: '⌥S' }
+  { label: 'Align Top', shortcut: '⌥W' },
+  { label: 'Align Middle', shortcut: '⌥V' },
+  { label: 'Align Bottom', shortcut: '⌥S' }
 ]
 
 const topMenus = computed(() => [
-  { label: t('menu.file'), items: fileMenu },
-  { label: t('menu.edit'), items: editMenu },
-  { label: t('menu.view'), items: viewMenu },
-  { label: t('menu.object'), items: objectMenu },
-  { label: t('menu.text'), items: textMenu },
-  { label: t('menu.arrange'), items: arrangeMenu }
+  { label: 'File', items: fileMenu },
+  { label: 'Edit', items: editMenu },
+  { label: 'View', items: viewMenu },
+  { label: 'Object', items: objectMenu },
+  { label: 'Text', items: textMenu },
+  { label: 'Arrange', items: arrangeMenu }
 ])
 </script>
 
@@ -210,7 +211,7 @@ const topMenus = computed(() => [
         :value="store.state.documentName"
         @blur="commitRename($event.target as HTMLInputElement)"
         @keydown.enter="($event.target as HTMLInputElement).blur()"
-        @keydown="rename.onKeydown"
+        @keydown.escape="editingName = false"
       />
       <span
         v-else

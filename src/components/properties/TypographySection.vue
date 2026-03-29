@@ -5,7 +5,6 @@ import AppSelect from '@/components/AppSelect.vue'
 import FontPicker from '@/components/FontPicker.vue'
 import ScrubInput from '@/components/ScrubInput.vue'
 import TokenBindButton from '@/components/properties/TokenBindButton.vue'
-import { useNodeFontStatus } from '@/composables/use-font-status'
 import { useNodeProps } from '@/composables/use-node-props'
 import { loadFont } from '@/engine/fonts'
 
@@ -24,8 +23,6 @@ function unbindField(field: string) {
   store.graph.unbindVariable(node.value.id, field)
   store.requestRender()
 }
-
-const { missingFonts, hasMissingFonts } = useNodeFontStatus(() => node.value)
 
 const WEIGHTS = [
   { value: 100, label: 'Thin' },
@@ -94,14 +91,6 @@ onMounted(async () => {
 
     <div class="mb-1.5 flex items-center gap-1.5">
       <FontPicker class="min-w-0 flex-1" :model-value="node.fontFamily" @select="selectFamily" />
-      <icon-lucide-alert-triangle
-        v-if="hasMissingFonts"
-        data-test-id="typography-missing-font"
-        class="size-3.5 shrink-0 text-amber-400"
-        :title="
-          'Missing font' + (missingFonts.length > 1 ? 's' : '') + ': ' + missingFonts.join(', ')
-        "
-      />
     </div>
 
     <!-- Weight + Size -->

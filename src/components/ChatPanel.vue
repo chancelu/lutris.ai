@@ -11,7 +11,6 @@ import AIContextCards from '@/components/AIContextCards.vue'
 import { useAIChat } from '@/composables/use-chat'
 import { useAISelect } from '@/composables/use-ai-select'
 import { useSpec } from '@/composables/use-spec'
-import { useI18n } from '@/composables/use-i18n'
 import { toast } from '@/composables/use-toast'
 
 import type { Chat } from '@ai-sdk/vue'
@@ -21,7 +20,6 @@ const IS_DEV = import.meta.env.DEV
 
 const { isConfigured, ensureChat, resetChat, pendingMessage, aiProgress, providerID, isServerConfigured, activeTab, aiMode } = useAIChat()
 const { hasContext, buildContextPrompt, clearAIContext } = useAISelect()
-const { t } = useI18n()
 
 const existing = ensureChat()
 const chat = ref<Chat<UIMessage> | null>(existing ? markRaw(existing) : null)
@@ -42,10 +40,10 @@ watch(chatSdkError, (err) => {
 
 const progressLabel = computed(() => {
   switch (aiProgress.value) {
-    case 'analyzing': return t('chat.analyzing')
-    case 'generating': return t('chat.generating')
-    case 'verifying': return t('chat.verifying')
-    case 'creating-image': return t('chat.creatingImage')
+    case 'analyzing': return 'Analyzing...'
+    case 'generating': return 'Generating...'
+    case 'verifying': return 'Verifying...'
+    case 'creating-image': return 'Creating image...'
     default: return ''
   }
 })
@@ -212,14 +210,14 @@ function handleCreateSpecFromAll() {
         >
           <icon-lucide-clipboard-copy v-if="!debugCopied" class="size-3" />
           <icon-lucide-check v-else class="size-3 text-green-400" />
-          {{ debugCopied ? t('chat.copied') : t('chat.copyLog') }}
+          {{ debugCopied ? 'Copied' : 'Copy log' }}
         </button>
         <button
           class="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted hover:bg-hover hover:text-surface"
           @click="handleClearChat"
         >
           <icon-lucide-trash-2 class="size-3" />
-          {{ t('chat.clear') }}
+          Clear
         </button>
         <button
           class="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-accent hover:bg-accent/10"

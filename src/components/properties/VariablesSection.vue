@@ -2,10 +2,8 @@
 import { computed } from 'vue'
 
 import { useEditorStore } from '@/stores/editor'
-import { useI18n } from '@/composables/use-i18n'
 
 const store = useEditorStore()
-const { t } = useI18n()
 const emit = defineEmits<{ openDialog: [] }>()
 
 const collectionCount = computed(() => {
@@ -22,19 +20,19 @@ const variableCount = computed(() => {
 <template>
   <div data-test-id="variables-section" class="border-b border-border px-3 py-2">
     <div class="flex items-center justify-between">
-      <label class="text-[11px] font-medium text-surface">{{ t('var.title') }}</label>
+      <label class="text-[11px] font-medium text-surface">Variables</label>
       <button
         data-test-id="variables-section-open"
         class="flex size-5 cursor-pointer items-center justify-center rounded border-none bg-transparent text-muted hover:bg-hover hover:text-surface"
-        :title="t('var.open')"
+        :title="'Open variables'"
         @click="emit('openDialog')"
       >
         <icon-lucide-settings-2 class="size-3.5" />
       </button>
     </div>
     <div v-if="variableCount > 0" class="mt-1 text-[11px] text-muted">
-      {{ t('var.count').replace('{n}', String(variableCount)).replace('{c}', String(collectionCount)) }}
+      {{ variableCount }} variables in {{ collectionCount }} collections
     </div>
-    <div v-else class="mt-1 text-[11px] text-muted">{{ t('var.empty') }}</div>
+    <div v-else class="mt-1 text-[11px] text-muted">No variables defined</div>
   </div>
 </template>

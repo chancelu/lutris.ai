@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue'
 import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewport } from 'reka-ui'
 import { useProjects } from '@/composables/use-projects'
-import { useI18n } from '@/composables/use-i18n'
 // eslint-disable-next-line typescript/consistent-type-imports -- used in template
 import ConfirmDialog from './ConfirmDialog.vue'
 
@@ -21,7 +20,6 @@ const {
   restoreSnapshot,
   deleteSnapshot,
 } = useProjects()
-const { t } = useI18n()
 const activeSection = ref<'projects' | 'history'>('projects')
 const newProjectName = ref('')
 const isCreating = ref(false)
@@ -82,11 +80,11 @@ function formatRelative(ts: number): string {
     <!-- Header with auto-save indicator -->
     <div class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2">
       <span class="text-xs font-semibold text-surface">
-        {{ activeProject?.name ?? t('projects.noProject') }}
+        {{ activeProject?.name ?? 'No project' }}
       </span>
-      <span v-if="isSaving" class="text-[11px] text-green-400 animate-pulse">{{ t('projects.saving') }}</span>
+      <span v-if="isSaving" class="text-[11px] text-green-400 animate-pulse">Saving...</span>
       <span v-else-if="lastSavedAt" class="text-[11px] text-muted">
-        {{ t('projects.saved') }} {{ formatRelative(lastSavedAt) }}
+        Saved {{ formatRelative(lastSavedAt) }}
       </span>
     </div>
 
@@ -99,7 +97,7 @@ function formatRelative(ts: number): string {
         :class="activeSection === sec ? 'bg-hover font-semibold text-surface' : 'text-muted hover:text-surface'"
         @click="activeSection = sec"
       >
-        {{ sec === 'projects' ? t('projects.projectsTab') : t('projects.historyTab') }}
+        {{ sec === 'projects' ? 'Projects' : 'History' }}
       </button>
     </div>
 
@@ -113,7 +111,7 @@ function formatRelative(ts: number): string {
               <input
                 v-model="newProjectName"
                 type="text"
-                :placeholder="t('projects.name')"
+                :placeholder="'Project name'"
                 class="flex-1 rounded border border-border bg-transparent px-2 py-1 text-[13px] text-surface placeholder:text-muted/50 focus:border-blue-500 focus:outline-none"
                 @keydown.enter="handleCreate"
               />
@@ -122,7 +120,7 @@ function formatRelative(ts: number): string {
                 class="rounded bg-blue-600 px-2 py-1 text-[12px] text-white hover:bg-blue-500 disabled:opacity-40"
                 @click="handleCreate"
               >
-                {{ t('projects.create') }}
+                Create
               </button>
               <button
                 class="rounded border border-border px-2 py-1 text-[12px] text-muted hover:bg-hover"
@@ -137,7 +135,7 @@ function formatRelative(ts: number): string {
             class="mb-2 w-full rounded border border-dashed border-border py-1.5 text-[12px] text-muted hover:border-blue-500/50 hover:text-surface"
             @click="isCreating = true"
           >
-            {{ t('projects.newBtn') }}
+            + New Project
           </button>
 
           <!-- Project cards -->
@@ -179,8 +177,8 @@ function formatRelative(ts: number): string {
               </div>
             </div>
             <div class="mt-0.5 flex items-center gap-2 text-[11px] text-muted">
-              <span>{{ p.snapshots.length }} {{ t('projects.versions') }}</span>
-              <span>{{ t('projects.updated') }} {{ formatRelative(p.updatedAt) }}</span>
+              <span>{{ p.snapshots.length }} versions</span>
+              <span>Updated {{ formatRelative(p.updatedAt) }}</span>
             </div>
           </div>
         </div>
@@ -192,7 +190,7 @@ function formatRelative(ts: number): string {
             <input
               v-model="snapshotLabel"
               type="text"
-              :placeholder="t('projects.versionLabel')"
+              :placeholder="'Version label'"
               class="flex-1 rounded border border-border bg-transparent px-2 py-1 text-[13px] text-surface placeholder:text-muted/50 focus:border-blue-500 focus:outline-none"
               @keydown.enter="handleSnapshot"
             />
@@ -200,12 +198,12 @@ function formatRelative(ts: number): string {
               class="rounded bg-green-600 px-2 py-1 text-[12px] text-white hover:bg-green-500"
               @click="handleSnapshot"
             >
-              {{ t('projects.saveSnapshot') }}
+              Save Version
             </button>
           </div>
 
           <div v-if="activeSnapshots.length === 0" class="px-4 py-8 text-center">
-            <span class="text-[12px] text-muted">{{ t('projects.noVersions') }}</span>
+            <span class="text-[12px] text-muted">No versions yet</span>
           </div>
 
           <div
@@ -222,13 +220,13 @@ function formatRelative(ts: number): string {
                 class="text-[11px] text-blue-400 hover:text-blue-300"
                 @click="handleRestore(s.id)"
               >
-                {{ t('projects.restore') }}
+                Restore
               </button>
               <button
                 class="text-[11px] text-red-400/60 hover:text-red-400"
                 @click="deleteSnapshot(s.id)"
               >
-                {{ t('projects.delete') }}
+                Delete
               </button>
             </div>
           </div>

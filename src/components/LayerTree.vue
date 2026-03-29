@@ -3,8 +3,6 @@ import { nextTick, onUnmounted, ref, watch } from 'vue'
 import { useEventListener } from '@vueuse/core'
 import { TreeRoot, TreeItem, ContextMenuRoot, ContextMenuTrigger, ContextMenuPortal } from 'reka-ui'
 
-import { useInlineRename } from '@/composables/use-inline-rename'
-
 import IconCircle from '~icons/lucide/circle'
 import IconComponent from '~icons/lucide/diamond'
 import IconComponentSet from '~icons/lucide/component'
@@ -24,7 +22,26 @@ import { useEditorStore } from '@/stores/editor'
 import NodeContextMenuContent from './NodeContextMenuContent.vue'
 
 const store = useEditorStore()
-const rename = useInlineRename((id, name) => store.renameNode(id, name))
+
+// Inline rename state
+const editingId = ref<string | null>(null)
+
+function startRename(id: string, _name: string) {
+  editingId.value = id
+}
+
+function commitRename(id: string, input: HTMLInputElement) {
+  const val = input.value.trim()
+  if (val) store.renameNode(id, val)
+  editingId.value = null
+}
+
+function focusInput(el: HTMLInputElement) {
+  nextTick(() => {
+    el.focus()
+    el.select()
+  })
+}
 
 interface LayerNode {
   id: string
@@ -346,7 +363,7 @@ function updateDropTarget(ev: PointerEvent) {
               "
             >
               <div
-                v-if="rename.editingId.value === item.value.id"
+                v-if="editingId === item.value.id"
                 class="flex w-full items-center gap-1 py-1"
                 :style="{ paddingLeft: `${8 + (item.level - 1) * 16}px` }"
               >
@@ -363,15 +380,16 @@ function updateDropTarget(ev: PointerEvent) {
                 <input
                   :ref="
                     (el) => {
-                      if (el) rename.focusInput(el as HTMLInputElement)
+                      if (el) focusInput(el as HTMLInputElement)
                     }
                   "
                   data-layer-edit
                   data-test-id="layers-item-input"
                   class="min-w-0 flex-1 rounded border border-accent bg-input px-1 py-0 text-xs text-surface outline-none"
                   :value="item.value.name"
-                  @blur="rename.commit(item.value.id, $event.target as HTMLInputElement)"
-                  @keydown="rename.onKeydown"
+                  @blur="commitRename(item.value.id, $event.target as HTMLInputElement)"
+                  @keydown.enter="($event.target as HTMLInputElement).blur()"
+                  @keydown.escape="editingId = null"
                 />
               </div>
               <button
@@ -388,7 +406,7 @@ function updateDropTarget(ev: PointerEvent) {
                 ]"
                 :style="{ paddingLeft: `${8 + (item.level - 1) * 16}px` }"
                 @pointerdown.prevent="onPointerDown($event, item.value.id)"
-                @dblclick="rename.start(item.value.id, item.value.name, '[data-layer-edit]')"
+                @dblclick="startRename(item.value.id, item.value.name)"
               >
                 <span
                   v-if="item.hasChildren"

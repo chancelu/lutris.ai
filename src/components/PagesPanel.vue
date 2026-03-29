@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, nextTick } from 'vue'
 
-import { useInlineRename } from '@/composables/use-inline-rename'
 import { useEditorStore } from '@/stores/editor'
-import { useI18n } from '@/composables/use-i18n'
 
 const store = useEditorStore()
-const { t } = useI18n()
 
-const DIVIDER_RE = /^[-–—*\s]+$/
+const DIVIDER_RE = /^[-\u2013\u2014*\s]+$/
 const pageInputRefs = new Map<string, HTMLInputElement>()
 
 function isDivider(page: { name: string; childIds: string[] }) {
@@ -20,22 +17,30 @@ const pages = computed(() => {
   return store.graph.getPages()
 })
 
-const rename = useInlineRename((id, name) => store.renamePage(id, name))
-const activeRenameId = ref<string | null>(null)
+const editingPageId = ref<string | null>(null)
 
 function setPageInputRef(pageId: string, el: HTMLInputElement | null) {
-  if (el) pageInputRefs.set(pageId, el)
-  else pageInputRefs.delete(pageId)
-
-  if (el && activeRenameId.value === pageId) {
-    activeRenameId.value = null
-    void rename.focusInput(el)
+  if (el) {
+    pageInputRefs.set(pageId, el)
+    if (editingPageId.value === pageId) {
+      nextTick(() => {
+        el.focus()
+        el.select()
+      })
+    }
+  } else {
+    pageInputRefs.delete(pageId)
   }
 }
 
 function startRename(pg: { id: string; name: string }) {
-  rename.start(pg.id, pg.name)
-  activeRenameId.value = pg.id
+  editingPageId.value = pg.id
+}
+
+function commitRename(pageId: string, input: HTMLInputElement) {
+  const val = input.value.trim()
+  if (val) store.renamePage(pageId, val)
+  editingPageId.value = null
 }
 </script>
 
@@ -43,7 +48,7 @@ function startRename(pg: { id: string; name: string }) {
   <div data-test-id="pages-panel" class="flex min-h-0 flex-1 flex-col">
     <div class="flex shrink-0 items-center justify-between px-3 py-1.5">
       <span data-test-id="pages-header" class="text-[12px] tracking-wider text-muted uppercase"
-        >{{ t('pages.title') }}</span
+        >Pages</span
       >
       <button
         data-test-id="pages-add"
@@ -57,7 +62,7 @@ function startRename(pg: { id: string; name: string }) {
     <div class="scrollbar-thin overflow-x-hidden overflow-y-auto px-1 pb-1">
       <div v-for="pg in pages" :key="pg.id">
         <div
-          v-if="rename.editingId.value === pg.id"
+          v-if="editingPageId === pg.id"
           class="flex w-full items-center gap-1.5 rounded px-2 py-1"
         >
           <icon-lucide-file class="size-3 shrink-0 opacity-70" />
@@ -66,8 +71,9 @@ function startRename(pg: { id: string; name: string }) {
             data-test-id="pages-item-input"
             class="min-w-0 flex-1 rounded border border-accent bg-input px-1 py-0 text-xs text-surface outline-none"
             :value="pg.name"
-            @blur="rename.commit(pg.id, $event.target as HTMLInputElement)"
-            @keydown="rename.onKeydown"
+            @blur="commitRename(pg.id, $event.target as HTMLInputElement)"
+            @keydown.enter="($event.target as HTMLInputElement).blur()"
+            @keydown.escape="editingPageId = null"
           />
         </div>
         <div

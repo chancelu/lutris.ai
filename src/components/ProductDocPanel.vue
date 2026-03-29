@@ -4,7 +4,6 @@ import DOMPurify from 'dompurify'
 import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewport } from 'reka-ui'
 import { useProductDoc } from '@/composables/use-product-doc'
 import { useAIChat } from '@/composables/use-chat'
-import { useI18n } from '@/composables/use-i18n'
 import NextStepCard from './NextStepCard.vue'
 
 const {
@@ -27,7 +26,6 @@ const {
 } = useProductDoc()
 
 const { pendingMessage, activeTab } = useAIChat()
-const { t } = useI18n()
 
 const { defaultSection } = defineProps<{ defaultSection?: 'summary' | 'versions' }>()
 
@@ -177,9 +175,9 @@ const renderedContent = computed(() => {
       class="absolute inset-0 z-50 flex items-center justify-center bg-black/60"
     >
       <div class="mx-4 max-w-sm rounded-lg border border-border bg-panel p-4">
-        <p class="mb-2 text-xs font-semibold text-surface">{{ t('doc.designSyncTitle') }}</p>
+        <p class="mb-2 text-xs font-semibold text-surface">Update from design</p>
         <p class="mb-3 text-[12px] text-muted">
-          {{ t('doc.designSyncDesc') }}
+          The design has changed. Accept the updated content?
         </p>
         <pre class="mb-3 max-h-32 overflow-auto rounded bg-inset p-2 text-[11px] text-muted">{{ pendingSyncConfirm.content.slice(0, 500) }}...</pre>
         <div class="flex gap-2">
@@ -187,13 +185,13 @@ const renderedContent = computed(() => {
             class="flex-1 rounded bg-blue-600 px-2 py-1 text-[12px] text-white hover:bg-blue-500"
             @click="acceptPendingSync"
           >
-            {{ t('doc.accept') }}
+            Accept
           </button>
           <button
             class="flex-1 rounded border border-border px-2 py-1 text-[12px] text-muted hover:bg-hover"
             @click="rejectPendingSync"
           >
-            {{ t('doc.keepCurrent') }}
+            Keep current
           </button>
         </div>
       </div>
@@ -206,14 +204,14 @@ const renderedContent = computed(() => {
         :class="activeSection === 'doc' ? 'bg-hover font-semibold text-surface' : 'text-muted hover:text-surface'"
         @click="activeSection = 'doc'"
       >
-        <icon-lucide-file-text class="inline size-3" /> {{ t('doc.document') }}
+        <icon-lucide-file-text class="inline size-3" /> Document
       </button>
       <button
         class="rounded px-2 py-0.5 text-[12px]"
         :class="activeSection === 'versions' ? 'bg-hover font-semibold text-surface' : 'text-muted hover:text-surface'"
         @click="activeSection = 'versions'"
       >
-        <icon-lucide-clock class="inline size-3" /> {{ t('doc.versions') }} ({{ versionCount }})
+        <icon-lucide-clock class="inline size-3" /> Versions ({{ versionCount }})
       </button>
       <div class="flex-1" />
       <template v-if="hasContent && activeSection === 'doc' && !isEditing">
@@ -228,7 +226,7 @@ const renderedContent = computed(() => {
           class="rounded px-1.5 py-0.5 text-[11px] text-blue-400 hover:bg-blue-500/10"
           @click="startEditing"
         >
-          <icon-lucide-pencil class="inline size-3" /> {{ t('doc.edit') }}
+          <icon-lucide-pencil class="inline size-3" /> Edit
         </button>
       </template>
     </div>
@@ -244,9 +242,9 @@ const renderedContent = computed(() => {
           >
             <icon-lucide-clipboard-list class="size-6 text-muted" />
             <div>
-              <p class="text-xs text-surface">{{ t('doc.title') }}</p>
+              <p class="text-xs text-surface">Product Document</p>
               <p class="mt-1 text-[12px] text-muted">
-                {{ t('doc.importHint') }}
+                Import a PRD or write one from scratch.
               </p>
             </div>
             <div class="flex gap-2">
@@ -254,13 +252,13 @@ const renderedContent = computed(() => {
                 class="rounded bg-blue-600 px-3 py-1.5 text-[12px] text-white hover:bg-blue-500"
                 @click="triggerImport"
               >
-                <icon-lucide-file-text class="inline size-3" /> {{ t('doc.importFile') }}
+                <icon-lucide-file-text class="inline size-3" /> Import file
               </button>
               <button
                 class="rounded border border-border px-3 py-1.5 text-[12px] text-muted hover:bg-hover hover:text-surface"
                 @click="startEditing"
               >
-                <icon-lucide-pencil class="inline size-3" /> {{ t('doc.write') }}
+                <icon-lucide-pencil class="inline size-3" /> Write
               </button>
             </div>
           </div>
@@ -277,13 +275,13 @@ const renderedContent = computed(() => {
                 class="rounded bg-blue-600 px-2 py-1 text-[12px] text-white hover:bg-blue-500"
                 @click="saveEdit"
               >
-                {{ t('action.save') }}
+                Save
               </button>
               <button
                 class="rounded border border-border px-2 py-1 text-[12px] text-muted hover:bg-hover"
                 @click="cancelEdit"
               >
-                {{ t('action.cancel') }}
+                Cancel
               </button>
             </div>
           </div>
@@ -321,20 +319,20 @@ const renderedContent = computed(() => {
                 class="rounded border border-border px-2 py-0.5 text-[11px] text-muted hover:bg-hover hover:text-surface"
                 @click="triggerImport"
               >
-                <icon-lucide-file-text class="inline size-3" /> {{ t('action.import') }}
+                <icon-lucide-file-text class="inline size-3" /> Import
               </button>
               <button
                 class="rounded border border-border px-2 py-0.5 text-[11px] text-muted hover:bg-hover hover:text-surface"
                 @click="handleSyncToDesign"
               >
-                <icon-lucide-palette class="inline size-3" /> {{ t('doc.toDesign') }}
+                <icon-lucide-palette class="inline size-3" /> To design
               </button>
               <button
                 :disabled="isAIParsing"
                 class="rounded border border-amber-500/50 px-2 py-0.5 text-[11px] text-amber-400 hover:bg-amber-500/10 disabled:opacity-40"
                 @click="handleAIParse"
               >
-                <icon-lucide-bot class="inline size-3" /> {{ isAIParsing ? t('doc.aiParsing') : t('doc.aiParse') }}
+                <icon-lucide-bot class="inline size-3" /> {{ isAIParsing ? 'Parsing...' : 'AI Parse' }}
               </button>
             </div>
           </div>
@@ -343,7 +341,7 @@ const renderedContent = computed(() => {
         <!-- Versions section -->
         <template v-if="activeSection === 'versions'">
           <div v-if="versions.length === 0" class="px-4 py-8 text-center">
-            <span class="text-[12px] text-muted">{{ t('doc.noVersions') }}</span>
+            <span class="text-[12px] text-muted">No versions yet</span>
           </div>
           <div v-else class="p-2 space-y-0.5">
             <button
@@ -377,7 +375,7 @@ const renderedContent = computed(() => {
       v-if="isImporting"
       class="absolute inset-0 flex items-center justify-center bg-black/40"
     >
-      <span class="text-xs text-white animate-pulse">{{ t('doc.importing') }}</span>
+      <span class="text-xs text-white animate-pulse">Importing...</span>
     </div>
   </div>
 </template>

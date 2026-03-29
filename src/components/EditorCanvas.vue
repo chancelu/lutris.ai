@@ -1,32 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 
 import { useCanvas } from '@/composables/use-canvas'
 import { useCanvasDrop } from '@/composables/use-canvas-drop'
 import { useCanvasInput } from '@/composables/use-canvas-input'
-import { useCollabInjected } from '@/composables/use-collab'
-import { useComments } from '@/composables/use-comments'
-import { useComponentDrag } from '@/composables/use-component-drag'
 import { useTextEdit } from '@/composables/use-text-edit'
 import { useEditorStore } from '@/stores/editor'
 import CanvasContextMenu from './CanvasContextMenu.vue'
-import CollabCursors from './CollabCursors.vue'
-import CommentPin from './CommentPin.vue'
 import QuickActions from './QuickActions.vue'
 import { useAISelect } from '@/composables/use-ai-select'
 import { useAIChat } from '@/composables/use-chat'
 
 const store = useEditorStore()
-const collab = useCollabInjected()
-const { comments, isAddingComment, addComment, cancelAddingComment } = useComments()
-const { handleCanvasDrop } = useComponentDrag()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-
-// Inline comment input
-const showCommentInput = ref(false)
-const commentInputPos = ref({ x: 0, y: 0, cx: 0, cy: 0 })
-const commentText = ref('')
-const commentInputRef = ref<HTMLInputElement | null>(null)
 
 const { hitTestSectionTitle, hitTestComponentLabel, hitTestFrameTitle } = useCanvas(
   canvasRef,
@@ -38,7 +24,7 @@ const { cursorOverride } = useCanvasInput(
   hitTestSectionTitle,
   hitTestComponentLabel,
   hitTestFrameTitle,
-  (cx, cy) => collab?.updateCursor(cx, cy, store.state.currentPageId)
+  undefined
 )
 
 useTextEdit(canvasRef, store)
@@ -126,14 +112,8 @@ function dismissAISelect() {
   showAISelectPopup.value = false
 }
 
-watch(
-  () => [...store.state.selectedIds],
-  (ids) => collab?.updateSelection(ids)
-)
-
 const cursor = computed(() => {
   if (aiSelectMode.value) return 'crosshair'
-  if (isAddingComment.value) return 'crosshair'
   if (cursorOverride.value) return cursorOverride.value
   const tool = store.state.activeTool
   if (tool === 'HAND') return 'grab'
@@ -161,54 +141,6 @@ function handleCanvasClick(e: MouseEvent) {
     }
     return
   }
-  if (!isAddingComment.value) return
-  // Convert screen coords to canvas coords
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  const sx = e.clientX - rect.left
-  const sy = e.clientY - rect.top
-  const cx = (sx - store.state.panX) / store.state.zoom
-  const cy = (sy - store.state.panY) / store.state.zoom
-  // Show inline input at click position
-  commentInputPos.value = { x: sx, y: sy, cx, cy }
-  commentText.value = ''
-  showCommentInput.value = true
-  cancelAddingComment()
-  nextTick(() => commentInputRef.value?.focus())
-}
-
-function submitComment() {
-  if (commentText.value.trim()) {
-    addComment(commentInputPos.value.cx, commentInputPos.value.cy, commentText.value.trim())
-  }
-  showCommentInput.value = false
-  commentText.value = ''
-}
-
-function cancelComment() {
-  showCommentInput.value = false
-  commentText.value = ''
-}
-
-function handleComponentDrop(e: DragEvent) {
-  const el = e.currentTarget as HTMLElement
-  const rect = el.getBoundingClientRect()
-  const payload = handleCanvasDrop(e, rect, store.state.zoom, store.state.panX, store.state.panY)
-  if (!payload) return
-
-  try {
-    const nodes = JSON.parse(payload.nodeData)
-    if (!Array.isArray(nodes) || nodes.length === 0) return
-
-    const pageId = store.state.currentPageId
-    for (const nodeData of nodes) {
-      const { type = 'RECTANGLE', ...overrides } = nodeData
-      store.graph.createNode(type, pageId, overrides)
-    }
-    // Trigger re-render
-    store.graph.emitter.emit('tree:changed')
-  } catch {
-    console.warn('Failed to deserialize dropped component')
-  }
 }
 </script>
 
@@ -221,8 +153,6 @@ function handleComponentDrop(e: DragEvent) {
       @mousedown="handleAIMarqueeDown"
       @mousemove="handleAIMarqueeMove"
       @mouseup="handleAIMarqueeUp"
-      @dragover.prevent
-      @drop.prevent="handleComponentDrop"
     >
       <canvas
         ref="canvasRef"
@@ -230,14 +160,6 @@ function handleComponentDrop(e: DragEvent) {
         :style="{ cursor }"
         class="block size-full touch-none"
       />
-      <!-- Comment pins -->
-      <CommentPin
-        v-for="c in comments"
-        :key="c.id"
-        :comment="c"
-      />
-      <!-- Remote collaboration cursors -->
-      <CollabCursors />
       <!-- AI Select marquee overlay -->
       <div
         v-if="aiMarquee && isAIMarqueeDragging"
@@ -274,30 +196,6 @@ function handleComponentDrop(e: DragEvent) {
           </button>
         </div>
       </Transition>
-      <!-- Inline comment input -->
-      <div
-        v-if="showCommentInput"
-        class="absolute z-30 flex items-center gap-1 rounded-lg border border-border bg-panel p-1 shadow-lg"
-        :style="{ left: `${commentInputPos.x}px`, top: `${commentInputPos.y + 8}px` }"
-        @click.stop
-      >
-        <input
-          ref="commentInputRef"
-          v-model="commentText"
-          type="text"
-          placeholder="Add comment..."
-          class="w-48 rounded border-none bg-transparent px-2 py-1 text-[13px] text-surface placeholder:text-muted/50 focus:outline-none"
-          @keydown.enter="submitComment"
-          @keydown.escape="cancelComment"
-        />
-        <button
-          :disabled="!commentText.trim()"
-          class="rounded bg-blue-600 px-2 py-1 text-[12px] text-white hover:bg-blue-500 disabled:opacity-40"
-          @click="submitComment"
-        >
-          Post
-        </button>
-      </div>
       <Transition
         enter-active-class="transition-opacity duration-150"
         enter-from-class="opacity-0"

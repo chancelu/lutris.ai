@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { useImageGen } from '@/composables/use-image-gen'
-import { useI18n } from '@/composables/use-i18n'
 import { useBrand } from '@/composables/use-brand'
 
 const { apiKey: geminiKey, setApiKey: setGeminiKey } = useImageGen()
-const { t } = useI18n()
 const { config, resetBrand, exportBrandCSS } = useBrand()
 
 const FONTS = ['Inter', 'Roboto', 'Open Sans', 'Poppins', 'Montserrat', 'DM Sans', 'Space Grotesk', 'JetBrains Mono']
@@ -28,20 +26,20 @@ function copyCSS() {
 <template>
   <div class="p-3">
     <div class="mb-3 flex items-center justify-between">
-      <span class="text-xs font-semibold text-surface">{{ t('brand.title') }}</span>
-      <button class="text-[11px] text-muted hover:text-surface" @click="resetBrand">{{ t('brand.reset') }}</button>
+      <span class="text-xs font-semibold text-surface">Brand Settings</span>
+      <button class="text-[11px] text-muted hover:text-surface" @click="resetBrand">Reset</button>
     </div>
 
     <!-- Logo -->
     <div class="mb-3">
-      <div class="mb-1 text-[12px] text-muted">{{ t('brand.logo') }}</div>
+      <div class="mb-1 text-[12px] text-muted">Logo</div>
       <div class="flex items-center gap-2">
         <div class="flex size-10 items-center justify-center rounded border border-border bg-inset">
           <img v-if="config.logoUrl" :src="config.logoUrl" class="size-8 object-contain" />
           <span v-else class="text-lg text-muted/40">🎨</span>
         </div>
         <label class="cursor-pointer rounded border border-border px-2 py-0.5 text-[12px] text-muted hover:bg-hover hover:text-surface">
-          {{ t('brand.upload') }}
+          Upload
           <input type="file" accept="image/*" class="hidden" @change="handleLogoUpload" />
         </label>
       </div>
@@ -49,7 +47,7 @@ function copyCSS() {
 
     <!-- App Name -->
     <div class="mb-3">
-      <div class="mb-1 text-[12px] text-muted">{{ t('brand.appName') }}</div>
+      <div class="mb-1 text-[12px] text-muted">App Name</div>
       <input
         v-model="config.appName"
         type="text"
@@ -59,7 +57,7 @@ function copyCSS() {
 
     <!-- Tagline -->
     <div class="mb-3">
-      <div class="mb-1 text-[12px] text-muted">{{ t('brand.tagline') }}</div>
+      <div class="mb-1 text-[12px] text-muted">Tagline</div>
       <input
         v-model="config.tagline"
         type="text"
@@ -69,7 +67,7 @@ function copyCSS() {
 
     <!-- Colors -->
     <div class="mb-3">
-      <div class="mb-1 text-[12px] text-muted">{{ t('brand.colors') }}</div>
+      <div class="mb-1 text-[12px] text-muted">Colors</div>
       <div class="flex flex-col gap-1.5">
         <div v-for="[key, label] in [['primaryColor', 'Primary'], ['secondaryColor', 'Secondary'], ['accentColor', 'Accent']]" :key="key" class="flex items-center gap-2">
           <input
@@ -97,7 +95,7 @@ function copyCSS() {
 
     <!-- Font -->
     <div class="mb-3">
-      <div class="mb-1 text-[12px] text-muted">{{ t('brand.font') }}</div>
+      <div class="mb-1 text-[12px] text-muted">Font</div>
       <div class="flex flex-wrap gap-1">
         <button
           v-for="f in FONTS"
@@ -113,7 +111,7 @@ function copyCSS() {
 
     <!-- Border Radius -->
     <div class="mb-3">
-      <div class="mb-1 text-[12px] text-muted">{{ t('brand.radius') }}: {{ config.borderRadius }}px</div>
+      <div class="mb-1 text-[12px] text-muted">Border Radius: {{ config.borderRadius }}px</div>
       <input
         v-model="config.borderRadius"
         type="range"
@@ -125,7 +123,7 @@ function copyCSS() {
 
     <!-- Preview -->
     <div class="mb-3">
-      <div class="mb-1 text-[12px] text-muted">{{ t('brand.preview') }}</div>
+      <div class="mb-1 text-[12px] text-muted">Preview</div>
       <div class="overflow-hidden rounded border border-border" :style="{ background: config.secondaryColor }">
         <!-- Nav bar -->
         <div class="flex items-center gap-3 border-b border-white/10 px-3 py-2">
@@ -187,13 +185,13 @@ function copyCSS() {
       class="w-full rounded border border-border py-1 text-[12px] text-muted hover:bg-hover hover:text-surface"
       @click="copyCSS"
     >
-      📋 {{ t('brand.copyCSS') }}
+      📋 Copy CSS
     </button>
 
     <!-- Gemini Image Gen API -->
     <div class="mt-4 border-t border-border pt-3">
-      <div class="mb-2 text-[12px] font-medium text-surface">🖼️ {{ t('brand.aiImageGen') }}</div>
-      <label class="mb-1 block text-[11px] text-muted">{{ t('brand.geminiKey') }}</label>
+      <div class="mb-2 text-[12px] font-medium text-surface">🖼️ AI Image Generation</div>
+      <label class="mb-1 block text-[11px] text-muted">Gemini API Key</label>
       <input
         :value="geminiKey"
         type="password"

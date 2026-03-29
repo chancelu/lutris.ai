@@ -1,389 +1,47 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import {
-  DropdownMenuRoot,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuPortal
-} from 'reka-ui'
-import { useBreakpoints } from '@vueuse/core'
-import { AnimatePresence, motion } from 'motion-v'
-
-import IconChevronDown from '~icons/lucide/chevron-down'
-import IconChevronLeft from '~icons/lucide/chevron-left'
-import IconChevronRight from '~icons/lucide/chevron-right'
-
-import { menuContent, menuItem } from '@/components/ui/menu'
-import { TOOLS, OVERFLOW_TOOLS, useEditorStore } from '@/stores/editor'
+import { TOOLS, useEditorStore } from '@/stores/editor'
 import { toolIcons } from '@/utils/tools'
-import { useI18n } from '@/composables/use-i18n'
-import { useAISelect } from '@/composables/use-ai-select'
-import { useAIChat } from '@/composables/use-chat'
 
-import type { Component } from 'vue'
 import type { Tool, ToolDef } from '@/stores/editor'
 
 const store = useEditorStore()
-const { t } = useI18n()
-const { aiSelectMode, toggleAISelectMode, hasContext, contextCount } = useAISelect()
-const { activeTab } = useAIChat()
-const breakpoints = useBreakpoints({ mobile: 768 })
-const isMobile = breakpoints.smaller('mobile')
 
-function toolLabel(key: Tool): string {
-  const map: Record<Tool, string> = {
-    SELECT: t('tool.move'),
-    FRAME: t('tool.frame'),
-    SECTION: 'Section',
-    RECTANGLE: t('tool.rectangle'),
-    ELLIPSE: 'Ellipse',
-    LINE: 'Line',
-    POLYGON: 'Polygon',
-    STAR: 'Star',
-    PEN: t('tool.pen'),
-    TEXT: t('tool.text'),
-    HAND: t('tool.hand')
-  }
-  return map[key] ?? key
-}
-
-const toolShortcuts: Record<Tool, string> = {
-  SELECT: 'V',
-  FRAME: 'F',
-  SECTION: 'S',
-  RECTANGLE: 'R',
-  ELLIPSE: 'O',
-  LINE: 'L',
-  POLYGON: '',
-  STAR: '',
-  PEN: 'P',
-  TEXT: 'T',
-  HAND: 'H'
-}
-
-function isActive(tool: ToolDef): boolean {
-  if (tool.key === store.state.activeTool) return true
-  return tool.flyout?.includes(store.state.activeTool) ?? false
-}
-
-function activeKeyForTool(tool: ToolDef): Tool {
-  if (tool.flyout?.includes(store.state.activeTool)) return store.state.activeTool
-  return tool.key
-}
-
-const CATEGORY_COUNT = 1
-const mobileCategory = ref(0)
-const hasPrev = computed(() => mobileCategory.value > 0)
-const hasNext = computed(() => mobileCategory.value < CATEGORY_COUNT - 1)
-
-let toastTimer: ReturnType<typeof setTimeout> | undefined
-
-function onActionTap(item: ActionItem) {
-  item.action()
-  store.state.actionToast = item.label
-  clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    store.state.actionToast = null
-  }, ACTION_TOAST_DURATION)
-}
-
-const slideDirection = ref(1)
-
-const slideVariants = {
-  initial: (dir: number) => ({ opacity: 0, x: dir * 20 }),
-  animate: { opacity: 1, x: 0 },
-  exit: (dir: number) => ({ opacity: 0, x: dir * -20 })
-}
-
-function goPrev() {
-  if (!hasPrev.value) return
-  slideDirection.value = -1
-  mobileCategory.value--
-}
-
-function goNext() {
-  if (!hasNext.value) return
-  slideDirection.value = 1
-  mobileCategory.value++
+const toolLabels: Record<Tool, string> = {
+  SELECT: 'Move',
+  FRAME: 'Frame',
+  SECTION: 'Section',
+  RECTANGLE: 'Rectangle',
+  ELLIPSE: 'Ellipse',
+  LINE: 'Line',
+  POLYGON: 'Polygon',
+  STAR: 'Star',
+  PEN: 'Pen',
+  TEXT: 'Text',
+  HAND: 'Hand'
 }
 </script>
 
 <template>
-  <div v-if="!isMobile" class="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center">
+  <div class="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center">
     <div
       data-test-id="toolbar"
       class="flex gap-0.5 rounded-xl bg-panel/90 p-1 shadow-lg shadow-black/10 backdrop-blur-sm"
     >
-      <template v-for="tool in TOOLS" :key="tool.key">
-        <div v-if="tool.flyout && tool.flyout.length > 1" class="flex items-center">
-          <button
-            :data-test-id="`toolbar-tool-${activeKeyForTool(tool).toLowerCase()}`"
-            class="flex size-8 cursor-pointer items-center justify-center rounded-lg border-none transition-colors"
-            :class="
-              isActive(tool)
-                ? 'bg-accent text-white'
-                : 'bg-transparent text-muted hover:bg-hover hover:text-surface'
-            "
-            :title="`${toolLabel(activeKeyForTool(tool))} (${tool.shortcut})`"
-            @click="store.setTool(activeKeyForTool(tool))"
-          >
-            <component :is="toolIcons[activeKeyForTool(tool)]" class="size-4" />
-          </button>
-
-          <DropdownMenuRoot>
-            <DropdownMenuTrigger as-child>
-              <button
-                :data-test-id="`toolbar-flyout-${tool.key.toLowerCase()}`"
-                class="flex h-8 w-3 cursor-pointer items-center justify-center rounded-lg border-none transition-colors"
-                :class="
-                  isActive(tool)
-                    ? 'bg-accent text-white'
-                    : 'bg-transparent text-muted hover:bg-hover hover:text-surface'
-                "
-              >
-                <IconChevronDown class="size-2.5" />
-              </button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuPortal>
-              <DropdownMenuContent
-                side="top"
-                :side-offset="8"
-                align="start"
-                :class="menuContent({ class: 'min-w-32' })"
-              >
-                <DropdownMenuItem
-                  v-for="sub in tool.flyout"
-                  :key="sub"
-                  :data-test-id="`toolbar-flyout-item-${sub.toLowerCase()}`"
-                  :class="
-                    menuItem({
-                      class: store.state.activeTool === sub ? 'bg-accent text-white' : undefined
-                    })
-                  "
-                  @select="store.setTool(sub)"
-                >
-                  <component :is="toolIcons[sub]" class="size-3.5" />
-                  <span class="flex-1">{{ toolLabel(sub) }}</span>
-                  <span v-if="toolShortcuts[sub]" class="text-[12px] text-muted">{{
-                    toolShortcuts[sub]
-                  }}</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenuPortal>
-          </DropdownMenuRoot>
-        </div>
-
-        <button
-          v-else
-          :data-test-id="`toolbar-tool-${tool.key.toLowerCase()}`"
-          class="flex size-8 cursor-pointer items-center justify-center rounded-lg border-none transition-colors"
-          :class="
-            isActive(tool)
-              ? 'bg-accent text-white'
-              : 'bg-transparent text-muted hover:bg-hover hover:text-surface'
-          "
-          :title="`${toolLabel(tool.key)} (${tool.shortcut})`"
-          @click="store.setTool(tool.key)"
-        >
-          <component :is="toolIcons[tool.key]" class="size-4" />
-        </button>
-      </template>
-
-      <!-- Overflow tools "+" menu -->
-      <DropdownMenuRoot v-if="OVERFLOW_TOOLS.length > 0">
-        <DropdownMenuTrigger as-child>
-          <button
-            data-test-id="toolbar-overflow"
-            class="flex size-8 cursor-pointer items-center justify-center rounded-lg border-none transition-colors"
-            :class="
-              OVERFLOW_TOOLS.some(ot => ot.key === store.state.activeTool)
-                ? 'bg-accent text-white'
-                : 'bg-transparent text-muted hover:bg-hover hover:text-surface'
-            "
-            title="More tools"
-          >
-            <icon-lucide-plus class="size-4" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuPortal>
-          <DropdownMenuContent
-            side="top"
-            :side-offset="8"
-            align="start"
-            :class="menuContent({ class: 'min-w-36' })"
-          >
-            <DropdownMenuItem
-              v-for="ot in OVERFLOW_TOOLS"
-              :key="ot.key"
-              :data-test-id="`toolbar-overflow-${ot.key.toLowerCase()}`"
-              :class="menuItem({ class: store.state.activeTool === ot.key ? 'bg-accent text-white' : undefined })"
-              @select="store.setTool(ot.key)"
-            >
-              <component :is="toolIcons[ot.key]" class="size-3.5" />
-              <span class="flex-1">{{ toolLabel(ot.key) }}</span>
-              <span v-if="ot.shortcut" class="text-[12px] text-muted">{{ ot.shortcut }}</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenuPortal>
-      </DropdownMenuRoot>
-
-      <!-- Separator -->
-      <div class="mx-0.5 h-5 w-px bg-border/30" />
-
-      <!-- AI Select -->
       <button
-        class="flex size-8 cursor-pointer items-center justify-center rounded-lg border-none text-[14px] transition-colors"
-        :class="aiSelectMode ? 'bg-accent/20 text-accent' : 'bg-transparent text-muted hover:bg-hover hover:text-surface'"
-        title="AI Select"
-        @click="toggleAISelectMode"
+        v-for="tool in TOOLS"
+        :key="tool.key"
+        :data-test-id="`toolbar-tool-${tool.key.toLowerCase()}`"
+        class="flex size-8 cursor-pointer items-center justify-center rounded-lg border-none transition-colors"
+        :class="
+          store.state.activeTool === tool.key
+            ? 'bg-accent text-white'
+            : 'bg-transparent text-muted hover:bg-hover hover:text-surface'
+        "
+        :title="`${toolLabels[tool.key]} (${tool.shortcut})`"
+        @click="store.setTool(tool.key)"
       >
-        🎯
-      </button>
-
-      <!-- Context badge -->
-      <div
-        v-if="hasContext"
-        class="flex items-center rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] text-accent"
-      >
-        {{ contextCount }}
-      </div>
-
-      <!-- AI Chat shortcut -->
-      <button
-        class="flex size-8 cursor-pointer items-center justify-center rounded-lg border-none text-[14px] transition-colors"
-        :class="'bg-transparent text-muted hover:bg-hover hover:text-surface'"
-        title="AI Chat"
-        @click="activeTab = 'create'"
-      >
-        ✨
+        <component :is="toolIcons[tool.key]" class="size-4" />
       </button>
     </div>
-  </div>
-
-  <!-- Mobile toolbar -->
-  <div
-    v-else
-    data-test-id="mobile-toolbar"
-    class="fixed left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5"
-    :style="{
-      maxWidth: 'calc(100vw - 2rem)',
-      bottom: `calc(56px + env(safe-area-inset-bottom) + 0.75rem)`
-    }"
-  >
-    <motion.button
-      data-test-id="mobile-toolbar-prev"
-      class="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-panel shadow-sm select-none"
-      :class="hasPrev ? 'text-muted' : 'pointer-events-none'"
-      :animate="{ opacity: hasPrev ? 1 : 0 }"
-      :transition="{ duration: 0.15 }"
-      @click="goPrev"
-    >
-      <IconChevronLeft class="size-3.5" />
-    </motion.button>
-
-    <motion.div
-      layout
-      data-test-id="mobile-toolbar-container"
-      class="relative flex h-11 items-center overflow-hidden rounded-[8px] border border-border bg-panel px-2 shadow-lg"
-      :transition="{ layout: { type: 'spring', damping: 30, stiffness: 500 } }"
-    >
-      <AnimatePresence mode="popLayout" :custom="slideDirection">
-        <motion.div
-          v-if="mobileCategory === 0"
-          key="tools"
-          data-test-id="mobile-toolbar-tools"
-          class="flex gap-0.5"
-          :variants="slideVariants"
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          :transition="{ duration: 0.15 }"
-        >
-          <template v-for="tool in TOOLS" :key="tool.key">
-            <div v-if="tool.flyout && tool.flyout.length > 1" class="flex items-center">
-              <button
-                :data-test-id="`mobile-toolbar-tool-${activeKeyForTool(tool).toLowerCase()}`"
-                class="flex size-8 cursor-pointer items-center justify-center rounded-[6px] border-none transition-colors select-none"
-                :class="
-                  isActive(tool)
-                    ? 'bg-accent text-white'
-                    : 'bg-transparent text-muted active:bg-hover'
-                "
-                @click="store.setTool(activeKeyForTool(tool))"
-              >
-                <component :is="toolIcons[activeKeyForTool(tool)]" class="size-4" />
-              </button>
-
-              <DropdownMenuRoot>
-                <DropdownMenuTrigger as-child>
-                  <button
-                    :data-test-id="`mobile-toolbar-flyout-${tool.key.toLowerCase()}`"
-                    class="flex h-8 w-3 cursor-pointer items-center justify-center rounded-[6px] border-none transition-colors select-none"
-                    :class="
-                      isActive(tool)
-                        ? 'bg-accent text-white'
-                        : 'bg-transparent text-muted active:bg-hover'
-                    "
-                  >
-                    <IconChevronDown class="size-2.5" />
-                  </button>
-                </DropdownMenuTrigger>
-
-                <DropdownMenuPortal>
-                  <DropdownMenuContent
-                    side="top"
-                    :side-offset="8"
-                    align="start"
-                    :class="menuContent({ class: 'min-w-32' })"
-                  >
-                    <DropdownMenuItem
-                      v-for="sub in tool.flyout"
-                      :key="sub"
-                      :data-test-id="`mobile-toolbar-flyout-item-${sub.toLowerCase()}`"
-                      :class="
-                        menuItem({
-                          class: store.state.activeTool === sub ? 'bg-accent text-white' : undefined
-                        })
-                      "
-                      @select="store.setTool(sub)"
-                    >
-                      <component :is="toolIcons[sub]" class="size-3.5" />
-                      <span class="flex-1">{{ toolLabel(sub) }}</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenuPortal>
-              </DropdownMenuRoot>
-            </div>
-
-            <button
-              v-else
-              :data-test-id="`mobile-toolbar-tool-${tool.key.toLowerCase()}`"
-              class="flex size-8 cursor-pointer items-center justify-center rounded-[6px] border-none transition-colors select-none"
-              :class="
-                isActive(tool)
-                  ? 'bg-accent text-white'
-                  : 'bg-transparent text-muted active:bg-hover'
-              "
-              @click="store.setTool(tool.key)"
-            >
-              <component :is="toolIcons[tool.key]" class="size-4" />
-            </button>
-          </template>
-        </motion.div>
-      </AnimatePresence>
-    </motion.div>
-
-    <motion.button
-      data-test-id="mobile-toolbar-next"
-      class="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-panel shadow-sm select-none"
-      :class="hasNext ? 'text-muted' : 'pointer-events-none'"
-      :animate="{ opacity: hasNext ? 1 : 0 }"
-      :transition="{ duration: 0.15 }"
-      @click="goNext"
-    >
-      <IconChevronRight class="size-3.5" />
-    </motion.button>
   </div>
 </template>

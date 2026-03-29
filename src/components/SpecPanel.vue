@@ -2,7 +2,6 @@
 import { computed, ref } from 'vue'
 
 import ProductDocPanel from './ProductDocPanel.vue'
-import RequirementsBoard from './RequirementsBoard.vue'
 import { useSpec } from '@/composables/use-spec'
 
 const { requirementsBoard, requirements, summary } = useSpec()
@@ -83,7 +82,7 @@ const summaryPreview = computed(() => {
         </div>
       </div>
       <div class="h-[320px]">
-        <RequirementsBoard class="h-full" />
+        <div class="flex h-full items-center justify-center text-[12px] text-muted">Requirements board removed</div>
       </div>
     </div>
   </div>

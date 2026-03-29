@@ -8,13 +8,11 @@ import { computed, ref } from 'vue'
 import { selectionToJSX, buildTailwindConfig } from '@open-pencil/core'
 import { useEditorStore } from '@/stores/editor'
 import { useBrand } from '@/composables/use-brand'
-import { useRequirements } from '@/composables/use-requirements'
 
 import type { SceneNode } from '@open-pencil/core'
 
 const store = useEditorStore()
 const { config: brandConfig } = useBrand()
-const { getRequirementsForNode } = useRequirements()
 const activeSection = ref<'specs' | 'code' | 'tokens' | 'components' | 'systems'>('specs')
 const codeFormat = ref<'tailwind' | 'css' | 'jsx'>('tailwind')
 const copied = ref('')
@@ -297,11 +295,9 @@ const componentInventory = computed(() => {
     .map(([name, data]) => ({ name, count: data.count }))
 })
 
-// Requirement traceability for selected node
+// Requirement traceability for selected node (removed - use-requirements deleted)
 const nodeRequirements = computed(() => {
-  const ids = [...store.state.selectedIds]
-  if (ids.length !== 1) return []
-  return getRequirementsForNode(ids[0])
+  return []
 })
 </script>
 
