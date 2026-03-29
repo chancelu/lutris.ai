@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 import { useEditorStore } from '@/stores/editor'
 
-import VariablesDialog from './VariablesDialog.vue'
 import AppearanceSection from './properties/AppearanceSection.vue'
 import EffectsSection from './properties/EffectsSection.vue'
 import ExportSection from './properties/ExportSection.vue'
@@ -16,7 +15,6 @@ import TypographySection from './properties/TypographySection.vue'
 import VariablesSection from './properties/VariablesSection.vue'
 
 const store = useEditorStore()
-const variablesOpen = ref(false)
 
 const node = computed(() => store.selectedNode.value)
 const multiCount = computed(() => store.selectedNodes.value.length)
@@ -101,8 +99,6 @@ const isComponentType = computed(() => {
     class="scrollbar-thin flex-1 overflow-x-hidden overflow-y-auto pb-4"
   >
     <PageSection />
-    <VariablesSection @open-dialog="variablesOpen = true" />
+    <VariablesSection />
   </div>
-
-  <VariablesDialog v-model:open="variablesOpen" />
 </template>

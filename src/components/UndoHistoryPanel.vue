@@ -2,10 +2,8 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewport } from 'reka-ui'
 import { useEditorStore } from '@/stores/editor'
-import { useI18n } from '@/composables/use-i18n'
 
 const store = useEditorStore()
-const { t } = useI18n()
 
 // Reactive trigger — poll undo state since UndoManager isn't Vue-reactive
 // Use longer interval + manual trigger on undo/redo actions
@@ -63,7 +61,7 @@ function undoTo(index: number) {
   <div class="flex min-h-0 flex-1 flex-col">
     <!-- Header -->
     <div class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2">
-      <span class="text-[13px] font-semibold text-surface">{{ t('history.title') }}</span>
+      <span class="text-[13px] font-semibold text-surface">History</span>
       <div class="flex-1" />
       <button
         :disabled="!canUndo"
@@ -101,7 +99,7 @@ function undoTo(index: number) {
             class="my-1 flex items-center gap-1.5 px-2"
           >
             <div class="h-px flex-1 bg-blue-500/50" />
-            <span class="text-[11px] text-blue-400">{{ t('history.current') }}</span>
+            <span class="text-[11px] text-blue-400">Current</span>
             <div class="h-px flex-1 bg-blue-500/50" />
           </div>
 
@@ -124,14 +122,14 @@ function undoTo(index: number) {
             <span
               v-if="hoveredIndex === i"
               class="ml-auto text-[10px] text-blue-400/70"
-            >{{ t('history.revertHere') }}</span>
+            >Revert here</span>
           </div>
 
           <!-- Empty state -->
           <div v-if="undoEntries.length === 0 && redoEntries.length === 0" class="px-4 py-8 text-center">
             <icon-lucide-history class="mx-auto size-8 text-muted/30" />
-            <p class="mt-2 text-[12px] text-muted">{{ t('history.noActionsYet') }}</p>
-            <p class="mt-1 text-[11px] text-muted/70">{{ t('history.startEditing') }}</p>
+            <p class="mt-2 text-[12px] text-muted">No actions yet</p>
+            <p class="mt-1 text-[11px] text-muted/70">Start editing to see history</p>
           </div>
 
           <!-- Initial state -->
@@ -139,7 +137,7 @@ function undoTo(index: number) {
             v-if="undoEntries.length > 0"
             class="mt-1 rounded bg-inset px-2 py-1 text-[11px] text-muted/60"
           >
-            📄 {{ t('history.initial') }}
+            📄 Initial state
           </div>
         </div>
       </ScrollAreaViewport>

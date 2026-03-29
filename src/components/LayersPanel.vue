@@ -2,13 +2,11 @@
 import { computed } from 'vue'
 
 import { useEditorStore } from '@/stores/editor'
-import { useI18n } from '@/composables/use-i18n'
 import AssetsPanel from './AssetsPanel.vue'
 import LayerTree from './LayerTree.vue'
 import PagesPanel from './PagesPanel.vue'
 
 const store = useEditorStore()
-const { t } = useI18n()
 
 const emit = defineEmits<{
   collapse: []

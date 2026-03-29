@@ -94,3 +94,29 @@ input[type='number']::-webkit-outer-spin-button {
   flex: 1;
   overflow: hidden;
 }
+
+/* CSS-only tooltip for toolbar buttons */
+[data-tip] {
+  position: relative;
+}
+[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-panel);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
+  animation: tip-in 0.15s ease 0.3s forwards;
+}
+@keyframes tip-in {
+  to { opacity: 1; }
+}

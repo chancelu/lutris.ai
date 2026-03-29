@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watchEffect } from 'vue'
 import { useEditorStore } from '@/stores/editor'
-import { useI18n } from '@/composables/use-i18n'
 import NextStepCard from './NextStepCard.vue'
 import { useAIChat } from '@/composables/use-chat'
 
 const store = useEditorStore()
-const { t } = useI18n()
 const { activeTab } = useAIChat()
 const format = ref<'PNG' | 'JPG' | 'SVG' | 'WEBP' | 'PDF'>('PNG')
 const scale = ref(2)
@@ -179,7 +177,7 @@ async function exportAsPDF() {
           <span v-if="format !== 'SVG'" class="text-muted/50">@ {{ scale }}x</span>
         </div>
         <div class="text-[11px] text-muted/70">
-          {{ hasSelection ? `${store.state.selectedIds.size} ${t('export.selected')}` : t('export.noSelection') }}
+          {{ hasSelection ? `${store.state.selectedIds.size} selected` : 'No selection (exports full page)' }}
         </div>
       </div>
     </div>
@@ -189,7 +187,7 @@ async function exportAsPDF() {
       class="w-full rounded-2xl bg-blue-600 py-2 text-xs text-white hover:bg-blue-500 disabled:opacity-40"
       @click="handleExport"
     >
-      {{ isExporting ? t('export.exporting') : `${t('export.exportAs')} ${format}` }}
+      {{ isExporting ? 'Exporting...' : `Export as ${format}` }}
     </button>
 
     <div v-if="exportSuccess" class="mt-2 rounded-lg border border-green-500/20 bg-green-500/8 px-3 py-1.5 text-center">

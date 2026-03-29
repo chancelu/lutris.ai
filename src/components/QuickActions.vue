@@ -3,12 +3,10 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useImageGen } from '@/composables/use-image-gen'
 import { useAIChat } from '@/composables/use-chat'
 import { useAISelect } from '@/composables/use-ai-select'
-import { useI18n } from '@/composables/use-i18n'
 
 const { generating, error, apiKey, setApiKey } = useImageGen()
 const { activeTab, pendingMessage } = useAIChat()
 const { aiSelectMode, toggleAISelectMode, addCurrentSelection, hasContext, contextCount } = useAISelect()
-const { t } = useI18n()
 
 const showImageDialog = ref(false)
 const showFrameMenu = ref(false)
@@ -74,7 +72,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
         title="Select elements for AI editing"
         @click="toggleAISelectMode"
       >
-        🎯 <span class="hidden sm:inline">{{ t('quick.aiSelect') }}</span>
+        🎯 <span class="hidden sm:inline">AI Select</span>
       </button>
 
       <!-- Add current selection -->
@@ -84,7 +82,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
         title="Add current selection to AI context"
         @click="addCurrentSelection(); activeTab = 'ai'"
       >
-        + {{ t('quick.addSelected') }}
+        + Add selected
       </button>
 
       <!-- Context badge -->
@@ -92,7 +90,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
         v-if="hasContext"
         class="flex items-center gap-1 rounded-full bg-accent/20 px-2 py-0.5 text-[10px] text-accent"
       >
-        {{ contextCount }} {{ t('quick.selected') }}
+        {{ contextCount }} selected
       </div>
 
       <div class="h-4 w-px bg-border" />
@@ -105,7 +103,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
           title="Generate AI Image"
           @click="showImageDialog = !showImageDialog; showFrameMenu = false"
         >
-          🖼️ <span class="hidden sm:inline">{{ t('quick.aiImage') }}</span>
+          🖼️ <span class="hidden sm:inline">AI Image</span>
         </button>
         <!-- Image prompt popup -->
         <Transition enter-active-class="transition-all duration-150" enter-from-class="opacity-0 translate-y-2" leave-active-class="transition-all duration-100" leave-to-class="opacity-0 translate-y-2">
@@ -113,11 +111,11 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
             v-if="showImageDialog"
             class="absolute bottom-full left-0 mb-2 w-72 rounded-lg border border-border bg-panel p-3 shadow-xl"
           >
-            <div class="mb-2 text-[12px] font-medium text-surface">{{ t('quick.generateImage') }}</div>
+            <div class="mb-2 text-[12px] font-medium text-surface">Generate Image</div>
 
             <!-- Inline API Key setup (when no key) -->
             <template v-if="!apiKey">
-              <p class="mb-2 text-[11px] text-muted">{{ t('quick.enterKey') }}</p>
+              <p class="mb-2 text-[11px] text-muted">Enter your Gemini API key to generate images.</p>
               <input
                 v-model="inlineKeyInput"
                 type="password"
@@ -127,13 +125,13 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
                 @keydown.escape="showImageDialog = false"
               />
               <div class="flex items-center justify-between">
-                <a href="https://aistudio.google.com/apikey" target="_blank" class="text-[10px] text-accent hover:underline">{{ t('quick.getKey') }}</a>
+                <a href="https://aistudio.google.com/apikey" target="_blank" class="text-[10px] text-accent hover:underline">Get a key</a>
                 <button
                   :disabled="!inlineKeyInput.trim()"
                   class="rounded bg-accent px-3 py-1 text-[12px] text-white transition hover:bg-accent/80 disabled:opacity-40"
                   @click="saveInlineKey"
                 >
-                  {{ t('quick.saveKey') }}
+                  Save
                 </button>
               </div>
             </template>
@@ -151,13 +149,13 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
               />
               <div class="flex items-center justify-between">
                 <span v-if="error" class="text-[10px] text-red-400">{{ error }}</span>
-                <span v-else class="text-[10px] text-muted">{{ t('quick.poweredBy') }}</span>
+                <span v-else class="text-[10px] text-muted">Powered by Gemini</span>
                 <button
                   :disabled="!imagePrompt.trim() || generating"
                   class="rounded bg-accent px-3 py-1 text-[12px] text-white transition hover:bg-accent/80 disabled:opacity-40"
                   @click="submitImage"
                 >
-                  {{ generating ? t('quick.generating') : t('quick.generate') }}
+                  {{ generating ? 'Generating...' : 'Generate' }}
                 </button>
               </div>
             </template>
@@ -175,7 +173,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
           title="Create New Frame"
           @click="showFrameMenu = !showFrameMenu; showImageDialog = false"
         >
-          ⬜ <span class="hidden sm:inline">{{ t('quick.newFrame') }}</span>
+          ⬜ <span class="hidden sm:inline">New Frame</span>
         </button>
         <!-- Frame presets popup -->
         <Transition enter-active-class="transition-all duration-150" enter-from-class="opacity-0 translate-y-2" leave-active-class="transition-all duration-100" leave-to-class="opacity-0 translate-y-2">
@@ -204,7 +202,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
         title="Open AI Chat"
         @click="activeTab = 'ai'"
       >
-        ✨ <span class="hidden sm:inline">{{ t('quick.aiChat') }}</span>
+        ✨ <span class="hidden sm:inline">AI Chat</span>
       </button>
     </div>
   </div>

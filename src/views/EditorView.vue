@@ -1,39 +1,30 @@
 <script setup lang="ts">
-import { provide, ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import NextStepCard from '@/components/NextStepCard.vue'
-import { useBreakpoints, useEventListener, useUrlSearchParams } from '@vueuse/core'
+import { useEventListener, useUrlSearchParams } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
-import { SplitterGroup, SplitterPanel, SplitterResizeHandle, DropdownMenuRoot, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal } from 'reka-ui'
+import { DropdownMenuRoot, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal } from 'reka-ui'
 
 import { useKeyboard } from '@/composables/use-keyboard'
 import { useAIChat } from '@/composables/use-chat'
 import { useMenu } from '@/composables/use-menu'
-import { useCollab, COLLAB_KEY } from '@/composables/use-collab'
 import { useProductDoc } from '@/composables/use-product-doc'
-import { useOnlineStatus } from '@/composables/use-online-status'
-import { useI18n } from '@/composables/use-i18n'
 import { useProjects } from '@/composables/use-projects'
-import { toast } from '@/composables/use-toast'
 import { connectAutomation } from '@/automation/server'
 import { createDemoShapes } from '@/demo'
 import { useEditorStore } from '@/stores/editor'
 import { createTab, activeTab, getActiveStore } from '@/stores/tabs'
 
-import CollabPanel from '@/components/CollabPanel.vue'
 import EditorCanvas from '@/components/EditorCanvas.vue'
 import LayersPanel from '@/components/LayersPanel.vue'
-import MobileDrawer from '@/components/MobileDrawer.vue'
-import MobileHud from '@/components/MobileHud.vue'
 import PropertiesPanel from '@/components/PropertiesPanel.vue'
-import SafariBanner from '@/components/SafariBanner.vue'
-import TabBar from '@/components/TabBar.vue'
 import Toolbar from '@/components/Toolbar.vue'
 import UserMenu from '@/components/UserMenu.vue'
 // eslint-disable-next-line typescript/consistent-type-imports -- used in template
 import ShortcutsPanel from '@/components/ShortcutsPanel.vue'
 import WelcomeOverlay from '@/components/WelcomeOverlay.vue'
-import FloatingInspector from '@/components/FloatingInspector.vue'
+import ContextDrawer from '@/components/ContextDrawer.vue'
 
 const shortcutsPanelRef = ref<InstanceType<typeof ShortcutsPanel> | null>(null)
 const designFileInput = ref<HTMLInputElement | null>(null)
@@ -46,12 +37,8 @@ const route = useRoute()
 const router = useRouter()
 const firstTab = createTab()
 const store = useEditorStore()
-const breakpoints = useBreakpoints({ mobile: 768 })
-const isMobile = breakpoints.smaller('mobile')
 useKeyboard()
 useMenu()
-const { isOnline } = useOnlineStatus()
-const { t } = useI18n()
 const { activeTab: rightTab, draftMessage } = useAIChat()
 const { updateFromDesign } = useProductDoc()
 const importNextSteps = ref<{ title: string; body: string; actions: Array<{ label: string; value: string }> } | null>(null)
@@ -182,8 +169,6 @@ const disconnectAutomation = import.meta.env.DEV
   ? connectAutomation(getActiveStore).disconnect
   : undefined
 if (disconnectAutomation) onUnmounted(disconnectAutomation)
-const collab = useCollab(firstTab.store)
-provide(COLLAB_KEY, collab)
 
 useEventListener(
   document,
@@ -216,26 +201,15 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       class="hidden"
       @change="handleDesignFileChange"
     />
-    <!-- Offline banner -->
-    <div
-      v-if="!isOnline"
-      class="flex shrink-0 items-center justify-center gap-2 bg-amber-600/90 px-3 py-1 text-[12px] text-white"
-    >
-      <icon-lucide-wifi-off class="size-3.5" />
-      <span>{{ t('offline.banner') }}</span>
-    </div>
-    <SafariBanner />
-
     <!-- Desktop layout: Full-canvas + floating panels (Lovart-style) -->
     <div
-      v-if="!isMobile && showChrome && store.state.showUI"
+      v-if="showChrome && store.state.showUI"
       :key="activeTab?.id"
       class="relative min-h-0 flex-1 overflow-hidden"
     >
       <!-- Full-bleed canvas (takes all space except right panel) -->
       <div class="absolute inset-0 z-0 flex" :style="{ right: '320px' }">
         <EditorCanvas />
-        <FloatingInspector />
         <WelcomeOverlay @action="onWelcomeAction" />
       </div>
       <ShortcutsPanel ref="shortcutsPanelRef" />
@@ -335,9 +309,8 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
         </div>
       </Transition>
 
-      <!-- Top-right: collab + user -->
-      <div class="pointer-events-auto absolute right-0 top-0 z-20 flex w-80 items-center justify-between border-b border-border/10 bg-panel px-3 py-2">
-        <CollabPanel />
+      <!-- Top-right: user -->
+      <div class="pointer-events-auto absolute right-0 top-0 z-20 flex w-80 items-center justify-end border-b border-border/10 bg-panel px-3 py-2">
         <UserMenu />
       </div>
 
@@ -346,34 +319,15 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
         <PropertiesPanel />
       </div>
 
+      <!-- Context drawer: design properties when element selected -->
+      <div class="pointer-events-auto absolute right-80 top-10 bottom-0 z-10">
+        <ContextDrawer />
+      </div>
+
       <!-- Bottom center: unified single toolbar (includes QuickActions) -->
       <div class="absolute bottom-0 z-10" :style="{ left: '0', right: '320px' }">
         <Toolbar />
       </div>
-    </div>
-
-    <!-- Mobile layout -->
-    <div
-      v-else-if="isMobile && showChrome && store.state.showUI"
-      :key="'mobile-' + activeTab?.id"
-      class="flex flex-1 overflow-hidden"
-    >
-      <div class="relative flex min-w-0 flex-1">
-        <EditorCanvas />
-        <MobileHud
-          :collab-state="collab.state.value"
-          :collab-peers="collab.remotePeers.value"
-          :pending-room-id="pendingRoomId"
-          :following-peer="collab.followingPeer.value"
-          @share="onShare"
-          @join="onJoin"
-          @disconnect="onDisconnect"
-          @update:collab-name="collab.setLocalName"
-          @follow="collab.followPeer"
-        />
-        <Toolbar />
-      </div>
-      <MobileDrawer />
     </div>
 
     <!-- Collapsed UI (showUI=false) -->
@@ -385,7 +339,6 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       <div class="relative flex min-w-0 flex-1">
         <EditorCanvas />
         <div
-          v-if="!isMobile"
           class="absolute top-7 left-7 z-10 flex items-center gap-2 rounded-lg border border-border bg-panel px-2 py-1 shadow-sm"
         >
           <img src="/favicon-32.png" class="size-4" alt="Lutris.ai" />
