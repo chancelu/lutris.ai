@@ -52,7 +52,7 @@ function commitName() {
       <input
         v-else
         v-model="editName"
-        class="w-36 rounded bg-transparent px-1 text-[12px] text-surface outline-none ring-1 ring-accent/40"
+        class="w-36 rounded bg-transparent px-1 text-[12px] text-surface outline-none ring-1 ring-accent/40 transition-all duration-150"
         @blur="commitName"
         @keydown.enter="commitName"
         @keydown.escape="isEditingName = false"

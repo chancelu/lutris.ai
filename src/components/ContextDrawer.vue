@@ -6,30 +6,50 @@ import { useAIChat } from '@/composables/use-chat'
 import DesignPanel from './DesignPanel.vue'
 
 const store = useEditorStore()
-const { activeTab } = useAIChat()
+const { activeTab, draftMessage, focusRequested } = useAIChat()
 
 const hasSelection = computed(() => (store.state.selectedIds?.length ?? 0) > 0)
 
+const selectedNodeLabel = computed(() => {
+  const ids = store.state.selectedIds
+  if (!ids?.length) return ''
+  if (ids.length > 1) return `${ids.length} elements`
+  const node = store.graph.nodes.get(ids[0])
+  return node?.name || node?.type || 'Element'
+})
+
 function modifyWithAI() {
+  const label = selectedNodeLabel.value
+  if (label) {
+    draftMessage.value = `[Editing: ${label}] `
+  }
   activeTab.value = 'create'
+  focusRequested.value++
 }
 </script>
 
 <template>
-  <aside
-    v-if="hasSelection"
-    class="flex h-full w-[280px] shrink-0 flex-col overflow-hidden border-l border-border/10 bg-panel"
+  <Transition
+    enter-active-class="transition-transform duration-150 ease-out"
+    enter-from-class="translate-x-full"
+    leave-active-class="transition-transform duration-100 ease-in"
+    leave-to-class="translate-x-full"
   >
-    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <DesignPanel />
-    </div>
-    <div class="shrink-0 border-t border-border/10 p-3">
-      <button
-        class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-medium text-white transition hover:bg-accent/80"
-        @click="modifyWithAI"
-      >
-        Modify with AI
-      </button>
-    </div>
-  </aside>
+    <aside
+      v-if="hasSelection"
+      class="flex h-full w-[280px] shrink-0 flex-col overflow-hidden border-l border-border/10 bg-panel"
+    >
+      <div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <DesignPanel />
+      </div>
+      <div class="shrink-0 border-t border-border/10 p-3">
+        <button
+          class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-medium text-white transition hover:bg-accent/80"
+          @click="modifyWithAI"
+        >
+          Modify with AI
+        </button>
+      </div>
+    </aside>
+  </Transition>
 </template>

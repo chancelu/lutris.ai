@@ -13,7 +13,7 @@ import {
   TooltipRoot,
   TooltipTrigger
 } from 'reka-ui'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 
 import ProviderSettings from '@/components/chat/ProviderSettings.vue'
 import { uiButton } from '@/components/ui/button'
@@ -21,7 +21,7 @@ import { uiInput } from '@/components/ui/input'
 import { selectContent, selectItem, selectTrigger } from '@/components/ui/select'
 import { useAIChat } from '@/composables/use-chat'
 
-const { providerID, providerDef, modelID, customModelID, isServerConfigured, draftMessage } = useAIChat()
+const { providerID, providerDef, modelID, customModelID, isServerConfigured, draftMessage, focusRequested } = useAIChat()
 
 const { status } = defineProps<{
   status: 'ready' | 'submitted' | 'streaming' | 'error'
@@ -33,6 +33,7 @@ const emit = defineEmits<{
 }>()
 
 const input = ref(draftMessage.value || '')
+const inputEl = ref<HTMLInputElement | null>(null)
 
 const isStreaming = computed(() => status === 'streaming' || status === 'submitted')
 const isCustomProvider = computed(() => providerID.value === 'openai-compatible')
@@ -48,6 +49,10 @@ watch(draftMessage, (value) => {
 
 watch(input, (value) => {
   draftMessage.value = value
+})
+
+watch(focusRequested, () => {
+  nextTick(() => inputEl.value?.focus())
 })
 
 function handleSubmit(e: Event) {
@@ -125,6 +130,7 @@ function handleSubmit(e: Event) {
       <!-- Input form -->
       <form class="flex gap-1.5" @submit="handleSubmit">
         <input
+          ref="inputEl"
           v-model="input"
           type="text"
           data-test-id="chat-input"
