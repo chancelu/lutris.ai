@@ -29,7 +29,7 @@ const startPaths = [
     <nav class="sticky top-0 z-50 border-b border-white/10 bg-[#0B0D12]/85 backdrop-blur-xl">
       <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <div class="flex items-center gap-3">
-          <img src="/lutris-mascot.png" alt="Lutris.ai" class="size-8 rounded-lg" />
+          <img src="/lutris-mascot.png" alt="Lutris.ai" class="h-8 w-auto object-contain rounded-lg" />
           <div>
             <div class="text-sm font-semibold tracking-tight">Lutris.ai</div>
             <div class="text-[10px] text-white/45">AI design workspace</div>
