@@ -55,7 +55,7 @@ function handlePointerUp() {
 </script>
 
 <template>
-  <div class="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center">
+  <div class="flex items-center">
     <div
       data-test-id="toolbar"
       class="flex gap-1 rounded-full border border-border/10 bg-panel/90 px-2 py-1.5 shadow-lg shadow-black/15 backdrop-blur-md"
