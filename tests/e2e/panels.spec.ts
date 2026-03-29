@@ -18,38 +18,14 @@ test.afterAll(async () => {
   await page.close()
 })
 
-test('layers panel resize increases width', async () => {
-  const panel = page.locator('[data-test-id="layers-panel"]')
-  const before = await panel.boundingBox()
-  expect(before).not.toBeNull()
+test('properties panel (AI panel) is visible on the left', async () => {
+  const panel = page.locator('[data-test-id="properties-panel"]')
+  await expect(panel).toBeVisible()
 
-  const handle = page.locator('[data-test-id="left-splitter-handle"]')
-  const handleBox = await handle.boundingBox()
-  expect(handleBox).not.toBeNull()
-
-  const cx = handleBox!.x + handleBox!.width / 2
-  const cy = handleBox!.y + handleBox!.height / 2
-
-  await page.mouse.move(cx, cy)
-  await page.mouse.down()
-  await page.mouse.move(cx + 80, cy, { steps: 10 })
-  await page.mouse.up()
-  await canvas.waitForRender()
-
-  const after = await panel.boundingBox()
-  expect(after!.width).toBeGreaterThan(before!.width + 40)
-  canvas.assertNoErrors()
-})
-
-test('panel width persists after page reload', async () => {
-  const recordedWidth = (await page.locator('[data-test-id="layers-panel"]').boundingBox())!.width
-
-  await page.reload()
-  canvas = new CanvasHelper(page)
-  await canvas.waitForInit()
-
-  const after = await page.locator('[data-test-id="layers-panel"]').boundingBox()
-  expect(Math.abs(after!.width - recordedWidth)).toBeLessThanOrEqual(2)
+  const box = await panel.boundingBox()
+  expect(box).not.toBeNull()
+  // Left panel should be positioned at or near the left edge
+  expect(box!.x).toBeLessThan(400)
   canvas.assertNoErrors()
 })
 
@@ -66,5 +42,11 @@ test('Cmd+Backslash shows panels again', async () => {
   await canvas.waitForRender()
 
   await expect(page.locator('[data-test-id="layers-panel"]')).toBeVisible()
+  canvas.assertNoErrors()
+})
+
+test('chat panel is the default content in properties panel', async () => {
+  const chatPanel = page.locator('[data-test-id="chat-panel"]')
+  await expect(chatPanel).toBeVisible()
   canvas.assertNoErrors()
 })

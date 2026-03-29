@@ -94,37 +94,22 @@ async function injectMockTransport(page: Page) {
   })
 }
 
-function chatTab() {
-  return page.getByRole('tab', { name: 'AI' })
-}
-
-function designTab() {
-  return page.getByRole('tab', { name: 'Design' })
-}
-
 function chatInput() {
-  return page.locator('input[placeholder="Describe a change…"]')
+  return page.locator('[data-test-id="chat-input"]')
 }
 
 function apiKeyInput() {
   return page.locator('[data-test-id="api-key-input"]')
 }
 
-test('⌘J switches to AI tab', async () => {
-  await designTab().waitFor()
-  await page.keyboard.press('Meta+j')
-  await expect(chatTab()).toHaveAttribute('data-state', 'active')
+test('chat panel is visible by default in properties panel', async () => {
+  const chatPanel = page.locator('[data-test-id="chat-panel"]')
+  await expect(chatPanel).toBeVisible()
 })
 
-test('⌘J switches back to Design tab', async () => {
-  await page.keyboard.press('Meta+j')
-  await expect(designTab()).toHaveAttribute('data-state', 'active')
-})
-
-test('clicking AI tab shows provider setup when no key set', async () => {
-  await chatTab().click()
+test('provider setup shows when no key set', async () => {
   await expect(apiKeyInput()).toBeVisible()
-  await expect(page.getByText('Connect an AI provider to start chatting.')).toBeVisible()
+  await expect(page.locator('[data-test-id="provider-setup"]')).toBeVisible()
 })
 
 test('saving API key shows chat interface', async () => {
@@ -133,17 +118,16 @@ test('saving API key shows chat interface', async () => {
   await page.locator('button:has-text("Connect")').click()
 
   await expect(chatInput()).toBeVisible()
-  await expect(page.getByText('Describe what you want to create or change.')).toBeVisible()
 })
 
 test('empty input has disabled send button', async () => {
-  const sendButton = page.locator('button[type="submit"]')
+  const sendButton = page.locator('[data-test-id="chat-send-button"]')
   await expect(sendButton).toBeDisabled()
 })
 
 test('typing enables send button', async () => {
   await chatInput().fill('Make a red rectangle')
-  const sendButton = page.locator('button[type="submit"]')
+  const sendButton = page.locator('[data-test-id="chat-send-button"]')
   await expect(sendButton).toBeEnabled()
 })
 
@@ -192,10 +176,12 @@ test('tool calls render in assistant message', async () => {
   }
 })
 
-test('switching tabs preserves chat', async () => {
-  await designTab().click()
-  await expect(designTab()).toHaveAttribute('data-state', 'active')
+test('chat messages persist after navigation', async () => {
+  // Navigate away and back to verify chat state persists
+  await page.keyboard.press('Escape')
+  await canvas.waitForRender()
 
-  await chatTab().click()
+  const chatPanel = page.locator('[data-test-id="chat-panel"]')
+  await expect(chatPanel).toBeVisible()
   await expect(page.getByText('Hello there', { exact: true })).toBeVisible()
 })

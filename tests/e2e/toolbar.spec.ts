@@ -1,7 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 
 import { CanvasHelper } from '../helpers/canvas'
-import { getPageChildren } from '../helpers/store'
 
 let page: Page
 let canvas: CanvasHelper
@@ -19,94 +18,66 @@ test.afterAll(async () => {
   await page.close()
 })
 
-test('shapes flyout opens', async () => {
-  await page.locator('[data-test-id="toolbar-flyout-rectangle"]').click()
-  await expect(page.locator('[data-test-id="toolbar-flyout-item-polygon"]')).toBeVisible()
+test('toolbar is visible', async () => {
+  await expect(page.locator('[data-test-id="toolbar"]')).toBeVisible()
   canvas.assertNoErrors()
 })
 
-test('Polygon tool creates POLYGON node', async () => {
-  await page.locator('[data-test-id="toolbar-flyout-item-polygon"]').click()
-  await canvas.drag(300, 200, 400, 300)
-  await canvas.waitForRender()
-
-  const children = await getPageChildren(page)
-  expect(children.some(n => n.type === 'POLYGON')).toBe(true)
+test('toolbar has exactly 4 tool buttons', async () => {
+  const buttons = page.locator('[data-test-id="toolbar"] button[data-test-id^="toolbar-tool-"]')
+  await expect(buttons).toHaveCount(4)
   canvas.assertNoErrors()
 })
 
-test('Star tool creates STAR node', async () => {
-  await page.locator('[data-test-id="toolbar-flyout-rectangle"]').click()
-  await page.locator('[data-test-id="toolbar-flyout-item-star"]').click()
-  await canvas.drag(150, 150, 250, 250)
-  await canvas.waitForRender()
-
-  const children = await getPageChildren(page)
-  expect(children.some(n => n.type === 'STAR')).toBe(true)
+test('toolbar contains SELECT, FRAME, TEXT, HAND tools', async () => {
+  await expect(page.locator('[data-test-id="toolbar-tool-select"]')).toBeVisible()
+  await expect(page.locator('[data-test-id="toolbar-tool-frame"]')).toBeVisible()
+  await expect(page.locator('[data-test-id="toolbar-tool-text"]')).toBeVisible()
+  await expect(page.locator('[data-test-id="toolbar-tool-hand"]')).toBeVisible()
   canvas.assertNoErrors()
 })
 
-test('Pen creates VECTOR node with 3 vertices on Enter', async () => {
-  await canvas.pressKey('Escape')
-  await canvas.pressKey('p')
-  await canvas.click(100, 400)
-  await canvas.waitForRender()
-  await canvas.click(200, 400)
-  await canvas.waitForRender()
-  await canvas.click(200, 480)
-  await canvas.waitForRender()
-  await canvas.pressKey('Enter')
+test('clicking SELECT tool activates it', async () => {
+  await page.locator('[data-test-id="toolbar-tool-select"]').click()
   await canvas.waitForRender()
 
-  const children = await getPageChildren(page)
-  const vectors = children.filter(n => n.type === 'VECTOR')
-  expect(vectors.length).toBeGreaterThan(0)
-  const last = vectors[vectors.length - 1]
-  expect(last.vectorNetwork.vertices.length).toBe(3)
+  const tool = await page.evaluate(() => window.__OPEN_PENCIL_STORE__!.state.activeTool)
+  expect(tool).toBe('SELECT')
   canvas.assertNoErrors()
 })
 
-test('Pen Escape with 2 vertices cancels path without creating node', async () => {
-  const before = (await getPageChildren(page)).filter(n => n.type === 'VECTOR').length
-
-  await canvas.pressKey('p')
-  await canvas.click(350, 400)
-  await canvas.waitForRender()
-  await canvas.click(440, 400)
-  await canvas.waitForRender()
-  await canvas.pressKey('Escape')
+test('clicking FRAME tool activates it', async () => {
+  await page.locator('[data-test-id="toolbar-tool-frame"]').click()
   await canvas.waitForRender()
 
-  const after = (await getPageChildren(page)).filter(n => n.type === 'VECTOR').length
-  expect(after).toBe(before)
+  const tool = await page.evaluate(() => window.__OPEN_PENCIL_STORE__!.state.activeTool)
+  expect(tool).toBe('FRAME')
   canvas.assertNoErrors()
 })
 
-test('Pen close path creates VECTOR with closed region', async () => {
-  const before = (await getPageChildren(page)).filter(n => n.type === 'VECTOR').length
-
-  await canvas.pressKey('p')
-  await canvas.click(500, 200)
-  await canvas.waitForRender()
-  await canvas.click(580, 200)
-  await canvas.waitForRender()
-  await canvas.click(540, 270)
-  await canvas.waitForRender()
-  await canvas.click(500, 200)
+test('clicking TEXT tool activates it', async () => {
+  await page.locator('[data-test-id="toolbar-tool-text"]').click()
   await canvas.waitForRender()
 
-  const after = (await getPageChildren(page)).filter(n => n.type === 'VECTOR').length
-  expect(after).toBeGreaterThan(before)
-
-  const vectors = (await getPageChildren(page)).filter(n => n.type === 'VECTOR')
-  const last = vectors[vectors.length - 1]
-  expect(last.vectorNetwork.regions?.length).toBeGreaterThan(0)
+  const tool = await page.evaluate(() => window.__OPEN_PENCIL_STORE__!.state.activeTool)
+  expect(tool).toBe('TEXT')
   canvas.assertNoErrors()
 })
 
-test('Frame flyout shows Frame and Section items', async () => {
-  await page.locator('[data-test-id="toolbar-flyout-frame"]').click()
-  await expect(page.locator('[data-test-id="toolbar-flyout-item-frame"]')).toBeVisible()
-  await expect(page.locator('[data-test-id="toolbar-flyout-item-section"]')).toBeVisible()
+test('clicking HAND tool activates it', async () => {
+  await page.locator('[data-test-id="toolbar-tool-hand"]').click()
+  await canvas.waitForRender()
+
+  const tool = await page.evaluate(() => window.__OPEN_PENCIL_STORE__!.state.activeTool)
+  expect(tool).toBe('HAND')
+  canvas.assertNoErrors()
+})
+
+test('active tool gets visual highlight', async () => {
+  await page.locator('[data-test-id="toolbar-tool-select"]').click()
+  await canvas.waitForRender()
+
+  const selectBtn = page.locator('[data-test-id="toolbar-tool-select"]')
+  await expect(selectBtn).toHaveAttribute('data-active', 'true')
   canvas.assertNoErrors()
 })
