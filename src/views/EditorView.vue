@@ -166,11 +166,13 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       </div>
 
       <!-- Center: Canvas + Toolbar + WelcomeOverlay -->
-      <div class="relative flex-1">
-        <EditorCanvas />
+      <div class="relative flex flex-1 flex-col overflow-hidden">
+        <EditorCanvas class="min-h-0 flex-1" />
         <WelcomeOverlay v-if="showChrome" @action="onWelcomeAction" />
-        <div v-if="showChrome && store.state.showUI" class="absolute bottom-0 left-0 right-0 z-10">
-          <Toolbar />
+        <div v-if="showChrome && store.state.showUI" class="pointer-events-none absolute inset-x-0 bottom-5 z-10 flex justify-center">
+          <div class="pointer-events-auto">
+            <Toolbar />
+          </div>
         </div>
       </div>
 
