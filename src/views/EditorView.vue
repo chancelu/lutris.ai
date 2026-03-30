@@ -152,6 +152,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       :active-project-id="activeProjectId"
       @switch-project="onSwitchProject"
       @create-project="onCreateProject"
+      @import-click="designFileInput?.click()"
       @export-click="onExportClick"
     />
 
