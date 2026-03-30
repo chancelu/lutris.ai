@@ -9,7 +9,6 @@ import {
 import { computed, ref, watch, nextTick } from 'vue'
 
 import ProviderSettings from '@/components/chat/ProviderSettings.vue'
-import { uiButton } from '@/components/ui/button'
 import { uiInput } from '@/components/ui/input'
 import { useAIChat } from '@/composables/use-chat'
 
@@ -60,14 +59,14 @@ function handleSubmit(e: Event) {
       </div>
 
       <!-- Input form -->
-      <form class="flex gap-1.5" @submit="handleSubmit">
+      <form class="flex items-center gap-1.5" @submit="handleSubmit">
         <input
           ref="inputEl"
           v-model="input"
           type="text"
           data-test-id="chat-input"
           placeholder="Describe what you want to create..."
-          :class="uiInput({ class: 'min-w-0 flex-1 rounded-xl py-2.5 text-[13px] placeholder:text-muted/60 ring-1 ring-accent/20 focus:ring-accent/50 transition-shadow' })"
+          :class="uiInput({ class: 'min-w-0 flex-1 rounded-lg py-2 text-[13px] placeholder:text-muted/60 ring-1 ring-accent/20 focus:ring-accent/50 transition-shadow' })"
           :disabled="status === 'submitted'"
           @paste.stop
           @copy.stop
@@ -78,17 +77,10 @@ function handleSubmit(e: Event) {
             <button
               type="button"
               data-test-id="chat-stop-button"
-              :class="
-                uiButton({
-                  tone: 'ghost',
-                  shape: 'rounded',
-                  size: 'sm',
-                  class: 'shrink-0 border border-border px-2 py-1.5'
-                })
-              "
+              class="flex shrink-0 cursor-pointer items-center justify-center rounded-lg border border-border px-2.5 py-2 text-muted transition-colors hover:bg-hover hover:text-surface"
               @click="emit('stop')"
             >
-              <icon-lucide-square class="size-3" />
+              <icon-lucide-square class="size-3.5" />
             </button>
           </TooltipTrigger>
           <TooltipPortal>
@@ -106,17 +98,10 @@ function handleSubmit(e: Event) {
             <button
               type="submit"
               data-test-id="chat-send-button"
-              :class="
-                uiButton({
-                  tone: 'accent',
-                  shape: 'rounded',
-                  size: 'sm',
-                  class: 'shrink-0 px-2.5 py-1.5 font-medium'
-                })
-              "
+              class="flex shrink-0 cursor-pointer items-center justify-center rounded-lg bg-accent px-2.5 py-2 text-white transition-colors hover:bg-accent/90 disabled:opacity-40"
               :disabled="!input.trim()"
             >
-              <icon-lucide-send class="size-3" />
+              <icon-lucide-send class="size-3.5" />
             </button>
           </TooltipTrigger>
           <TooltipPortal>
