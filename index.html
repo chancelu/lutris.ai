@@ -34,8 +34,9 @@
       }
       #loader.fade-out { opacity: 0; pointer-events: none; }
       #loader img {
-        width: 64px;
         height: 64px;
+        width: auto;
+        object-fit: contain;
         animation: bounce 2s ease-in-out infinite;
         filter: drop-shadow(0 4px 12px rgba(59, 122, 107, 0.15));
       }
