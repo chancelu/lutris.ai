@@ -523,6 +523,26 @@ export function createEditorStore() {
     return new Promise((r) => requestAnimationFrame(() => r()))
   }
 
+  function resetToBlank(name = 'Untitled') {
+    graph = new SceneGraph()
+    computeAllLayouts(graph)
+    subscribeToGraph()
+    undo.clear()
+    pageViewports.clear()
+    fileHandle = null
+    filePath = null
+    state.documentName = name
+    downloadName = null
+    state.selectedIds = new Set()
+    const firstPage = graph.getPages()[0] as SceneNode | undefined
+    state.currentPageId = firstPage?.id ?? graph.rootId
+    state.panX = 0
+    state.panY = 0
+    state.zoom = 1
+    state.pageColor = { ...CANVAS_BG_COLOR }
+    requestRender()
+  }
+
   async function openFigFile(file: File, handle?: FileSystemFileHandle, path?: string) {
     try {
       state.loading = true
@@ -1829,6 +1849,7 @@ export function createEditorStore() {
     startTextEditing,
     commitTextEdit,
     openFigFile,
+    resetToBlank,
     saveFigFile: exportOps.saveFigFile,
     buildFigFile: exportOps.buildFigFile,
     setCanvasKit,

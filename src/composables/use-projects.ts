@@ -180,6 +180,9 @@ async function switchProject(
         const blob = new Blob([figData], { type: 'application/octet-stream' })
         const file = new File([blob], `${meta.name}.fig`)
         await editorStore.openFigFile(file)
+      } else {
+        // New project with no saved design — reset to blank canvas
+        editorStore.resetToBlank(meta.name)
       }
     } catch {
       // non-critical — editor stays with current/empty state
