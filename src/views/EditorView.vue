@@ -42,7 +42,7 @@ onMounted(async () => {
   await initProjects()
   const pid = route.params.projectId as string | undefined
   if (pid && pid !== activeProjectId.value) await switchProject(pid, store)
-  else if (!pid && activeProjectId.value) router.replace(`/editor/${activeProjectId.value}`)
+  else if (!pid && activeProjectId.value && !route.meta.demo) router.replace(`/editor/${activeProjectId.value}`)
   startAutosave(store)
 })
 onUnmounted(() => stopAutosave())
