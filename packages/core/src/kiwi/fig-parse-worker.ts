@@ -108,7 +108,13 @@ self.onmessage = (e: MessageEvent<ArrayBuffer>) => {
     }
 
     const result: FigParseResult = { nodeChanges, blobs, images }
-    self.postMessage(result)
+
+    // Collect all ArrayBuffers for zero-copy transfer
+    const transferables: ArrayBuffer[] = []
+    for (const b of blobs) transferables.push(b.buffer)
+    for (const [, img] of images) transferables.push(img.buffer)
+
+    self.postMessage(result, transferables)
   } catch (err) {
     self.postMessage({ error: err instanceof Error ? err.message : String(err) })
   }
