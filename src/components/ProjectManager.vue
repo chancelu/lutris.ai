@@ -17,9 +17,10 @@ const confirmRef = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const newProjectName = ref('')
 const isCreating = ref(false)
 
-function handleCreate() {
+async function handleCreate() {
   if (!newProjectName.value.trim()) return
-  createProject(newProjectName.value.trim())
+  const meta = await createProject(newProjectName.value.trim())
+  await switchProject(meta.id)
   newProjectName.value = ''
   isCreating.value = false
 }
