@@ -23,7 +23,7 @@ function toggleInline(panel: 'spec' | 'export') {
     class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-panel select-text"
   >
     <!-- Chat panel — always alive, hidden when inline panel is open -->
-    <div v-show="!inlinePanel" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div v-show="!inlinePanel" class="flex min-h-0 flex-1 flex-col overflow-hidden [user-select:text] [-webkit-user-select:text]">
       <div class="flex items-center gap-1.5 border-b border-border/10 px-3 py-2">
         <icon-lucide-sparkles class="size-3 text-accent/60" />
         <span class="text-[11px] font-medium text-muted">AI Assistant</span>
@@ -32,7 +32,7 @@ function toggleInline(panel: 'spec' | 'export') {
     </div>
 
     <!-- Spec panel — always alive, hidden when not active -->
-    <div v-show="inlinePanel === 'spec'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div v-show="inlinePanel === 'spec'" class="flex min-h-0 flex-1 flex-col overflow-hidden [user-select:text] [-webkit-user-select:text]">
       <div class="flex items-center justify-between border-b border-border/10 px-3 py-2">
         <span class="text-[12px] font-semibold text-surface">Spec</span>
         <button class="text-[11px] text-muted hover:text-surface" @click="inlinePanel = null">Close</button>
@@ -41,7 +41,7 @@ function toggleInline(panel: 'spec' | 'export') {
     </div>
 
     <!-- Export panel — always alive, hidden when not active -->
-    <div v-show="inlinePanel === 'export'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div v-show="inlinePanel === 'export'" class="flex min-h-0 flex-1 flex-col overflow-hidden [user-select:text] [-webkit-user-select:text]">
       <div class="flex items-center justify-between border-b border-border/10 px-3 py-2">
         <span class="text-[12px] font-semibold text-surface">Export</span>
         <button class="text-[11px] text-muted hover:text-surface" @click="inlinePanel = null">Close</button>
