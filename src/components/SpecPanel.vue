@@ -11,7 +11,7 @@ const hasSummary = computed(() => summary.value.trim().length > 0)
 
 function generateDesignFromSpec() {
   if (!hasSummary.value) return
-  pendingMessage.value = `Based on the following spec, generate a UI design on the canvas. Focus on the key screens and user flows described.\n\n---\n\n${summary.value}`
+  pendingMessage.value = `IMPORTANT: Skip planning. Use the render tool NOW to create the UI design on canvas immediately. Do NOT describe what you will do — just render it.\n\nSpec to implement:\n\n${summary.value}`
   inlinePanel.value = null // switch back to AI Chat
 }
 </script>
