@@ -9,8 +9,8 @@ const router = createRouter({
   routes: [
     { path: '/', component: () => import('./views/LandingPage.vue') },
     { path: '/login', component: () => import('./views/LoginView.vue') },
-    { path: '/editor', component: EditorView, meta: { requiresAuth: true } },
-    { path: '/editor/:projectId', component: EditorView, meta: { requiresAuth: true } },
+    { path: '/editor', component: EditorView },
+    { path: '/editor/:projectId', component: EditorView },
     { path: '/demo', component: EditorView, meta: { demo: true } },
     { path: '/share/:roomId', component: EditorView },
   ],
