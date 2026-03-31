@@ -18,7 +18,7 @@ import type { UIMessage } from 'ai'
 
 const IS_DEV = import.meta.env.DEV
 
-const { isConfigured, ensureChat, resetChat, pendingMessage, aiProgress, providerID, isServerConfigured, activeTab, aiMode } = useAIChat()
+const { isConfigured, ensureChat, resetChat, pendingMessage, aiProgress, providerID, isServerConfigured, activeTab, aiMode, inlinePanel } = useAIChat()
 const { hasContext, buildContextPrompt, clearAIContext } = useAISelect()
 
 const existing = ensureChat()
@@ -130,6 +130,7 @@ function handleSaveRequirements(content: string) {
 function handleCreateSpecDraft(content: string) {
   const { createSpecDraftFromAI } = useSpec()
   createSpecDraftFromAI(content)
+  inlinePanel.value = 'spec'
   toast.show('Created spec draft ✅')
 }
 
@@ -142,6 +143,7 @@ function handleCreateSpecFromAll() {
     .join('\n\n---\n\n')
   if (!assistantTexts) return
   createSpecDraftFromAI(assistantTexts)
+  inlinePanel.value = 'spec'
   toast.show('Created combined spec draft ✅')
 }
 </script>

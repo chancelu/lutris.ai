@@ -64,14 +64,14 @@ const summaryPreview = computed(() => {
       </div>
     </div>
 
-    <div class="min-h-0 flex-1 overflow-hidden border-b border-border">
+    <div class="min-h-0 flex-1 overflow-auto border-b border-border">
       <div class="flex items-center justify-between border-b border-border px-3 py-2">
         <div>
           <div class="text-[12px] font-semibold text-surface">Summary</div>
           <div class="text-[10px] text-muted">Narrative spec and product context</div>
         </div>
       </div>
-      <ProductDocPanel default-section="summary" class="min-h-0 flex-1" />
+      <ProductDocPanel default-section="summary" class="min-h-0 flex-1 overflow-auto" />
     </div>
 
     <div v-if="showRequirements" class="min-h-[240px] border-t border-border">

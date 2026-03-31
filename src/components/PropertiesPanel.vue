@@ -22,41 +22,32 @@ function toggleInline(panel: 'spec' | 'export') {
     data-test-id="properties-panel"
     class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-panel select-text"
   >
-    <!-- Panel content with fade transition -->
-    <Transition
-      mode="out-in"
-      enter-active-class="transition-opacity duration-100"
-      enter-from-class="opacity-0"
-      leave-active-class="transition-opacity duration-75"
-      leave-to-class="opacity-0"
-    >
-      <!-- Main: ChatPanel (full height when no inline panel) -->
-      <div v-if="!inlinePanel" key="chat" class="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div class="flex items-center gap-1.5 border-b border-border/10 px-3 py-2">
-          <icon-lucide-sparkles class="size-3 text-accent/60" />
-          <span class="text-[11px] font-medium text-muted">AI Assistant</span>
-        </div>
-        <ChatPanel class="flex-1" />
+    <!-- Chat panel — always alive, hidden when inline panel is open -->
+    <div v-show="!inlinePanel" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="flex items-center gap-1.5 border-b border-border/10 px-3 py-2">
+        <icon-lucide-sparkles class="size-3 text-accent/60" />
+        <span class="text-[11px] font-medium text-muted">AI Assistant</span>
       </div>
+      <ChatPanel class="flex-1" />
+    </div>
 
-      <!-- Inline: SpecPanel -->
-      <div v-else-if="inlinePanel === 'spec'" key="spec" class="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div class="flex items-center justify-between border-b border-border/10 px-3 py-2">
-          <span class="text-[12px] font-semibold text-surface">Spec</span>
-          <button class="text-[11px] text-muted hover:text-surface" @click="inlinePanel = null">Close</button>
-        </div>
-        <SpecPanel class="flex-1" />
+    <!-- Spec panel — always alive, hidden when not active -->
+    <div v-show="inlinePanel === 'spec'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="flex items-center justify-between border-b border-border/10 px-3 py-2">
+        <span class="text-[12px] font-semibold text-surface">Spec</span>
+        <button class="text-[11px] text-muted hover:text-surface" @click="inlinePanel = null">Close</button>
       </div>
+      <SpecPanel class="min-h-0 flex-1 overflow-auto" />
+    </div>
 
-      <!-- Inline: ExportPanel -->
-      <div v-else key="export" class="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div class="flex items-center justify-between border-b border-border/10 px-3 py-2">
-          <span class="text-[12px] font-semibold text-surface">Export</span>
-          <button class="text-[11px] text-muted hover:text-surface" @click="inlinePanel = null">Close</button>
-        </div>
-        <ExportPanel class="flex-1" />
+    <!-- Export panel — always alive, hidden when not active -->
+    <div v-show="inlinePanel === 'export'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="flex items-center justify-between border-b border-border/10 px-3 py-2">
+        <span class="text-[12px] font-semibold text-surface">Export</span>
+        <button class="text-[11px] text-muted hover:text-surface" @click="inlinePanel = null">Close</button>
       </div>
-    </Transition>
+      <ExportPanel class="flex-1" />
+    </div>
 
     <!-- Bottom bar: Spec + Export -->
     <div class="flex shrink-0 items-center justify-end gap-1 border-t border-border/10 px-3 py-1.5">
