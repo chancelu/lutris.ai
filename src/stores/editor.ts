@@ -567,6 +567,8 @@ export function createEditorStore() {
       state.zoom = 1
       state.pageColor = { ...CANVAS_BG_COLOR }
       requestRender()
+      // Auto-fit viewport to show imported content
+      setTimeout(() => viewportOps.zoomToFit(), 100)
       void loadFontsForNodes(graph.getChildren(pageId).map((n) => n.id))
       void startWatchingFile()
     } catch (e) {
