@@ -16,14 +16,17 @@ import { useEditorStore } from '@/stores/editor'
 import { useProjects } from '@/composables/use-projects'
 
 const store = useEditorStore()
-const { createProject } = useProjects()
+const { createProject, switchProject } = useProjects()
 
 const isMac = navigator.platform.includes('Mac')
 const mod = isMac ? '⌘' : 'Ctrl+'
 
-function handleNewProject() {
+async function handleNewProject() {
   const name = window.prompt('Project name')
-  if (name?.trim()) createProject(name.trim())
+  if (name?.trim()) {
+    const meta = await createProject(name.trim())
+    await switchProject(meta.id)
+  }
 }
 
 function handleExport() {
