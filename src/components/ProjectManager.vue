@@ -27,7 +27,14 @@ async function handleCreate() {
 
 async function handleDelete(id: string) {
   const ok = await confirmRef.value?.confirm('Delete Project', 'Delete this project? This cannot be undone.')
-  if (ok) deleteProject(id)
+  if (ok) {
+    await deleteProject(id)
+    // If no projects left, create a blank one
+    if (projects.value.length === 0) {
+      const meta = await createProject('Untitled')
+      await switchProject(meta.id)
+    }
+  }
 }
 </script>
 
@@ -84,7 +91,6 @@ async function handleDelete(id: string) {
             <div class="flex items-center justify-between">
               <span class="text-[12px] font-semibold text-surface">{{ p.name }}</span>
               <button
-                v-if="projects.length > 1"
                 class="text-[11px] text-red-400/60 hover:text-red-400"
                 @click.stop="handleDelete(p.id)"
               >
