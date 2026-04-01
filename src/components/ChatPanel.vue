@@ -18,7 +18,7 @@ import type { UIMessage } from 'ai'
 
 const IS_DEV = import.meta.env.DEV
 
-const { isConfigured, ensureChat, resetChat, pendingMessage, aiProgress, providerID, isServerConfigured, activeTab, aiMode, inlinePanel } = useAIChat()
+const { isConfigured, ensureChat, resetChat, pendingMessage, pendingSystemPrefix, aiProgress, providerID, isServerConfigured, activeTab, aiMode, inlinePanel } = useAIChat()
 const { hasContext, buildContextPrompt, clearAIContext } = useAISelect()
 
 const existing = ensureChat()
@@ -49,6 +49,7 @@ const progressLabel = computed(() => {
   switch (aiProgress.value) {
     case 'analyzing': return 'Analyzing...'
     case 'generating': return 'Generating...'
+    case 'generating-design': return 'Generating design on canvas...'
     case 'verifying': return 'Verifying...'
     case 'creating-image': return 'Creating image...'
     default: return ''
@@ -67,11 +68,14 @@ watch(() => messages.value.length, scrollToBottom)
 
 watch(pendingMessage, (msg) => {
   if (!msg) return
-  handleSubmit(msg)
+  const prefix = pendingSystemPrefix.value
+  pendingSystemPrefix.value = null
+  if (prefix) aiProgress.value = 'generating-design'
+  handleSubmit(msg, prefix ?? undefined)
   pendingMessage.value = null
 })
 
-function handleSubmit(text: string) {
+function handleSubmit(text: string, systemPrefix?: string) {
   lastUserMessage.value = text
   const requiresAction = hasContext.value || /(create|generate|build|design|edit|modify|update|redesign|make|layout|screen|page|component|render)/i.test(text)
   if (requiresAction && aiMode.value === 'chat-only') {
@@ -84,7 +88,7 @@ function handleSubmit(text: string) {
     if (c) chat.value = markRaw(c)
   }
   const contextSuffix = hasContext.value ? buildContextPrompt() : ''
-  const fullText = text + contextSuffix
+  const fullText = (systemPrefix ?? '') + text + contextSuffix
   chatError.value = null
   chat.value?.sendMessage({ text: fullText }).catch((err) => {
     console.error('[AI Chat] sendMessage failed:', err)

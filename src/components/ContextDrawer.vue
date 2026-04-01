@@ -8,13 +8,13 @@ import DesignPanel from './DesignPanel.vue'
 const store = useEditorStore()
 const { activeTab, draftMessage, focusRequested } = useAIChat()
 
-const hasSelection = computed(() => (store.state.selectedIds?.length ?? 0) > 0)
+const hasSelection = computed(() => (store.state.selectedIds?.size ?? 0) > 0)
 
 const selectedNodeLabel = computed(() => {
   const ids = store.state.selectedIds
-  if (!ids?.length) return ''
-  if (ids.length > 1) return `${ids.length} elements`
-  const node = store.graph.nodes.get(ids[0])
+  if (!ids?.size) return ''
+  if (ids.size > 1) return `${ids.size} elements`
+  const node = store.graph.nodes.get(ids.values().next().value!)
   return node?.name || node?.type || 'Element'
 })
 

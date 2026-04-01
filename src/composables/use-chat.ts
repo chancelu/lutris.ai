@@ -207,6 +207,7 @@ if (ENV_API_TYPE !== '' as string) customAPIType.value = ENV_API_TYPE
 
 const activeTab = ref<'create' | 'spec' | 'ship'>('create')
 const pendingMessage = ref<string | null>(null)
+const pendingSystemPrefix = ref<string | null>(null)
 const draftMessage = ref<string>('')
 const focusRequested = ref(0)
 const inlinePanel = ref<'spec' | 'export' | null>(null)
@@ -338,7 +339,7 @@ function createModel(): LanguageModel {
   }
 }
 
-export type AIProgressState = 'idle' | 'analyzing' | 'generating' | 'verifying' | 'creating-image'
+export type AIProgressState = 'idle' | 'analyzing' | 'generating' | 'verifying' | 'creating-image' | 'generating-design'
 
 const aiProgress = shallowRef<AIProgressState>('idle')
 
@@ -523,6 +524,7 @@ export function useAIChat() {
     maxOutputTokens,
     activeTab,
     pendingMessage,
+    pendingSystemPrefix,
     draftMessage,
     isConfigured,
     isServerConfigured,
