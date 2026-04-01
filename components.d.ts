@@ -86,6 +86,7 @@ declare module 'vue' {
     LayersPanel: typeof import('./src/components/LayersPanel.vue')['default']
     LayerTree: typeof import('./src/components/LayerTree.vue')['default']
     LayoutSection: typeof import('./src/components/properties/LayoutSection.vue')['default']
+    LeftSidebar: typeof import('./src/components/LeftSidebar.vue')['default']
     NextStepCard: typeof import('./src/components/NextStepCard.vue')['default']
     NodeContextMenuContent: typeof import('./src/components/NodeContextMenuContent.vue')['default']
     PageSection: typeof import('./src/components/properties/PageSection.vue')['default']

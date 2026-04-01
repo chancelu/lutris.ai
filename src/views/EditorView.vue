@@ -20,7 +20,7 @@ import PropertiesPanel from '@/components/PropertiesPanel.vue'
 import TopBar from '@/components/TopBar.vue'
 import Toolbar from '@/components/Toolbar.vue'
 import WelcomeOverlay from '@/components/WelcomeOverlay.vue'
-import ContextDrawer from '@/components/ContextDrawer.vue'
+import LeftSidebar from '@/components/LeftSidebar.vue'
 
 const designFileInput = ref<HTMLInputElement | null>(null)
 const aiPanelHighlight = ref(false)
@@ -196,14 +196,8 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
     />
 
     <div class="relative flex flex-1 overflow-hidden">
-      <!-- Left: AI Panel -->
-      <div
-        v-if="showChrome && store.state.showUI"
-        class="flex w-[360px] shrink-0 flex-col border-r border-border/10 bg-panel transition-shadow duration-300"
-        :class="aiPanelHighlight && 'animate-[ai-panel-highlight_0.8s_ease-in-out]'"
-      >
-        <PropertiesPanel />
-      </div>
+      <!-- Left: Layers + Design Properties -->
+      <LeftSidebar v-if="showChrome && store.state.showUI" />
 
       <!-- Center: Canvas + Toolbar + WelcomeOverlay -->
       <div class="relative flex flex-1 flex-col overflow-hidden">
@@ -216,9 +210,13 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
         </div>
       </div>
 
-      <!-- Right: Context Drawer (on-demand, overlays canvas edge) -->
-      <div v-if="showChrome && store.state.showUI" class="pointer-events-none absolute right-0 top-0 bottom-0 z-20">
-        <ContextDrawer />
+      <!-- Right: AI Chat Panel -->
+      <div
+        v-if="showChrome && store.state.showUI"
+        class="flex w-[360px] shrink-0 flex-col border-l border-border/10 bg-panel transition-shadow duration-300"
+        :class="aiPanelHighlight && 'animate-[ai-panel-highlight_0.8s_ease-in-out]'"
+      >
+        <PropertiesPanel />
       </div>
     </div>
 

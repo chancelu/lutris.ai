@@ -391,6 +391,7 @@ function createTransport() {
       else aiProgress.value = 'analyzing'
     },
     onFinish: () => {
+      tools.commitAIBatch()
       aiProgress.value = 'idle'
     }
   })

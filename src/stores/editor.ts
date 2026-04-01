@@ -1805,6 +1805,7 @@ export function createEditorStore() {
 
   function undoAction() {
     undo.undo()
+    requestRender()
   }
 
   function redoAction() {

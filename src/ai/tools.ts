@@ -12,7 +12,9 @@ import type { EditorStore } from '@/stores/editor'
 import type { SceneNode } from '@open-pencil/core'
 
 export function createAITools(store: EditorStore) {
-  let beforeSnapshot: Map<string, SceneNode> | null = null
+  // Batch undo: capture one before-snapshot for the entire AI turn
+  let batchBeforeSnapshot: Map<string, SceneNode> | null = null
+  let batchActive = false
 
   // Filter out dangerous tools in production (evalCode allows arbitrary code execution)
   const safeTools = import.meta.env.DEV
@@ -24,24 +26,15 @@ export function createAITools(store: EditorStore) {
     {
       getFigma: () => makeFigmaFromStore(store),
       onBeforeExecute: (def) => {
-        if (def.mutates) {
-          beforeSnapshot = store.snapshotPage()
+        if (def.mutates && !batchActive) {
+          batchBeforeSnapshot = store.snapshotPage()
+          batchActive = true
         }
       },
       onAfterExecute: (def) => {
         computeAllLayouts(store.graph, store.state.currentPageId)
         store.requestRender()
-        if (def.mutates && beforeSnapshot) {
-          const before = beforeSnapshot
-          const after = store.snapshotPage()
-          store.pushUndoEntry({
-            label: `AI: ${def.name}`,
-            forward: () => store.restorePageFromSnapshot(after),
-            inverse: () => store.restorePageFromSnapshot(before)
-          })
-          beforeSnapshot = null
-        }
-        // Auto-sync PRD after AI modifications
+        // No per-tool undo push — commitAIBatch() handles it
         if (def.mutates) {
           const { hasContent, updateFromDesign } = useProductDoc()
           if (hasContent.value) {
@@ -74,9 +67,14 @@ export function createAITools(store: EditorStore) {
     // @ts-expect-error -- valibotSchema doesn't properly infer execute param types for tool()
     // eslint-disable-next-line typescript/no-explicit-any -- valibotSchema doesn't infer execute params
     execute: async ({ prompt, width, height, x, y }: any) => {
+      // Start batch if not already active
+      if (!batchActive) {
+        batchBeforeSnapshot = store.snapshotPage()
+        batchActive = true
+      }
+
       const { generateImage: gen, base64ToBlobUrl } = useImageGen()
 
-      // Create placeholder node while generating
       const pageId = store.state.currentPageId
       const placeholder = store.graph.createNode('RECTANGLE', pageId, {
         name: `⏳ Generating: ${prompt.slice(0, 30)}...`,
@@ -91,7 +89,6 @@ export function createAITools(store: EditorStore) {
       store.requestRender()
       store.flashNodes([placeholder.id])
 
-      // Pulse placeholder opacity while generating
       let pulseFrame = 0
       const pulseInterval = setInterval(() => {
         pulseFrame++
@@ -112,7 +109,6 @@ export function createAITools(store: EditorStore) {
       }
 
       if (!result) {
-        // Hide placeholder on failure
         store.graph.updateNode(placeholder.id, { visible: false })
         store.requestRender()
         toast.show('Image generation failed. Check Gemini API key in Brand Settings.', 'error')
@@ -121,7 +117,6 @@ export function createAITools(store: EditorStore) {
 
       const blobUrl = base64ToBlobUrl(result.base64, result.mimeType)
 
-      // Update placeholder to real image
       store.graph.updateNode(placeholder.id, {
         name: `AI Image: ${prompt.slice(0, 30)}`,
         fills: [{
@@ -130,7 +125,7 @@ export function createAITools(store: EditorStore) {
           scaleMode: 'FILL',
           visible: true,
           opacity: 1,
-        } as never] // Cast needed: IMAGE fill type not in base Fill union
+        } as never]
       })
       computeAllLayouts(store.graph, pageId)
       store.requestRender()
@@ -148,7 +143,21 @@ export function createAITools(store: EditorStore) {
     },
   })
 
-  return { ...coreTools, generate_image: generateImage }
+  function commitAIBatch() {
+    if (batchActive && batchBeforeSnapshot) {
+      const before = batchBeforeSnapshot
+      const after = store.snapshotPage()
+      store.pushUndoEntry({
+        label: 'AI: design generation',
+        forward: () => store.restorePageFromSnapshot(after),
+        inverse: () => store.restorePageFromSnapshot(before),
+      })
+    }
+    batchBeforeSnapshot = null
+    batchActive = false
+  }
+
+  return { ...coreTools, generate_image: generateImage, commitAIBatch }
 }
 
 export type AITools = ReturnType<typeof createAITools>
