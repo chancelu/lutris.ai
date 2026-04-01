@@ -27,7 +27,7 @@ const emit = defineEmits<{
     </div>
 
     <!-- Content -->
-    <div class="flex-1 overflow-hidden">
+    <div class="flex-1 overflow-y-auto">
       <LayerTree data-test-id="layers-tree" />
     </div>
   </div>
