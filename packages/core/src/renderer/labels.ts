@@ -13,7 +13,7 @@ import type { Canvas, Font } from 'canvaskit-wasm'
 import type { SkiaRenderer } from './renderer'
 
 export function drawSectionTitles(r: SkiaRenderer, canvas: Canvas, graph: SceneGraph): void {
-  if (!r.sectionTitleFont) return
+  if (!r.sectionTitleFont || r.zoom < 0.15) return
 
   const sections = r.labelCache.getSections(graph, r.worldViewport)
   if (sections.length === 0) return
@@ -97,7 +97,7 @@ function drawSectionTitle(
 }
 
 export function drawComponentLabels(r: SkiaRenderer, canvas: Canvas, graph: SceneGraph): void {
-  if (!r.componentLabelFont) return
+  if (!r.componentLabelFont || r.zoom < 0.15) return
 
   const components = r.labelCache.getComponents(graph, r.worldViewport)
   if (components.length === 0) return
