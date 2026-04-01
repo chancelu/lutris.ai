@@ -12,7 +12,10 @@ import type { ComputedRef } from 'vue'
 
 function isEditing(e: Event) {
   const t = e.target
-  return t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable)
+  if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable)) return true
+  const sel = window.getSelection()
+  if (sel && sel.type === 'Range' && sel.toString().length > 0) return true
+  return false
 }
 
 const PREVENT_MOD_ALT = new Set(['KeyK', 'KeyB'])
