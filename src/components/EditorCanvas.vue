@@ -96,17 +96,17 @@ function handleCanvasClick(e: MouseEvent) {
   // AI Select mode: show confirmation popup
   if (aiSelectMode.value) {
     const ids = store.state.selectedIds
-    if (ids?.length) {
+    if (ids?.size) {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
       const sx = e.clientX - rect.left
       const sy = e.clientY - rect.top
       aiSelectPopupPos.value = { x: sx, y: sy }
       aiSelectNodeIds.value = [...ids]
       // Get name of first selected node
-      const node = store.graph.nodes.get(ids[0])
-      aiSelectNodeName.value = ids.length === 1
+      const node = store.graph.nodes.get([...ids][0])
+      aiSelectNodeName.value = ids.size === 1
         ? (node?.name || node?.type || 'Element')
-        : `${ids.length} elements`
+        : `${ids.size} elements`
       showAISelectPopup.value = true
     }
     return

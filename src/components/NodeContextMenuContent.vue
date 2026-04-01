@@ -3,11 +3,13 @@ import { computed } from 'vue'
 import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from 'reka-ui'
 import { useEditorStore } from '@/stores/editor'
 import { useAIChat } from '@/composables/use-chat'
+import { useAISelect } from '@/composables/use-ai-select'
 import { menuContent, menuItem, menuSeparator } from '@/components/ui/menu'
 import { toast } from '@/composables/use-toast'
 
 const store = useEditorStore()
 const { activeTab } = useAIChat()
+const { addCurrentSelection } = useAISelect()
 
 const hasSelection = computed(() => {
   void store.state.sceneVersion
@@ -19,6 +21,7 @@ function selectedIds(): string[] {
 }
 
 function sendToAIChat() {
+  addCurrentSelection()
   activeTab.value = 'create'
 }
 

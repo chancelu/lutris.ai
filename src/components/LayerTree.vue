@@ -27,6 +27,7 @@ interface FlatNode {
   type: string
   layoutMode: string
   visible: boolean
+  depth: number
 }
 
 const nodeIcons: Partial<Record<string, typeof IconSquare>> = {
@@ -58,7 +59,7 @@ function nodeIcon(node: FlatNode) {
 
 const COMPONENT_TYPES = new Set(['COMPONENT', 'COMPONENT_SET', 'INSTANCE'])
 
-function flattenAll(parentId: string): FlatNode[] {
+function flattenAll(parentId: string, depth = 0): FlatNode[] {
   const parent = store.graph.getNode(parentId)
   if (!parent) return []
   const result: FlatNode[] = []
@@ -71,9 +72,10 @@ function flattenAll(parentId: string): FlatNode[] {
       type: node.type,
       layoutMode: node.layoutMode,
       visible: node.visible,
+      depth,
     })
     if (node.childIds.length > 0) {
-      result.push(...flattenAll(node.id))
+      result.push(...flattenAll(node.id, depth + 1))
     }
   }
   return result
@@ -133,6 +135,7 @@ const contextNodeId = computed(() => {
           :data-node-id="node.id"
           data-test-id="layers-item"
           class="flex w-full cursor-pointer items-center gap-1.5 rounded border-none px-2 py-1 text-left text-xs"
+          :style="{ paddingLeft: `${8 + node.depth * 16}px` }"
           :class="[
             store.state.selectedIds.has(node.id)
               ? 'bg-accent text-white'
