@@ -28,6 +28,7 @@ interface FlatNode {
   layoutMode: string
   visible: boolean
   depth: number
+  hasChildren: boolean
 }
 
 const nodeIcons: Partial<Record<string, typeof IconSquare>> = {
@@ -59,6 +60,15 @@ function nodeIcon(node: FlatNode) {
 
 const COMPONENT_TYPES = new Set(['COMPONENT', 'COMPONENT_SET', 'INSTANCE'])
 
+const collapsed = ref(new Set<string>())
+
+function toggleCollapse(id: string) {
+  const next = new Set(collapsed.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  collapsed.value = next
+}
+
 function flattenAll(parentId: string, depth = 0): FlatNode[] {
   const parent = store.graph.getNode(parentId)
   if (!parent) return []
@@ -66,6 +76,7 @@ function flattenAll(parentId: string, depth = 0): FlatNode[] {
   for (const cid of parent.childIds) {
     const node = store.graph.getNode(cid)
     if (!node) continue
+    const hasChildren = node.childIds.length > 0
     result.push({
       id: node.id,
       name: node.name,
@@ -73,8 +84,9 @@ function flattenAll(parentId: string, depth = 0): FlatNode[] {
       layoutMode: node.layoutMode,
       visible: node.visible,
       depth,
+      hasChildren,
     })
-    if (node.childIds.length > 0) {
+    if (hasChildren && !collapsed.value.has(node.id)) {
       result.push(...flattenAll(node.id, depth + 1))
     }
   }
@@ -83,7 +95,7 @@ function flattenAll(parentId: string, depth = 0): FlatNode[] {
 
 const nodes = ref<FlatNode[]>(flattenAll(store.state.currentPageId))
 
-watch([() => store.state.sceneVersion, () => store.state.currentPageId], () => {
+watch([() => store.state.sceneVersion, () => store.state.currentPageId, collapsed], () => {
   nodes.value = flattenAll(store.state.currentPageId)
 })
 
@@ -134,8 +146,8 @@ const contextNodeId = computed(() => {
           :key="node.id"
           :data-node-id="node.id"
           data-test-id="layers-item"
-          class="flex w-full cursor-pointer items-center gap-1.5 rounded border-none px-2 py-1 text-left text-xs"
-          :style="{ paddingLeft: `${8 + node.depth * 16}px` }"
+          class="flex w-full cursor-pointer items-center gap-1 rounded border-none py-1 text-left text-xs"
+          :style="{ paddingLeft: `${4 + node.depth * 16}px` }"
           :class="[
             store.state.selectedIds.has(node.id)
               ? 'bg-accent text-white'
@@ -144,6 +156,16 @@ const contextNodeId = computed(() => {
           ]"
           @click="onClick($event, node.id)"
         >
+          <span
+            class="flex size-4 shrink-0 items-center justify-center"
+            @click.stop="node.hasChildren && toggleCollapse(node.id)"
+          >
+            <icon-lucide-chevron-right
+              v-if="node.hasChildren"
+              class="size-3 text-muted transition-transform"
+              :class="!collapsed.has(node.id) && 'rotate-90'"
+            />
+          </span>
           <component
             :is="nodeIcon(node)"
             class="size-3 shrink-0"
