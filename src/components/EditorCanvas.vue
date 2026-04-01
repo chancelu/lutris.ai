@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 import { useCanvas } from '@/composables/use-canvas'
 import { useCanvasDrop } from '@/composables/use-canvas-drop'
@@ -28,7 +28,7 @@ const { cursorOverride } = useCanvasInput(
 
 useTextEdit(canvasRef, store)
 const { isDraggingOver } = useCanvasDrop(canvasRef, store)
-const { aiSelectMode, addNodeToAIContext, addNodesInRect } = useAISelect()
+const { aiSelectMode, addNodeToAIContext } = useAISelect()
 const { activeTab, isGenerating } = useAIChat()
 
 // AI Select confirmation popup
@@ -37,64 +37,35 @@ const aiSelectPopupPos = ref({ x: 0, y: 0 })
 const aiSelectNodeName = ref('')
 const aiSelectNodeIds = ref<string[]>([])
 
-// AI Select marquee (lasso) drag
-const aiMarquee = ref<{ startX: number; startY: number; endX: number; endY: number } | null>(null)
-const isAIMarqueeDragging = ref(false)
-
-function handleAIMarqueeDown(e: MouseEvent) {
-  if (!aiSelectMode.value) return
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  const sx = e.clientX - rect.left
-  const sy = e.clientY - rect.top
-  aiMarquee.value = { startX: sx, startY: sy, endX: sx, endY: sy }
-  isAIMarqueeDragging.value = true
-}
-
-function handleAIMarqueeMove(e: MouseEvent) {
-  if (!isAIMarqueeDragging.value || !aiMarquee.value) return
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  aiMarquee.value.endX = e.clientX - rect.left
-  aiMarquee.value.endY = e.clientY - rect.top
-}
-
-function handleAIMarqueeUp(e: MouseEvent) {
-  if (!isAIMarqueeDragging.value || !aiMarquee.value) return
-  isAIMarqueeDragging.value = false
-  const m = aiMarquee.value
-
-  // Calculate canvas-space rect
-  const minSx = Math.min(m.startX, m.endX)
-  const minSy = Math.min(m.startY, m.endY)
-  const w = Math.abs(m.endX - m.startX)
-  const h = Math.abs(m.endY - m.startY)
-
-  // Only treat as marquee if dragged > 5px
-  if (w > 5 && h > 5) {
-    const cx = (minSx - store.state.panX) / store.state.zoom
-    const cy = (minSy - store.state.panY) / store.state.zoom
-    const cw = w / store.state.zoom
-    const ch = h / store.state.zoom
-    addNodesInRect({ x: cx, y: cy, width: cw, height: ch })
-
-    // Show popup at center of marquee
-    aiSelectPopupPos.value = { x: minSx + w / 2, y: minSy }
-    const count = store.state.selectedIds?.length || 0
-    aiSelectNodeName.value = `Area selection`
-    aiSelectNodeIds.value = [] // already added via addNodesInRect
+// Show popup when store marquee completes during AI select mode
+watch(() => store.state.marquee, (newVal, oldVal) => {
+  if (aiSelectMode.value && oldVal && !newVal) {
+    // Marquee just ended — show popup at the center of where it was
+    const m = oldVal
+    const sx = m.x * store.state.zoom + store.state.panX
+    const sy = m.y * store.state.zoom + store.state.panY
+    const sw = m.width * store.state.zoom
+    const sh = m.height * store.state.zoom
+    aiSelectPopupPos.value = { x: sx + sw / 2, y: sy }
+    aiSelectNodeName.value = 'Area selection'
+    aiSelectNodeIds.value = []
     showAISelectPopup.value = true
   }
+})
 
-  aiMarquee.value = null
-}
-
+// Visual marquee overlay driven by store state during AI select mode
 const aiMarqueeStyle = computed(() => {
-  if (!aiMarquee.value) return null
-  const m = aiMarquee.value
+  if (!aiSelectMode.value || !store.state.marquee) return null
+  const m = store.state.marquee
+  const sx = m.x * store.state.zoom + store.state.panX
+  const sy = m.y * store.state.zoom + store.state.panY
+  const sw = m.width * store.state.zoom
+  const sh = m.height * store.state.zoom
   return {
-    left: `${Math.min(m.startX, m.endX)}px`,
-    top: `${Math.min(m.startY, m.endY)}px`,
-    width: `${Math.abs(m.endX - m.startX)}px`,
-    height: `${Math.abs(m.endY - m.startY)}px`,
+    left: `${sx}px`,
+    top: `${sy}px`,
+    width: `${sw}px`,
+    height: `${sh}px`,
   }
 })
 
@@ -149,9 +120,6 @@ function handleCanvasClick(e: MouseEvent) {
       data-test-id="canvas-area"
       class="canvas-area relative min-h-0 min-w-0 flex-1 overflow-hidden"
       @click="handleCanvasClick"
-      @mousedown="handleAIMarqueeDown"
-      @mousemove="handleAIMarqueeMove"
-      @mouseup="handleAIMarqueeUp"
     >
       <!-- AI generating indicator bar -->
       <div
@@ -168,7 +136,7 @@ function handleCanvasClick(e: MouseEvent) {
       />
       <!-- AI Select marquee overlay -->
       <div
-        v-if="aiMarquee && isAIMarqueeDragging"
+        v-if="aiMarqueeStyle"
         class="pointer-events-none absolute z-20 border-2 border-dashed border-accent/60 bg-accent/10"
         :style="aiMarqueeStyle"
       />

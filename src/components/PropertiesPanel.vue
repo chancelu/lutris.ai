@@ -8,7 +8,7 @@ import ExportPanel from './ExportPanel.vue'
 import SpecPanel from './SpecPanel.vue'
 
 const store = useEditorStore()
-const { activeTab, inlinePanel } = useAIChat()
+const { inlinePanel } = useAIChat()
 
 const panelKey = computed(() => inlinePanel.value ?? 'chat')
 

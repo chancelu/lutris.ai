@@ -1,4 +1,4 @@
-import { useBreakpoints, useRafFn, useResizeObserver } from '@vueuse/core'
+import { useRafFn, useResizeObserver } from '@vueuse/core'
 import { onMounted, onUnmounted, type Ref } from 'vue'
 
 import { getCanvasKit, getGpuBackend, SkiaRenderer } from '@open-pencil/core'
@@ -126,11 +126,6 @@ export function useCanvas(canvasRef: Ref<HTMLCanvasElement | null>, store: Edito
     renderNow()
     canvas.dataset.ready = '1'
   }
-
-  const params = new URLSearchParams(window.location.search)
-  const noRulersParam = params.has('no-rulers')
-  const breakpoints = useBreakpoints({ mobile: 768 })
-  const isMobile = breakpoints.smaller('mobile')
 
   function showRulers() {
     return false // Rulers removed for clean canvas (Lovart-style)

@@ -35,7 +35,7 @@ const { updateFromDesign } = useProductDoc()
 const {
   init: initProjects, switchProject, activeProjectId,
   activeProject, projects: projectsList, createProject,
-  startAutosave, stopAutosave
+  deleteProject, startAutosave, stopAutosave
 } = useProjects()
 
 onMounted(async () => {
@@ -58,7 +58,7 @@ function onSyncPRD() {
     return n ? `- ${n.name || n.type} (${n.type}, ${Math.round(n.width || 0)}×${Math.round(n.height || 0)})` : null
   }).filter(Boolean).join('\n')
   updateFromDesign(`# Design State (AI Updated)\n\n${desc}`)
-  rightTab.value = 'spec'
+  inlinePanel.value = 'spec'
 }
 onMounted(() => window.addEventListener('sync-prd-from-design', onSyncPRD))
 onUnmounted(() => window.removeEventListener('sync-prd-from-design', onSyncPRD))
@@ -66,10 +66,33 @@ async function handleDesignFileChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+  if (file.size > 2 * 1024 * 1024 * 1024) {
+    toast.show('File too large. Maximum 2GB for .fig import.', 'error')
+    input.value = ''
+    return
+  }
   try {
+    if (file.size > 50 * 1024 * 1024) {
+      toast.show('Importing large file, this may take a moment...')
+    }
     const { useAssetLibrary } = await import('@/composables/use-asset-library')
     const { loadLibrary } = useAssetLibrary()
-    await loadLibrary(file)
+    const library = await loadLibrary(file)
+    // Place imported top-level nodes onto the current canvas page
+    const importedGraph = library.graph
+    const pages = importedGraph.getPages()
+    if (pages.length > 0) {
+      const topNodes = importedGraph.getChildren(pages[0].id)
+      for (const srcNode of topNodes) {
+        store.graph.createNode(srcNode.type, store.state.currentPageId, {
+          ...srcNode,
+          x: srcNode.x ?? 0,
+          y: srcNode.y ?? 0,
+        })
+      }
+      store.requestRender()
+      setTimeout(() => store.zoomToFit(), 100)
+    }
   } catch (err) {
     toast.show(`Failed to import .fig: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
   } finally { input.value = '' }
@@ -85,6 +108,21 @@ async function onCreateProject() {
   const meta = await createProject('Untitled Project')
   await switchProject(meta.id, store)
   store.state.documentName = meta.name
+}
+
+async function onDeleteProject(projectId: string) {
+  await deleteProject(projectId)
+  if (projectsList.value.length === 0) {
+    const meta = await createProject('Untitled Project')
+    await switchProject(meta.id, store)
+    store.state.documentName = meta.name
+  } else if (activeProjectId.value && activeProjectId.value !== projectId) {
+    // already on a different project, just update name
+    store.state.documentName = activeProject.value?.name ?? 'Untitled'
+  } else {
+    // deleteProject already switched to first remaining project
+    store.state.documentName = activeProject.value?.name ?? 'Untitled'
+  }
 }
 
 function onWelcomeAction(type: string) {
@@ -107,7 +145,7 @@ function onWelcomeAction(type: string) {
         const { useProductDoc } = await import('@/composables/use-product-doc')
         const { importFile } = useProductDoc()
         await importFile(file)
-        rightTab.value = 'spec'
+        inlinePanel.value = 'spec'
       }
     }
     input.click()
@@ -152,6 +190,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       :active-project-id="activeProjectId"
       @switch-project="onSwitchProject"
       @create-project="onCreateProject"
+      @delete-project="onDeleteProject"
       @import-click="designFileInput?.click()"
       @export-click="onExportClick"
     />
@@ -170,7 +209,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       <div class="relative flex flex-1 flex-col overflow-hidden">
         <EditorCanvas class="min-h-0 flex-1" />
         <WelcomeOverlay v-if="showChrome" @action="onWelcomeAction" />
-        <div v-if="showChrome && store.state.showUI" class="pointer-events-none absolute inset-x-0 bottom-5 z-10 flex justify-center">
+        <div v-if="showChrome && store.state.showUI" class="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center">
           <div class="pointer-events-auto">
             <Toolbar />
           </div>
@@ -178,7 +217,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       </div>
 
       <!-- Right: Context Drawer (on-demand, overlays canvas edge) -->
-      <div v-if="showChrome && store.state.showUI" class="absolute right-0 top-0 bottom-0 z-10">
+      <div v-if="showChrome && store.state.showUI" class="pointer-events-none absolute right-0 top-0 bottom-0 z-20">
         <ContextDrawer />
       </div>
     </div>

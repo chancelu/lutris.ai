@@ -4,7 +4,7 @@ import { useEditorStore } from '@/stores/editor'
 import ProjectSwitcher from './ProjectSwitcher.vue'
 import UserMenu from './UserMenu.vue'
 
-defineProps<{
+const { projectName, projects, activeProjectId } = defineProps<{
   projectName: string
   projects: Array<{ id: string; name: string }>
   activeProjectId: string | null
@@ -13,6 +13,7 @@ defineProps<{
 const emit = defineEmits<{
   switchProject: [projectId: string]
   createProject: []
+  deleteProject: [projectId: string]
   importClick: []
   exportClick: []
 }>()
@@ -44,6 +45,7 @@ function commitName() {
         :active-project-id="activeProjectId"
         @switch="emit('switchProject', $event)"
         @create="emit('createProject')"
+        @delete="emit('deleteProject', $event)"
       />
       <span class="text-border/30">/</span>
       <span

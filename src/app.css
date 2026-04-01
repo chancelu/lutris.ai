@@ -74,6 +74,29 @@ body {
   -webkit-user-select: none;
 }
 
+[data-test-id='chat-panel'] [data-test-id='chat-text-bubble'],
+[data-test-id='chat-panel'] .chat-markdown,
+[data-test-id='properties-panel'] .select-text {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+/* Ensure all text inside chat panel and spec panel is selectable.
+   vue-stream-markdown uses .select-none and an overlay with pointer-events:none
+   that blocks native text selection — override both aggressively. */
+[data-test-id='chat-panel'] *,
+[data-test-id='product-doc-panel'] *,
+[data-test-id='properties-panel'] [data-test-id='chat-text-bubble'] *,
+.chat-markdown *,
+.chat-markdown .stream-markdown-overlay,
+.chat-markdown .select-none,
+[data-test-id='chat-panel'] .stream-markdown-overlay,
+[data-test-id='chat-panel'] .select-none {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  pointer-events: auto !important;
+}
+
 input[type='number'] {
   appearance: textfield;
   -moz-appearance: textfield;

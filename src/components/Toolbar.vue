@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { onClickOutside } from '@vueuse/core'
 import { TOOLS, TOOL_SHORTCUTS, useEditorStore } from '@/stores/editor'
 import type { Tool, ToolDef } from '@/stores/editor'
 import { toolIcons } from '@/utils/tools'
 
 const store = useEditorStore()
 
+const toolbarRef = ref<HTMLElement | null>(null)
 const openFlyout = ref<string | null>(null)
 let longPressTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -51,11 +53,12 @@ function handlePointerUp() {
   }
 }
 
-
-</script>
+onClickOutside(toolbarRef, () => {
+  openFlyout.value = null
+})</script>
 
 <template>
-  <div class="flex items-center">
+  <div ref="toolbarRef" class="flex items-center">
     <div
       data-test-id="toolbar"
       class="flex gap-1 rounded-full border border-border/10 bg-panel/90 px-2 py-1.5 shadow-lg shadow-black/15 backdrop-blur-md"

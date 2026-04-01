@@ -58,7 +58,7 @@ function shouldPreventDefault(e: KeyboardEvent, hasPenState: boolean): boolean {
 }
 
 export function useKeyboard() {
-  const { activeTab } = useAIChat()
+  const { activeTab, inlinePanel } = useAIChat()
   const store = useEditorStore()
 
   useEventListener(window, 'copy', (e: ClipboardEvent) => {
@@ -243,7 +243,7 @@ export function useKeyboard() {
   })
   // Ctrl+Shift+D → Spec
   whenever(mod('shift+keyd'), () => {
-    activeTab.value = 'spec'
+    inlinePanel.value = inlinePanel.value === 'spec' ? null : 'spec'
   })
 
 }

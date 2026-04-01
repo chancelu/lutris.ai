@@ -25,10 +25,7 @@ function fillToHex(fill: unknown): string | null {
   return null
 }
 
-const cssProps = computed<{ name: string; value: string }[]>(() => {
-  const node = selectedNode.value
-  if (!node) return []
-  const items: { name: string; value: string }[] = []
+function collectLayoutProps(node: SceneNode, items: { name: string; value: string }[]) {
   const abs = store.graph.getAbsolutePosition(node.id)
   items.push({ name: 'x', value: `${Math.round(abs?.x ?? node.x ?? 0)}px` })
   items.push({ name: 'y', value: `${Math.round(abs?.y ?? node.y ?? 0)}px` })
@@ -36,6 +33,9 @@ const cssProps = computed<{ name: string; value: string }[]>(() => {
   if (node.height) items.push({ name: 'height', value: `${Math.round(node.height)}px` })
   if (node.rotation) items.push({ name: 'rotation', value: `${Math.round(node.rotation)}deg` })
   if (node.opacity !== undefined && node.opacity !== 1) items.push({ name: 'opacity', value: String(node.opacity) })
+}
+
+function collectStyleProps(node: SceneNode, items: { name: string; value: string }[]) {
   const bg = fillToHex(node.fill)
   if (bg) items.push({ name: 'background-color', value: bg })
   if (node.stroke) {
@@ -50,6 +50,14 @@ const cssProps = computed<{ name: string; value: string }[]>(() => {
     if (node.fontWeight) items.push({ name: 'font-weight', value: String(node.fontWeight) })
     if (node.lineHeight) items.push({ name: 'line-height', value: String(node.lineHeight) })
   }
+}
+
+const cssProps = computed<{ name: string; value: string }[]>(() => {
+  const node = selectedNode.value
+  if (!node) return []
+  const items: { name: string; value: string }[] = []
+  collectLayoutProps(node, items)
+  collectStyleProps(node, items)
   return items
 })
 

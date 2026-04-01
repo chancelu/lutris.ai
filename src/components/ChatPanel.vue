@@ -35,7 +35,13 @@ const chatSdkError = computed(() => chat.value?.error)
 watch(chatSdkError, (err) => {
   if (err) {
     console.error('[AI Chat] SDK error:', err)
-    chatError.value = err.message || String(err)
+    // Detect CORS / network errors and provide actionable guidance
+    const msg = err.message || String(err)
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('CORS')) {
+      chatError.value = 'Network error — if using Anthropic directly, their API blocks browser requests (CORS). Use OpenRouter or a proxy instead.'
+    } else {
+      chatError.value = msg
+    }
   }
 })
 
@@ -130,8 +136,10 @@ function handleSaveRequirements(content: string) {
 function handleCreateSpecDraft(content: string) {
   const { createSpecDraftFromAI } = useSpec()
   createSpecDraftFromAI(content)
-  inlinePanel.value = 'spec'
-  toast.show('Created spec draft ✅')
+  toast.show('Spec draft created — switching to Spec panel ✅')
+  nextTick(() => {
+    inlinePanel.value = 'spec'
+  })
 }
 
 function handleCreateSpecFromAll() {
@@ -141,10 +149,15 @@ function handleCreateSpecFromAll() {
     .map(m => m.parts.filter(isTextUIPart).map(p => p.text).join(''))
     .filter(Boolean)
     .join('\n\n---\n\n')
-  if (!assistantTexts) return
+  if (!assistantTexts) {
+    toast.show('No text content from AI to create spec draft', 'warning')
+    return
+  }
   createSpecDraftFromAI(assistantTexts)
-  inlinePanel.value = 'spec'
-  toast.show('Created combined spec draft ✅')
+  toast.show('Combined spec draft created — switching to Spec panel ✅')
+  nextTick(() => {
+    inlinePanel.value = 'spec'
+  })
 }
 </script>
 
