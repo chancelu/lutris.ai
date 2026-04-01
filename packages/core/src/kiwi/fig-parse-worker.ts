@@ -201,9 +201,10 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
       result = await parseStreaming(fullData)
     }
 
-    const transferables: Transferable[] = []
-    for (const b of result.blobs) transferables.push(b.buffer as ArrayBuffer)
-    for (const [, img] of result.images) transferables.push(img.buffer as ArrayBuffer)
+    const seen = new Set<ArrayBuffer>()
+    for (const b of result.blobs) seen.add(b.buffer as ArrayBuffer)
+    for (const [, img] of result.images) seen.add(img.buffer as ArrayBuffer)
+    const transferables: Transferable[] = [...seen]
 
     self.postMessage(result, { transfer: transferables } as StructuredSerializeOptions)
   } catch (err) {
