@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import { useEditorStore } from '@/stores/editor'
 import { useAIChat } from '@/composables/use-chat'
@@ -12,6 +12,7 @@ const { activeTab, focusRequested } = useAIChat()
 const { addCurrentSelection } = useAISelect()
 
 const hasSelection = computed(() => (store.state.selectedIds?.size ?? 0) > 0)
+const layersCollapsed = ref(false)
 
 function editWithAI() {
   addCurrentSelection()
@@ -22,12 +23,28 @@ function editWithAI() {
 
 <template>
   <aside class="flex h-full w-[280px] shrink-0 flex-col overflow-hidden border-r border-border/10 bg-panel">
-    <!-- Layers: top half -->
-    <div class="flex min-h-[200px] flex-1 flex-col overflow-hidden border-b border-border/10">
-      <LayersPanel @collapse="() => {}" />
-    </div>
+    <!-- Layers header -->
+    <button
+      class="flex shrink-0 items-center gap-1.5 px-2 py-1.5 text-left hover:bg-hover"
+      @click="layersCollapsed = !layersCollapsed"
+    >
+      <icon-lucide-chevron-right
+        class="size-3 text-muted transition-transform"
+        :class="!layersCollapsed && 'rotate-90'"
+      />
+      <span class="text-[11px] font-medium text-surface">Layers</span>
+    </button>
 
-    <!-- Design properties: bottom half (when selection exists) -->
+    <!-- Layers content -->
+    <div
+      v-if="!layersCollapsed"
+      class="flex min-h-[120px] flex-1 flex-col overflow-hidden border-b border-border/10"
+    >
+      <LayersPanel @collapse="layersCollapsed = true" />
+    </div>
+    <div v-else class="border-b border-border/10" />
+
+    <!-- Design properties (when selection exists) -->
     <div v-if="hasSelection" class="flex max-h-[50%] shrink-0 flex-col overflow-y-auto">
       <DesignPanel />
     </div>
