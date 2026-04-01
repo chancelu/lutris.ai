@@ -1,6 +1,5 @@
 import type { Rect, SnapGuide } from '@open-pencil/core'
-import type { EditorContext } from './editor-types'
-import type { EditorState } from './editor-types'
+import type { EditorContext, EditorState } from './editor-types'
 
 export function createSelectionOps(ctx: EditorContext) {
   const state = ctx.state

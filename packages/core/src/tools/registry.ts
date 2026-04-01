@@ -144,6 +144,6 @@ export const ALL_TOOLS: ToolDef[] = [
   // Export
   exportTailwindConfig,
   exportCode,
-  // Eval
+  // Eval (dangerous: arbitrary code execution — consumers should gate on IS_DEV)
   evalCode
 ]

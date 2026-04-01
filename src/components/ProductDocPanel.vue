@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useProductDoc } from '@/composables/use-product-doc'
 import { useAIChat } from '@/composables/use-chat'
 
@@ -12,7 +12,7 @@ const {
   getParsePrompt,
 } = useProductDoc()
 
-const { pendingMessage, activeTab } = useAIChat()
+const { pendingMessage, inlinePanel } = useAIChat()
 
 const editBuffer = ref('')
 
@@ -22,7 +22,9 @@ function startEditing() {
 }
 
 function saveEdit() {
-  updateContent(editBuffer.value)
+  const content = editBuffer.value
+  updateContent(content)
+  editBuffer.value = ''
   isEditing.value = false
 }
 
@@ -35,7 +37,7 @@ async function handleAIParse() {
   if (!currentContent.value.trim()) return
   const prompt = getParsePrompt()
   pendingMessage.value = `${prompt}\n\n---\n\nRaw Document to Parse:\n\n${currentContent.value}`
-  activeTab.value = 'ai'
+  inlinePanel.value = null // switch back to AI Chat panel
 }
 
 function renderMarkdown(md: string): string {

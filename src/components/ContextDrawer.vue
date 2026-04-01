@@ -37,7 +37,7 @@ function modifyWithAI() {
   >
     <aside
       v-if="hasSelection"
-      class="flex h-full w-[280px] shrink-0 flex-col overflow-hidden border-l border-border/10 bg-panel"
+      class="pointer-events-auto flex h-full w-[280px] shrink-0 flex-col overflow-hidden border-l border-border/10 bg-panel"
     >
       <div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
         <DesignPanel />

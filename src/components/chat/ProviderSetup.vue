@@ -86,6 +86,13 @@ function save() {
     </a>
 
     <p
+      v-if="providerID === 'anthropic'"
+      class="mt-3 text-center text-[10px] leading-relaxed text-amber-400/80"
+    >
+      ⚠ Anthropic's API does not support browser requests (CORS). Use OpenRouter or set up a proxy.
+    </p>
+
+    <p
       v-if="providerID === 'openrouter'"
       class="mt-3 text-center text-[10px] leading-relaxed text-muted/50"
     >

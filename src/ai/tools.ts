@@ -14,8 +14,13 @@ import type { SceneNode } from '@open-pencil/core'
 export function createAITools(store: EditorStore) {
   let beforeSnapshot: Map<string, SceneNode> | null = null
 
+  // Filter out dangerous tools in production (evalCode allows arbitrary code execution)
+  const safeTools = import.meta.env.DEV
+    ? ALL_TOOLS
+    : ALL_TOOLS.filter((t) => t.name !== 'eval')
+
   const coreTools = toolsToAI(
-    ALL_TOOLS,
+    safeTools,
     {
       getFigma: () => makeFigmaFromStore(store),
       onBeforeExecute: (def) => {

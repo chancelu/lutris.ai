@@ -10,13 +10,13 @@ import { SceneGraph } from '@open-pencil/core'
 /* ------------------------------------------------------------------ */
 
 describe('tools store', () => {
-  test('TOOLS has exactly 4 items', () => {
-    expect(TOOLS).toHaveLength(4)
+  test('TOOLS has exactly 6 items', () => {
+    expect(TOOLS).toHaveLength(6)
   })
 
-  test('TOOLS contains SELECT, FRAME, TEXT, HAND', () => {
+  test('TOOLS contains SELECT, FRAME, RECTANGLE, PEN, TEXT, HAND', () => {
     const keys = TOOLS.map((t) => t.key)
-    expect(keys).toEqual(['SELECT', 'FRAME', 'TEXT', 'HAND'])
+    expect(keys).toEqual(['SELECT', 'FRAME', 'RECTANGLE', 'PEN', 'TEXT', 'HAND'])
   })
 
   test('each tool has label and shortcut', () => {

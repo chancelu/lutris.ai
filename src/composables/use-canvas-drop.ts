@@ -42,9 +42,13 @@ export function useCanvasDrop(canvasRef: Ref<HTMLCanvasElement | null>, store: E
     isDraggingOver.value = false
   })
 
-  useEventListener(canvasRef, 'drop', async (e: DragEvent) => {
+  useEventListener(canvasRef, 'drop', (e: DragEvent) => {
     e.preventDefault()
     isDraggingOver.value = false
+    void handleDrop(e)
+  })
+
+  async function handleDrop(e: DragEvent) {
 
     const allFiles = e.dataTransfer?.files
     if (!allFiles?.length) return
@@ -59,11 +63,44 @@ export function useCanvasDrop(canvasRef: Ref<HTMLCanvasElement | null>, store: E
 
     // Handle .fig file import
     if (figFiles.length > 0) {
+      if (figFiles[0].size > 2 * 1024 * 1024 * 1024) {
+        toast.show('File too large. Maximum 2GB for .fig import.', 'error')
+        return
+      }
       try {
+        if (figFiles[0].size > 50 * 1024 * 1024) {
+          toast.show('Importing large file, this may take a moment...')
+        }
         const { useAssetLibrary } = await import('@/composables/use-asset-library')
         const { loadLibrary } = useAssetLibrary()
-        await loadLibrary(figFiles[0])
-        toast.show('Figma file imported successfully', 'success')
+        const library = await loadLibrary(figFiles[0])
+        // Recursively copy a node and all its children from source graph to dest graph
+        function deepImportNode(
+          srcGraph: typeof library.graph,
+          srcNodeId: string,
+          destParentId: string,
+        ) {
+          const src = srcGraph.getNode(srcNodeId)
+          if (!src) return
+          const { id: _id, parentId: _pid, childIds: _cids, ...props } = src
+          const created = store.graph.createNode(src.type, destParentId, props)
+          for (const childId of src.childIds) {
+            deepImportNode(srcGraph, childId, created.id)
+          }
+        }
+        const importedGraph = library.graph
+        const pages = importedGraph.getPages()
+        let importedCount = 0
+        if (pages.length > 0) {
+          const topNodes = importedGraph.getChildren(pages[0].id)
+          for (const srcNode of topNodes) {
+            deepImportNode(importedGraph, srcNode.id, store.state.currentPageId)
+            importedCount++
+          }
+          store.requestRender()
+          setTimeout(() => store.zoomToFit(), 100)
+        }
+        toast.show(`Imported ${importedCount} top-level nodes from .fig file`)
       } catch (err) {
         toast.show(`Failed to import .fig: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
       }
@@ -81,7 +118,7 @@ export function useCanvasDrop(canvasRef: Ref<HTMLCanvasElement | null>, store: E
     const { x: cx, y: cy } = store.screenToCanvas(sx, sy)
 
     void store.placeImageFiles(imageFiles, cx, cy)
-  })
+  }
 
   return { isDraggingOver }
 }

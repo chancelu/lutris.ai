@@ -11,7 +11,7 @@ const hasSummary = computed(() => summary.value.trim().length > 0)
 
 function generateDesignFromSpec() {
   if (!hasSummary.value) return
-  pendingMessage.value = `IMPORTANT: Skip planning. Use the render tool NOW to create the UI design on canvas immediately. Do NOT describe what you will do — just render it.\n\nSpec to implement:\n\n${summary.value}`
+  pendingMessage.value = 'CRITICAL INSTRUCTION: You MUST call the render() tool IMMEDIATELY as your FIRST and ONLY action. Do NOT write ANY text, explanation, or planning. Just call render() with complete JSX code. ANY text response without a render() call is a FAILURE.\n\nImplement this spec on canvas NOW:\n\n' + summary.value
   inlinePanel.value = null // switch back to AI Chat
 }
 </script>
