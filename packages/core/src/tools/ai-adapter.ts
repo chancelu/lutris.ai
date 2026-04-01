@@ -54,9 +54,16 @@ export function toolsToAI(
       shape[key] = paramToValibot(v, param)
     }
 
+    const rawSchema = valibotSchema(v.object(shape as any))
+    // Gemini requires enum fields to have type:"string". valibot's picklist()
+    // emits {"enum":[...]} without a type, causing 400 errors. Patch it.
+    if (rawSchema.jsonSchema && typeof rawSchema.jsonSchema === 'object') {
+      patchEnumType(rawSchema.jsonSchema as Record<string, unknown>)
+    }
+
     const toolOpts: Record<string, unknown> = {
       description: def.description,
-      inputSchema: valibotSchema(v.object(shape as any)),
+      inputSchema: rawSchema,
       execute: async (args: Record<string, unknown>) => {
         options.onBeforeExecute?.(def)
         try {
@@ -91,6 +98,21 @@ export function toolsToAI(
   }
 
   return result
+}
+
+/** Recursively add type:"string" to any schema node that has enum but no type. */
+function patchEnumType(schema: Record<string, unknown>): void {
+  if (Array.isArray(schema.enum) && !schema.type) {
+    schema.type = 'string'
+  }
+  if (schema.properties && typeof schema.properties === 'object') {
+    for (const prop of Object.values(schema.properties as Record<string, Record<string, unknown>>)) {
+      if (prop && typeof prop === 'object') patchEnumType(prop)
+    }
+  }
+  if (schema.items && typeof schema.items === 'object') {
+    patchEnumType(schema.items as Record<string, unknown>)
+  }
 }
 
 function paramToValibot(v: typeof valibot, param: ParamDef): unknown {
