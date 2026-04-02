@@ -1,5 +1,5 @@
 import { useEventListener, useMagicKeys, whenever } from '@vueuse/core'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import { extractImageFilesFromClipboard } from '@/composables/use-canvas-drop'
 import { useAIChat } from '@/composables/use-chat'
@@ -63,6 +63,7 @@ function shouldPreventDefault(e: KeyboardEvent, hasPenState: boolean): boolean {
 export function useKeyboard() {
   const { activeTab, inlinePanel } = useAIChat()
   const store = useEditorStore()
+  const editing = ref(false)
 
   useEventListener(window, 'copy', (e: ClipboardEvent) => {
     if (isEditing(e)) return
@@ -100,7 +101,8 @@ export function useKeyboard() {
     passive: false,
     onEventFired(e) {
       if (e.type !== 'keydown') return
-      if (isEditing(e)) return
+      editing.value = isEditing(e)
+      if (editing.value) return
 
       if (!e.metaKey && !e.ctrlKey && !e.altKey) {
         const tool = TOOL_SHORTCUTS[e.key.toLowerCase()]
@@ -133,7 +135,7 @@ export function useKeyboard() {
   function mod(combo: string): ComputedRef<boolean> {
     const hasShift = combo.includes('shift')
     const hasAlt = combo.includes('alt')
-    const base = computed(() => keys[`meta+${combo}`].value || keys[`control+${combo}`].value)
+    const base = computed(() => !editing.value && (keys[`meta+${combo}`].value || keys[`control+${combo}`].value))
     if (hasShift && hasAlt) return base
     if (hasShift) return computed(() => base.value && !keys['alt'].value)
     if (hasAlt) return computed(() => base.value && !keys['shift'].value)
@@ -180,15 +182,15 @@ export function useKeyboard() {
 
   // --- Shift (no mod) ---
   whenever(
-    computed(() => keys['shift+digit1'].value && !keys['meta'].value && !keys['control'].value),
+    computed(() => !editing.value && keys['shift+digit1'].value && !keys['meta'].value && !keys['control'].value),
     () => store.zoomToFit()
   )
   whenever(
-    computed(() => keys['shift+digit2'].value && !keys['meta'].value && !keys['control'].value),
+    computed(() => !editing.value && keys['shift+digit2'].value && !keys['meta'].value && !keys['control'].value),
     () => store.zoomToSelection()
   )
   whenever(
-    computed(() => keys['shift+keya'].value && !keys['meta'].value && !keys['control'].value),
+    computed(() => !editing.value && keys['shift+keya'].value && !keys['meta'].value && !keys['control'].value),
     () => {
       const node = store.selectedNode.value
       if (node?.type === 'FRAME' && store.selectedNodes.value.length === 1) {
@@ -203,6 +205,7 @@ export function useKeyboard() {
   function plain(key: string): ComputedRef<boolean> {
     return computed(
       () =>
+        !editing.value &&
         keys[key].value &&
         !keys['meta'].value &&
         !keys['control'].value &&
