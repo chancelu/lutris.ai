@@ -583,6 +583,7 @@ export function createEditorStore() {
     const toLoad = collectFontKeys(graph, nodeIds)
     if (toLoad.length === 0) return
 
+    toast.show(`Loading ${toLoad.length} font${toLoad.length > 1 ? 's' : ''}...`)
     const results = await Promise.all(toLoad.map(([family, style]) => loadFont(family, style)))
     const failed = toLoad.filter((_, i) => results[i] === null)
     if (failed.length > 0) {
@@ -593,6 +594,8 @@ export function createEditorStore() {
           : `${families.length} fonts could not be loaded: ${families.join(', ')}`,
         'warning'
       )
+    } else {
+      toast.show(`${toLoad.length} font${toLoad.length > 1 ? 's' : ''} loaded`)
     }
     computeAllLayouts(graph, state.currentPageId)
     requestRender()
@@ -1909,7 +1912,8 @@ export function createEditorStore() {
     addPage,
     deletePage,
     renamePage,
-    restoreFromIDB
+    restoreFromIDB,
+    loadFontsForNodes
   }
 
   async function restoreFromIDB(): Promise<boolean> {

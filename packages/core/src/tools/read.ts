@@ -5,6 +5,7 @@ import { defineTool, nodeSummary, nodeToResult } from './schema'
 import { queryByXPath } from '../xpath'
 
 import type { FigmaNodeProxy } from '../figma-api'
+import type { Fill } from '../scene-graph'
 
 export const getSelection = defineTool({
   name: 'get_selection',
@@ -299,5 +300,102 @@ export const diffJsx = defineTool({
       { context: 3 }
     )
     return { diff: patch }
+  }
+})
+
+function fillToHex(fill: Fill): string | null {
+  if (fill.type !== 'SOLID' || !fill.visible) return null
+  const { r, g, b } = fill.color
+  return '#' + [r, g, b].map(c => Math.round(c * 255).toString(16).padStart(2, '0')).join('').toUpperCase()
+}
+
+function countDescendants(node: FigmaNodeProxy): number {
+  let count = 0
+  const walk = (n: FigmaNodeProxy) => { count++; for (const c of n.children) walk(c) }
+  walk(node)
+  return count - 1 // exclude self
+}
+
+export const designOverview = defineTool({
+  name: 'design_overview',
+  description: 'Compact overview of the entire design: pages, top-level frames with names/sizes, node counts by type, font list, color palette summary. Use this FIRST when analyzing a large imported design.',
+  params: {},
+  execute: (figma) => {
+    const pages = figma.root.children.map(p => ({
+      id: p.id, name: p.name, isCurrent: p.id === figma.currentPage.id
+    }))
+    const page = figma.currentPage
+    const screens = page.children.map(c => ({
+      id: c.id, name: c.name, type: c.type,
+      width: Math.round(c.width), height: Math.round(c.height),
+      childCount: countDescendants(c)
+    }))
+    const byType: Record<string, number> = {}
+    let totalNodes = 0
+    const fonts = new Set<string>()
+    const colors = new Map<string, number>()
+    page.findAll(node => {
+      totalNodes++
+      byType[node.type] = (byType[node.type] || 0) + 1
+      const raw = figma.graph.getNode(node.id)
+      if (!raw) return false
+      if (raw.type === 'TEXT' && raw.fontFamily) fonts.add(raw.fontFamily)
+      for (const fill of raw.fills) {
+        const hex = fillToHex(fill)
+        if (hex) colors.set(hex, (colors.get(hex) || 0) + 1)
+      }
+      return false
+    })
+    const topColors = [...colors.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([hex]) => hex)
+    return {
+      pages, screens,
+      stats: { totalNodes, byType },
+      fonts: [...fonts].sort(),
+      topColors
+    }
+  }
+})
+
+export const describeScreen = defineTool({
+  name: 'describe_screen',
+  description: 'Describe a single screen/frame: layout structure, key components, text content summary, and visual style. Use after design_overview to analyze each screen individually.',
+  params: {
+    id: { type: 'string', description: 'Node ID of the screen/frame to describe', required: true },
+    depth: { type: 'number', description: 'Max depth to traverse (default: 3)' }
+  },
+  execute: (figma, { id, depth = 3 }) => {
+    const node = figma.getNodeById(id)
+    if (!node) return { error: `Node "${id}" not found` }
+
+    const texts: string[] = []
+    type ChildSummary = { name: string; type: string; w: number; h: number; text?: string; children?: ChildSummary[] }
+
+    function walkNode(n: FigmaNodeProxy, d: number): ChildSummary {
+      const raw = figma.graph.getNode(n.id)
+      const entry: ChildSummary = {
+        name: n.name, type: n.type,
+        w: Math.round(n.width), h: Math.round(n.height)
+      }
+      if (n.type === 'TEXT' && raw?.text) {
+        const t = raw.text.length > 100 ? raw.text.slice(0, 100) + '...' : raw.text
+        entry.text = t
+        texts.push(t)
+      }
+      if (d > 0 && n.children.length > 0) {
+        entry.children = n.children.map(c => walkNode(c, d - 1))
+      }
+      return entry
+    }
+
+    const raw = figma.graph.getNode(id)
+    const structure = walkNode(node, depth)
+    const layout = raw?.layoutMode
+      ? { mode: raw.layoutMode, gap: raw.itemSpacing, padding: [raw.paddingTop, raw.paddingRight, raw.paddingBottom, raw.paddingLeft] }
+      : null
+
+    return { id, name: node.name, width: Math.round(node.width), height: Math.round(node.height), layout, structure, textContent: texts.slice(0, 20) }
   }
 })

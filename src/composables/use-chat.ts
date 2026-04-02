@@ -174,6 +174,24 @@ const SYSTEM_PROMPT = dedent`
   - Use the node names and JSX provided to identify what to modify.
   - After modifying, briefly describe what changed so the Product Doc can be updated.
   - If the change affects the product requirements (e.g. new feature, changed layout, removed section), note this so the user can sync the PRD.
+
+  # Analyzing imported designs
+
+  When the user asks you to analyze an imported design or create a spec from it:
+
+  1. Call \`design_overview\` to get the big picture (pages, screens, stats)
+  2. For each major screen, call \`describe_screen\` to understand its structure
+  3. Use \`analyze_colors\` and \`analyze_typography\` for design system extraction
+  4. Synthesize findings into a structured spec with:
+     - Product purpose (inferred from screens and content)
+     - Key screens and user flows
+     - Feature requirements (P0/P1/P2)
+     - Design system (colors, typography, spacing, components)
+     - Technical notes
+  5. Do NOT list every element — summarize the product intent and requirements
+  6. Save the spec using the spec system when complete
+
+  This workflow handles designs of any size by analyzing sections independently.
 `
 
 // ── Environment variable defaults ──

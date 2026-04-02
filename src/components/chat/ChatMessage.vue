@@ -2,12 +2,20 @@
 import { isTextUIPart, isToolUIPart, getToolName } from 'ai'
 import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from 'reka-ui'
 import { Markdown } from 'vue-stream-markdown'
+import { ref } from 'vue'
 import 'vue-stream-markdown/index.css'
 
 import type { UIMessage, UIMessagePart } from 'ai'
 
 const { message } = defineProps<{ message: UIMessage }>()
 const emit = defineEmits<{ saveSummary: [content: string], saveRequirements: [content: string], createSpecDraft: [content: string] }>()
+
+const specDraftSaved = ref(false)
+function onCreateSpecDraft(text: string) {
+  emit('createSpecDraft', text)
+  specDraftSaved.value = true
+  setTimeout(() => { specDraftSaved.value = false }, 2000)
+}
 
 type ToolPart = Extract<UIMessagePart, { toolCallId: string }>
 
@@ -124,12 +132,14 @@ function partKey(part: UIMessagePart, index: number): string {
                 <span>Save requirements</span>
               </button>
               <button
-                class="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted transition-colors hover:bg-accent/10 hover:text-accent"
+                class="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] transition-colors"
+                :class="specDraftSaved ? 'text-green-400' : 'text-muted hover:bg-accent/10 hover:text-accent'"
                 title="Create spec draft"
-                @click="emit('createSpecDraft', part.text)"
+                @click="onCreateSpecDraft(part.text)"
               >
-                <icon-lucide-file-plus class="size-3" />
-                <span>Create spec draft</span>
+                <icon-lucide-check v-if="specDraftSaved" class="size-3" />
+                <icon-lucide-file-plus v-else class="size-3" />
+                <span>{{ specDraftSaved ? 'Spec created!' : 'Create spec draft' }}</span>
               </button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useEventListener, useUrlSearchParams } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
@@ -30,7 +30,7 @@ const firstTab = createTab()
 const store = useEditorStore()
 useKeyboard()
 useMenu()
-const { activeTab: rightTab, focusRequested, inlinePanel } = useAIChat()
+const { activeTab: rightTab, focusRequested, inlinePanel, pendingMessage } = useAIChat()
 const { updateFromDesign } = useProductDoc()
 const {
   init: initProjects, switchProject, activeProjectId,
@@ -78,20 +78,43 @@ async function handleDesignFileChange(event: Event) {
     const { useAssetLibrary } = await import('@/composables/use-asset-library')
     const { loadLibrary } = useAssetLibrary()
     const library = await loadLibrary(file)
+    // Recursively copy a node and all its children from source graph to dest graph
+    function deepImportNode(
+      srcGraph: typeof library.graph,
+      srcNodeId: string,
+      destParentId: string,
+    ) {
+      const src = srcGraph.getNode(srcNodeId)
+      if (!src) return
+      const { id: _id, parentId: _pid, childIds: _cids, ...props } = src
+      const created = store.graph.createNode(src.type, destParentId, props)
+      for (const childId of src.childIds) {
+        deepImportNode(srcGraph, childId, created.id)
+      }
+    }
     // Place imported top-level nodes onto the current canvas page
     const importedGraph = library.graph
     const pages = importedGraph.getPages()
     if (pages.length > 0) {
       const topNodes = importedGraph.getChildren(pages[0].id)
       for (const srcNode of topNodes) {
-        store.graph.createNode(srcNode.type, store.state.currentPageId, {
-          ...srcNode,
-          x: srcNode.x ?? 0,
-          y: srcNode.y ?? 0,
-        })
+        deepImportNode(importedGraph, srcNode.id, store.state.currentPageId)
+      }
+      // Copy images from imported graph
+      for (const [hash, data] of importedGraph.images) {
+        if (!store.graph.images.has(hash)) store.graph.images.set(hash, data)
       }
       store.requestRender()
       setTimeout(() => store.zoomToFit(), 100)
+      // Load fonts for all imported nodes (reuses collectFontKeys which scans descendants)
+      const pageChildren = store.graph.getChildren(store.state.currentPageId)
+      if (pageChildren.length > 0) {
+        store.loadFontsForNodes(pageChildren.map(n => n.id))
+      }
+      // Suggest analysis in chat
+      nextTick(() => {
+        pendingMessage.value = 'I just imported a .fig design file. Please analyze it using design_overview first, then describe each major screen, and create a structured product spec.'
+      })
     }
   } catch (err) {
     toast.show(`Failed to import .fig: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')

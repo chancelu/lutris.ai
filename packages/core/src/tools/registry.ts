@@ -3,7 +3,7 @@ import type { ToolDef } from './schema'
 import {
   getSelection, getPageTree, getNode, findNodes, queryNodes, getComponents,
   listPages, switchPage, getCurrentPage, pageBounds, selectNodes, listFonts,
-  getJsx, diffJsx
+  getJsx, diffJsx, designOverview, describeScreen
 } from './read'
 import {
   createShape, render, createComponent, createInstance,
@@ -56,6 +56,8 @@ export const ALL_TOOLS: ToolDef[] = [
   listFonts,
   getJsx,
   diffJsx,
+  designOverview,
+  describeScreen,
   // Create
   createShape,
   render,

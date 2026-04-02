@@ -12,11 +12,18 @@ import { useAIChat } from '@/composables/use-chat'
 import { useAISelect } from '@/composables/use-ai-select'
 import { useSpec } from '@/composables/use-spec'
 import { toast } from '@/composables/use-toast'
+import { useEditorStore } from '@/stores/editor'
 
 import type { Chat } from '@ai-sdk/vue'
 import type { UIMessage } from 'ai'
 
 const IS_DEV = import.meta.env.DEV
+
+const editorStore = useEditorStore()
+const hasCanvasContent = computed(() => {
+  const page = editorStore.graph.nodes.get(editorStore.state.currentPageId)
+  return (page?.children?.length ?? 0) > 0
+})
 
 const { isConfigured, ensureChat, resetChat, pendingMessage, pendingSystemPrefix, aiProgress, providerID, isServerConfigured, activeTab, aiMode, inlinePanel } = useAIChat()
 const { hasContext, buildContextPrompt, clearAIContext } = useAISelect()
@@ -140,11 +147,13 @@ function handleSaveRequirements(content: string) {
 function handleCreateSpecDraft(content: string) {
   const { createSpecDraftFromAI } = useSpec()
   createSpecDraftFromAI(content)
-  toast.show('Spec draft created — switching to Spec panel ✅')
+  toast.show('Spec created! Edit it in the Spec panel, or ask me to generate designs from it.')
   nextTick(() => {
     inlinePanel.value = 'spec'
   })
 }
+
+const specDraftCreated = ref(false)
 
 function handleCreateSpecFromAll() {
   const { createSpecDraftFromAI } = useSpec()
@@ -158,10 +167,12 @@ function handleCreateSpecFromAll() {
     return
   }
   createSpecDraftFromAI(assistantTexts)
-  toast.show('Combined spec draft created — switching to Spec panel ✅')
+  specDraftCreated.value = true
+  toast.show('Spec draft created! Switching to Spec panel...')
   nextTick(() => {
     inlinePanel.value = 'spec'
   })
+  setTimeout(() => { specDraftCreated.value = false }, 2000)
 }
 </script>
 
@@ -180,6 +191,14 @@ function handleCreateSpecFromAll() {
             <icon-lucide-sparkles class="size-6 text-accent/60" />
             <p class="mt-4 text-[14px] font-medium text-surface/80">What would you like to create?</p>
             <p class="mt-1 text-[11px] text-muted/60">Describe a screen, component, or layout</p>
+            <button
+              v-if="hasCanvasContent"
+              class="mt-4 flex items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/5 px-3 py-1.5 text-[12px] text-accent transition hover:bg-accent/10"
+              @click="handleSubmit('Analyze the imported design and create a product spec')"
+            >
+              <icon-lucide-scan-search class="size-3.5" />
+              Analyze imported design
+            </button>
           </div>
 
           <div v-else data-test-id="chat-messages" class="flex flex-col gap-3">
@@ -242,12 +261,14 @@ function handleCreateSpecFromAll() {
           Clear
         </button>
         <button
-          class="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-accent hover:bg-accent/10"
+          class="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] transition-colors"
+          :class="specDraftCreated ? 'text-green-400' : 'text-accent hover:bg-accent/10'"
           title="Create a structured spec draft from all AI responses"
           @click="handleCreateSpecFromAll"
         >
-          <icon-lucide-file-plus class="size-3" />
-          Create spec draft
+          <icon-lucide-check v-if="specDraftCreated" class="size-3" />
+          <icon-lucide-file-plus v-else class="size-3" />
+          {{ specDraftCreated ? 'Spec created!' : 'Create spec draft' }}
         </button>
       </div>
 
