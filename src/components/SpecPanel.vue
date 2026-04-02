@@ -12,7 +12,7 @@ const store = useEditorStore()
 const hasSummary = computed(() => summary.value.trim().length > 0)
 const hasCanvasContent = computed(() => {
   const page = store.graph.nodes.get(store.state.currentPageId)
-  return (page?.children?.length ?? 0) > 0
+  return (page?.childIds?.length ?? 0) > 0
 })
 
 function generateDesignFromSpec() {

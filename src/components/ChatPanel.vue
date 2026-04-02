@@ -22,7 +22,7 @@ const IS_DEV = import.meta.env.DEV
 const editorStore = useEditorStore()
 const hasCanvasContent = computed(() => {
   const page = editorStore.graph.nodes.get(editorStore.state.currentPageId)
-  return (page?.children?.length ?? 0) > 0
+  return (page?.childIds?.length ?? 0) > 0
 })
 
 const { isConfigured, ensureChat, resetChat, pendingMessage, pendingSystemPrefix, aiProgress, providerID, isServerConfigured, activeTab, aiMode, inlinePanel } = useAIChat()
@@ -156,6 +156,7 @@ function handleCreateSpecDraft(content: string) {
 const specDraftCreated = ref(false)
 
 function handleCreateSpecFromAll() {
+  if (specDraftCreated.value) return
   const { createSpecDraftFromAI } = useSpec()
   const assistantTexts = messages.value
     .filter(m => m.role === 'assistant')

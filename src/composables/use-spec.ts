@@ -157,7 +157,7 @@ function saveRequirementsFromText(text: string, source: SpecSource = 'ai', label
 }
 
 function createSpecDraftFromAI(text: string) {
-  appendSummary(`## Spec Draft\n\n${text}`, 'ai', 'Created spec draft from AI')
+  updateSummary(`## Spec Draft\n\n${text}`, 'ai', 'Created spec draft from AI')
 }
 
 function restoreVersion(versionId: number) {

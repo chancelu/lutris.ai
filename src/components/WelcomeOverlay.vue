@@ -22,7 +22,7 @@ const hasContent = computed(() => {
     return children.length > 0
   } catch {
     const page = store.graph.nodes.get(pageId)
-    return !!(page?.children && page.children.length > 0)
+    return !!(page?.childIds && page.childIds.length > 0)
   }
 })
 

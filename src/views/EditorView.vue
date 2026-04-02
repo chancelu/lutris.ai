@@ -51,7 +51,7 @@ function onSyncPRD() {
   const pageId = store.state.currentPageId
   if (!pageId) return
   const page = store.graph.nodes.get(pageId)
-  const childIds = page?.children || []
+  const childIds = page?.childIds || []
   if (!childIds.length) return
   const desc = childIds.map(id => {
     const n = store.graph.nodes.get(id)
@@ -179,7 +179,7 @@ function onExportClick() {
   const pageId = store.state.currentPageId
   if (pageId) {
     const page = store.graph.nodes.get(pageId)
-    const childIds = page?.children || []
+    const childIds = page?.childIds || []
     if (childIds.length === 0) {
       toast.show('Nothing to export', 'warning')
       return
