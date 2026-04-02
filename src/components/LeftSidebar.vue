@@ -46,6 +46,14 @@ function editWithAI() {
 
     <!-- Design properties (when selection exists) -->
     <div v-if="hasSelection" class="flex max-h-[50%] shrink-0 flex-col overflow-y-auto">
+      <button
+        class="flex shrink-0 items-center gap-1.5 px-2 py-1.5 text-left hover:bg-hover"
+        @click="store.clearSelection()"
+      >
+        <icon-lucide-chevron-right class="size-3 rotate-90 text-muted" />
+        <span class="text-[11px] font-medium text-surface">Design</span>
+        <span class="ml-auto text-[10px] text-muted">✕</span>
+      </button>
       <DesignPanel />
     </div>
 
