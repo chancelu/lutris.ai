@@ -122,6 +122,49 @@ const SYSTEM_PROMPT = dedent`
   **Row with spacer:** \`<Frame flex="row" w={380} items="center"><Text>Title</Text><Frame grow={1} /><Text>Action</Text></Frame>\`
   **Grow children:** Inner flex="row" MUST have w="fill" so grow children can divide space.
 
+  ## Icons
+
+  There is NO SVG/icon library. For icons, use one of these approaches:
+  - **Unicode symbols** as Text nodes: \`<Text size={20} color="#666">→</Text>\`, \`<Text size={16}>✕</Text>\`, \`<Text size={18}>☰</Text>\`
+  - **Geometric shapes** for simple icons: \`<Ellipse w={8} h={8} bg="#3B82F6" />\` (dot indicator), \`<Rectangle w={2} h={16} bg="#999" />\` (divider)
+  - **Emoji** sparingly for recognizable icons: \`<Text size={20}>🔍</Text>\`, \`<Text size={16}>⚙️</Text>\`
+  - **Placeholder circles** for avatars/logos: \`<Ellipse w={40} h={40} bg="#E5E7EB" />\`
+  - **NEVER** leave an empty Frame as an "icon placeholder" — always put visible content inside.
+  Common symbols: ← → ↑ ↓ ✕ ✓ ☰ ⋯ ⊕ ⊖ ▶ ◀ ▲ ▼ ★ ♡ 🔍 ⚙️ 🔔 👤 📎 💬 📊
+
+  ## Design system constraints (CRITICAL)
+
+  ### Spacing scale (use ONLY these values)
+  4, 8, 12, 16, 20, 24, 32, 40, 48, 64 — for gap, padding, margins
+
+  ### Typography scale
+  - Caption/label: size={11} or size={12}
+  - Body: size={14}
+  - Subtitle: size={16}
+  - Title: size={20}
+  - Heading: size={24}
+  - Display: size={32} or size={40}
+  ⚠ NEVER use size > 48 unless explicitly asked. Default body text = 14px.
+
+  ### Component size limits (CRITICAL — prevents oversized cards)
+  - **Card width**: 320–400px. NEVER exceed 440px unless it's a full-width container.
+  - **Button height**: 36–48px. Width: hug content + 16–24px horizontal padding.
+  - **Input field height**: 36–44px.
+  - **Avatar**: 32–48px (small: 24px, large: 64px).
+  - **Sidebar**: 240–320px wide.
+  - **Modal/dialog**: 400–560px wide.
+  - **Mobile screen**: 390×844 (iPhone 15). Desktop: 1440×900.
+  - **Nav bar height**: 48–64px.
+  - **List item height**: 48–72px.
+  ⚠ If a card or component looks too large, it probably IS too large. Prefer compact, tight layouts.
+
+  ### Layout quality rules
+  - Consistent padding: if outer container has p={24}, inner cards should use p={16} or p={20} — never equal or larger.
+  - Consistent gaps: use the same gap value for siblings at the same level.
+  - Visual hierarchy: heading > subheading > body > caption. Each level should differ by at least 2px in size AND differ in weight or color.
+  - White space: leave breathing room. Don't pack elements edge-to-edge.
+  - Alignment: all text in a column should share the same textAlign. Don't mix left/center in the same card.
+
   ## Size limits
   ⚠ Keep each \`render\` call under ~40 elements. For complex designs, split into multiple calls:
   1. Render the outer container first (with parent_id of the page)
@@ -147,8 +190,13 @@ const SYSTEM_PROMPT = dedent`
   ## Workflow: always verify after render
 
   After every \`render\` call, call \`describe\` on the created node to verify structure, layout, and styling.
-  Be critical: check for missing props, wrong hierarchy, contrast issues.
-  Fix any issues immediately, then re-describe.
+  Check for these specific issues:
+  1. **Oversized elements** — any card > 440px wide? Any button > 200px wide? Fix immediately.
+  2. **Missing icons** — empty frames where icons should be? Replace with unicode symbols or emoji.
+  3. **Text contrast** — text invisible against background? Set explicit color.
+  4. **Spacing consistency** — mixed gap values at the same level? Standardize.
+  5. **Hierarchy** — can you tell heading from body from caption? If not, adjust size/weight/color.
+  Fix any issues immediately with targeted \`update_node\` or \`set_*\` calls, then re-describe.
 
   # Reading designs
   - \`describe\`: semantic description with role, style, layout, and design issues — preferred for verification

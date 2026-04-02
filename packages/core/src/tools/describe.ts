@@ -141,7 +141,7 @@ function detectStructuralIssues(node: SceneNode, gridSize: number, issues: Descr
   }
   const isContainer = node.type === 'FRAME' || node.type === 'COMPONENT' || node.type === 'INSTANCE'
   if (isContainer && node.fills.length === 0 && node.childIds.length === 0) {
-    issues.push({ message: 'Empty frame with no fill' })
+    issues.push({ message: 'Empty frame with no fill', suggestion: 'Add content or a fill color — empty frames are invisible' })
   }
   if (looksLikeButton(node) && node.width < 44) {
     issues.push({ message: `Touch target too small (${node.width}×${node.height})`, suggestion: 'Min 44×44' })
@@ -149,6 +149,21 @@ function detectStructuralIssues(node: SceneNode, gridSize: number, issues: Descr
   if (node.itemSpacing > 0 && node.itemSpacing % gridSize !== 0) {
     const nearest = Math.round(node.itemSpacing / gridSize) * gridSize
     issues.push({ message: `Gap ${node.itemSpacing} not on ${gridSize}px grid`, suggestion: `${nearest}` })
+  }
+  // Detect oversized cards/components
+  if (isContainer && node.parentId) {
+    const name = node.name.toLowerCase()
+    const isCard = name.includes('card') || name.includes('item') || name.includes('tile')
+    if (isCard && node.width > 440) {
+      issues.push({ message: `Card too wide (${Math.round(node.width)}px)`, suggestion: 'Max 400px for cards, 440px absolute max' })
+    }
+    if (looksLikeButton(node) && node.width > 200) {
+      issues.push({ message: `Button too wide (${Math.round(node.width)}px)`, suggestion: 'Buttons should hug content, max ~200px' })
+    }
+  }
+  // Detect oversized text
+  if (node.type === 'TEXT' && node.fontSize > 48) {
+    issues.push({ message: `Text size ${node.fontSize}px is very large`, suggestion: 'Use 32-40px for display, 24px for headings' })
   }
 }
 
