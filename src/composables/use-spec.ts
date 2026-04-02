@@ -7,6 +7,7 @@ import type { Requirement, RequirementsBoard } from '@/types/requirements'
 
 const specDocument = ref<SpecDocument>(createEmptySpecDocument())
 let initialized = false
+let syncing = false
 
 function syncFromProject() {
   const { activePRD } = useProjects()
@@ -31,6 +32,7 @@ function syncFromProject() {
 
 function syncToProject() {
   const { activePRD, saveActiveProjectData } = useProjects()
+  syncing = true
   activePRD.value = {
     ...activePRD.value,
     content: specDocument.value.summary,
@@ -45,6 +47,7 @@ function syncToProject() {
     requirementsBoard: structuredClone(specDocument.value.requirementsBoard),
     syncMeta: structuredClone(specDocument.value.syncMeta),
   } as typeof activePRD.value
+  syncing = false
   void saveActiveProjectData()
 }
 
@@ -183,9 +186,9 @@ function initSpec() {
 
   if (!projectWatchInit) {
     projectWatchInit = true
-    const { activeProjectId } = useProjects()
-    watch(activeProjectId, () => {
-      syncFromProject()
+    const { activeProjectId, activePRD } = useProjects()
+    watch([activeProjectId, activePRD], () => {
+      if (!syncing) syncFromProject()
     })
   }
 }
