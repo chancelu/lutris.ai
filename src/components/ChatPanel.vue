@@ -169,10 +169,10 @@ function handleCreateSpecFromAll() {
   createSpecDraftFromAI(assistantTexts)
   specDraftCreated.value = true
   toast.show('Spec draft created! Switching to Spec panel...')
-  nextTick(() => {
+  setTimeout(() => {
     inlinePanel.value = 'spec'
-  })
-  setTimeout(() => { specDraftCreated.value = false }, 2000)
+  }, 600)
+  setTimeout(() => { specDraftCreated.value = false }, 3000)
 }
 </script>
 
@@ -261,8 +261,8 @@ function handleCreateSpecFromAll() {
           Clear
         </button>
         <button
-          class="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] transition-colors"
-          :class="specDraftCreated ? 'text-green-400' : 'text-accent hover:bg-accent/10'"
+          class="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] transition-all duration-300"
+          :class="specDraftCreated ? 'bg-green-500/15 text-green-400 scale-105' : 'text-accent hover:bg-accent/10'"
           title="Create a structured spec draft from all AI responses"
           @click="handleCreateSpecFromAll"
         >
