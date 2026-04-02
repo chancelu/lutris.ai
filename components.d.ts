@@ -70,6 +70,7 @@ declare module 'vue' {
     IconLucideRadius: typeof import('~icons/lucide/radius')['default']
     IconLucideRotateCcw: typeof import('~icons/lucide/rotate-ccw')['default']
     IconLucideRotateCw: typeof import('~icons/lucide/rotate-cw')['default']
+    IconLucideScanSearch: typeof import('~icons/lucide/scan-search')['default']
     IconLucideScrollText: typeof import('~icons/lucide/scroll-text')['default']
     IconLucideSend: typeof import('~icons/lucide/send')['default']
     IconLucideSettings: typeof import('~icons/lucide/settings')['default']
