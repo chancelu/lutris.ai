@@ -40,6 +40,7 @@ import { exportTailwindConfig } from './export-tailwind-config'
 import { exportCode } from './export-code'
 import { describe } from './describe'
 import { getDesignPattern } from './patterns'
+import { createIcon } from './icons'
 
 export const ALL_TOOLS: ToolDef[] = [
   // Read
@@ -145,6 +146,7 @@ export const ALL_TOOLS: ToolDef[] = [
   diffDesignSystem,
   describe,
   getDesignPattern,
+  createIcon,
   // Export
   exportTailwindConfig,
   exportCode,

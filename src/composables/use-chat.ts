@@ -125,12 +125,13 @@ const SYSTEM_PROMPT = dedent`
   ## Icons
 
   There is NO SVG/icon library. For icons, use one of these approaches:
-  - **Unicode symbols** as Text nodes: \`<Text size={20} color="#666">→</Text>\`, \`<Text size={16}>✕</Text>\`, \`<Text size={18}>☰</Text>\`
-  - **Geometric shapes** for simple icons: \`<Ellipse w={8} h={8} bg="#3B82F6" />\` (dot indicator), \`<Rectangle w={2} h={16} bg="#999" />\` (divider)
+  - **\`create_icon\` tool** (PREFERRED): Call \`create_icon\` with a name and optional size/color/parent_id. Available icons: home, arrow-left, arrow-right, chevron-left, chevron-right, chevron-down, menu, search, plus, minus, x, check, edit, user, users, settings, heart, star, bell, mail, phone, calendar, clock, image, camera, play, pause, file, folder, download, upload, trash, copy, message-circle, send, share, alert-circle, check-circle, info, eye, eye-off, grid, list, filter, log-out, log-in, link, external-link, refresh, loader, zap, globe.
+  - **Unicode symbols** as fallback: \`<Text size={20} color="#666">→</Text>\`, \`<Text size={16}>✕</Text>\`
+  - **Geometric shapes** for simple indicators: \`<Ellipse w={8} h={8} bg="#3B82F6" />\` (dot), \`<Rectangle w={2} h={16} bg="#999" />\` (divider)
   - **Placeholder circles** for avatars/logos: \`<Ellipse w={40} h={40} bg="#E5E7EB" />\`
   - **NEVER** leave an empty Frame as an "icon placeholder" — always put visible content inside.
-  - ⚠ **NEVER use emoji** (🔍 ⚙️ 🔔 👤 etc.) — the renderer has NO emoji font and will show "NO GLYPH" boxes. Use ONLY basic unicode symbols that exist in standard fonts.
-  Safe symbols: ← → ↑ ↓ ✕ ✓ ☰ ⋯ ⊕ ⊖ ▶ ◀ ▲ ▼ ★ ♡ ● ○ ■ □ △ ▽ ◆ ◇ + − × ÷
+  - ⚠ **NEVER use emoji** (🔍 ⚙️ 🔔 👤 etc.) — the renderer has NO emoji font and will show "NO GLYPH" boxes. Use \`create_icon\` or basic unicode symbols only.
+  Safe unicode symbols: ← → ↑ ↓ ✕ ✓ ☰ ⋯ ⊕ ⊖ ▶ ◀ ▲ ▼ ★ ♡ ● ○ ■ □ △ ▽ ◆ ◇ + − × ÷
 
   # Design Thinking (apply BEFORE writing any JSX)
 
