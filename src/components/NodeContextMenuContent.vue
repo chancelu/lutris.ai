@@ -16,6 +16,27 @@ const hasSelection = computed(() => {
   return store.state.selectedIds.size > 0
 })
 
+const canGroup = computed(() => {
+  void store.state.sceneVersion
+  const ids = [...store.state.selectedIds]
+  if (ids.length < 2) return false
+  const first = store.graph.getNode(ids[0])
+  if (!first) return false
+  const parentId = first.parentId ?? store.state.currentPageId
+  return ids.every((id) => {
+    const n = store.graph.getNode(id)
+    return n && (n.parentId ?? store.state.currentPageId) === parentId
+  })
+})
+
+const canUngroup = computed(() => {
+  void store.state.sceneVersion
+  const ids = [...store.state.selectedIds]
+  if (ids.length !== 1) return false
+  const node = store.graph.getNode(ids[0])
+  return node?.type === 'GROUP'
+})
+
 function selectedIds(): string[] {
   return [...store.state.selectedIds]
 }
@@ -54,6 +75,15 @@ const separatorClass = menuSeparator({ class: 'my-1' })
     <ContextMenuItem :class="itemClass" :disabled="!hasSelection" @select="store.deleteSelected()">
       <span>Delete</span>
       <span class="text-[12px] text-muted">&#9003;</span>
+    </ContextMenuItem>
+    <ContextMenuSeparator :class="separatorClass" />
+    <ContextMenuItem :class="itemClass" :disabled="!canGroup" @select="store.groupSelected()">
+      <span>Group</span>
+      <span class="text-[12px] text-muted">&#8984;G</span>
+    </ContextMenuItem>
+    <ContextMenuItem :class="itemClass" :disabled="!canUngroup" @select="store.ungroupSelected()">
+      <span>Ungroup</span>
+      <span class="text-[12px] text-muted">&#8679;&#8984;G</span>
     </ContextMenuItem>
 
     <ContextMenuSeparator :class="separatorClass" />

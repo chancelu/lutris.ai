@@ -135,6 +135,70 @@ const contextNodeId = computed(() => {
   const ids = store.state.selectedIds
   return ids.size > 0 ? [...ids][0] : null
 })
+
+// --- Drag & Drop ---
+const dragState = ref<{
+  dragId: string
+  targetId: string
+  position: 'before' | 'inside' | 'after'
+} | null>(null)
+
+function onDragStart(e: DragEvent, nodeId: string) {
+  if (!e.dataTransfer) return
+  e.dataTransfer.effectAllowed = 'move'
+  e.dataTransfer.setData('text/plain', nodeId)
+  dragState.value = { dragId: nodeId, targetId: '', position: 'before' }
+}
+
+function onDragOver(e: DragEvent, nodeId: string) {
+  if (!dragState.value || dragState.value.dragId === nodeId) return
+  if (store.graph.isDescendant(nodeId, dragState.value.dragId)) return
+  e.preventDefault()
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  const y = e.clientY - rect.top
+  const ratio = y / rect.height
+  let position: 'before' | 'inside' | 'after'
+  if (ratio < 0.25) position = 'before'
+  else if (ratio > 0.75) position = 'after'
+  else position = store.graph.isContainer(nodeId) ? 'inside' : (ratio < 0.5 ? 'before' : 'after')
+  dragState.value = { ...dragState.value, targetId: nodeId, position }
+}
+
+function onDrop(e: DragEvent) {
+  e.preventDefault()
+  const ds = dragState.value
+  if (!ds || !ds.targetId) return
+  const { dragId, targetId, position } = ds
+  dragState.value = null
+  if (dragId === targetId) return
+  if (store.graph.isDescendant(targetId, dragId)) return
+
+  const target = store.graph.getNode(targetId)
+  if (!target) return
+
+  if (position === 'inside') {
+    store.reorderChildWithUndo(dragId, targetId, target.childIds.length)
+  } else {
+    const parentId = target.parentId ?? store.state.currentPageId
+    const parent = store.graph.getNode(parentId)
+    if (!parent) return
+    const idx = parent.childIds.indexOf(targetId)
+    store.reorderChildWithUndo(dragId, parentId, position === 'before' ? idx : idx + 1)
+  }
+  store.requestRender()
+}
+
+function onDragEnd() {
+  dragState.value = null
+}
+
+function dropClass(nodeId: string): string {
+  const ds = dragState.value
+  if (!ds || ds.targetId !== nodeId) return ''
+  if (ds.position === 'before') return 'layer-drop-before'
+  if (ds.position === 'after') return 'layer-drop-after'
+  return 'layer-drop-inside'
+}
 </script>
 
 <template>
@@ -146,6 +210,7 @@ const contextNodeId = computed(() => {
           :key="node.id"
           :data-node-id="node.id"
           data-test-id="layers-item"
+          draggable="true"
           class="flex w-full cursor-pointer items-center gap-1 rounded border-none py-1 text-left text-xs"
           :style="{ paddingLeft: `${4 + node.depth * 16}px` }"
           :class="[
@@ -153,8 +218,13 @@ const contextNodeId = computed(() => {
               ? 'bg-accent text-white'
               : 'bg-transparent text-surface hover:bg-hover',
             !node.visible ? 'opacity-50' : '',
+            dropClass(node.id),
           ]"
           @click="onClick($event, node.id)"
+          @dragstart="onDragStart($event, node.id)"
+          @dragover="onDragOver($event, node.id)"
+          @drop="onDrop($event)"
+          @dragend="onDragEnd"
         >
           <span
             class="flex size-4 shrink-0 items-center justify-center"
@@ -184,3 +254,15 @@ const contextNodeId = computed(() => {
     </ContextMenuPortal>
   </ContextMenuRoot>
 </template>
+
+<style scoped>
+.layer-drop-before {
+  border-top: 2px solid var(--color-accent, #3b82f6);
+}
+.layer-drop-after {
+  border-bottom: 2px solid var(--color-accent, #3b82f6);
+}
+.layer-drop-inside {
+  background-color: color-mix(in srgb, var(--color-accent, #3b82f6) 20%, transparent);
+}
+</style>
