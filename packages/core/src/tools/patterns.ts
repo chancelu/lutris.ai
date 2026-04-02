@@ -106,7 +106,7 @@ const PATTERNS: Record<string, DesignPattern> = {
     <Ellipse w={32} h={32} bg="#3B82F6" />
     <Text size={14} weight="bold" color="#111827">App Name</Text>
   </Frame>
-  {['☰ Dashboard', '👤 Users', '⚙️ Settings'].map(item => (
+  {['☰ Dashboard', '○ Users', '◆ Settings'].map(item => (
     <Frame w="fill" h={40} flex="row" items="center" px={16} rounded={8}>
       <Text size={14} color="#374151">{item}</Text>
     </Frame>

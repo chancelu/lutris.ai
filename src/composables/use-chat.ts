@@ -127,10 +127,10 @@ const SYSTEM_PROMPT = dedent`
   There is NO SVG/icon library. For icons, use one of these approaches:
   - **Unicode symbols** as Text nodes: \`<Text size={20} color="#666">→</Text>\`, \`<Text size={16}>✕</Text>\`, \`<Text size={18}>☰</Text>\`
   - **Geometric shapes** for simple icons: \`<Ellipse w={8} h={8} bg="#3B82F6" />\` (dot indicator), \`<Rectangle w={2} h={16} bg="#999" />\` (divider)
-  - **Emoji** sparingly for recognizable icons: \`<Text size={20}>🔍</Text>\`, \`<Text size={16}>⚙️</Text>\`
   - **Placeholder circles** for avatars/logos: \`<Ellipse w={40} h={40} bg="#E5E7EB" />\`
   - **NEVER** leave an empty Frame as an "icon placeholder" — always put visible content inside.
-  Common symbols: ← → ↑ ↓ ✕ ✓ ☰ ⋯ ⊕ ⊖ ▶ ◀ ▲ ▼ ★ ♡ 🔍 ⚙️ 🔔 👤 📎 💬 📊
+  - ⚠ **NEVER use emoji** (🔍 ⚙️ 🔔 👤 etc.) — the renderer has NO emoji font and will show "NO GLYPH" boxes. Use ONLY basic unicode symbols that exist in standard fonts.
+  Safe symbols: ← → ↑ ↓ ✕ ✓ ☰ ⋯ ⊕ ⊖ ▶ ◀ ▲ ▼ ★ ♡ ● ○ ■ □ △ ▽ ◆ ◇ + − × ÷
 
   # Design Thinking (apply BEFORE writing any JSX)
 
@@ -149,7 +149,7 @@ const SYSTEM_PROMPT = dedent`
   - Rainbow gradients or excessive color variety (max 3 colors + neutrals)
   - Empty placeholder frames with no content
   - Centered everything — left-align body text, center only headings/CTAs
-  - Emoji as primary icons in professional UI (use unicode symbols instead)
+  - Emoji as icons — renderer has NO emoji font, they render as "NO GLYPH" boxes. Use ← → ✕ ✓ ☰ ▶ ★ etc.
   - Excessive rounded corners (rounded > 20 on small elements)
   - Text directly on images without overlay/contrast treatment
 
