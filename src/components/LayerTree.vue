@@ -176,15 +176,39 @@ function onDrop(e: DragEvent) {
   const target = store.graph.getNode(targetId)
   if (!target) return
 
+  let newParentId: string
+  let idx: number
   if (position === 'inside') {
-    store.reorderChildWithUndo(dragId, targetId, target.childIds.length)
+    newParentId = targetId
+    idx = target.childIds.length
   } else {
-    const parentId = target.parentId ?? store.state.currentPageId
-    const parent = store.graph.getNode(parentId)
+    newParentId = target.parentId ?? store.state.currentPageId
+    const parent = store.graph.getNode(newParentId)
     if (!parent) return
-    const idx = parent.childIds.indexOf(targetId)
-    store.reorderChildWithUndo(dragId, parentId, position === 'before' ? idx : idx + 1)
+    const ti = parent.childIds.indexOf(targetId)
+    idx = position === 'before' ? ti : ti + 1
   }
+
+  // Coordinate conversion for cross-parent moves
+  const dragNode = store.graph.getNode(dragId)
+  if (!dragNode) return
+  const oldParentId = dragNode.parentId ?? store.state.currentPageId
+  if (oldParentId !== newParentId) {
+    const absPos = store.graph.getAbsolutePosition(dragId)
+    const isTopLevel = (id: string) => {
+      const n = store.graph.getNode(id)
+      return !n || n.type === 'CANVAS'
+    }
+    const newParentAbs = isTopLevel(newParentId)
+      ? { x: 0, y: 0 }
+      : store.graph.getAbsolutePosition(newParentId)
+    store.graph.updateNode(dragId, {
+      x: absPos.x - newParentAbs.x,
+      y: absPos.y - newParentAbs.y,
+    })
+  }
+
+  store.reorderChildWithUndo(dragId, newParentId, idx)
   store.requestRender()
 }
 
