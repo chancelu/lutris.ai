@@ -35,7 +35,7 @@ const { updateFromDesign } = useProductDoc()
 const {
   init: initProjects, switchProject, activeProjectId,
   activeProject, projects: projectsList, createProject,
-  deleteProject, startAutosave, stopAutosave
+  deleteProject, startAutosave, stopAutosave, saveCurrentDesign
 } = useProjects()
 
 onMounted(async () => {
@@ -51,6 +51,11 @@ onMounted(async () => {
   startAutosave(store)
 })
 onUnmounted(() => stopAutosave())
+
+// Save design when page becomes hidden (tab switch, close, refresh)
+useEventListener(document, 'visibilitychange', () => {
+  if (document.visibilityState === 'hidden') void saveCurrentDesign(store)
+})
 
 function onSyncPRD() {
   const pageId = store.state.currentPageId
