@@ -17,9 +17,9 @@ const hasSelection = computed(() => {
 })
 
 const canGroup = computed(() => {
-  void store.state.sceneVersion
   const ids = [...store.state.selectedIds]
   if (ids.length < 2) return false
+  void store.state.sceneVersion
   const first = store.graph.getNode(ids[0])
   if (!first) return false
   const parentId = first.parentId ?? store.state.currentPageId
@@ -30,9 +30,9 @@ const canGroup = computed(() => {
 })
 
 const canUngroup = computed(() => {
-  void store.state.sceneVersion
   const ids = [...store.state.selectedIds]
   if (ids.length !== 1) return false
+  void store.state.sceneVersion
   const node = store.graph.getNode(ids[0])
   return node?.type === 'GROUP'
 })
