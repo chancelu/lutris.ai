@@ -64,7 +64,25 @@ export const render = defineTool({
       x: args.x,
       y: args.y
     })
-    return { id: result.id, name: result.name, type: result.type, children: result.childIds }
+
+    // Auto-quality scan
+    const { detectIssues } = await import('./describe.js')
+    const issues: { nodeId: string; nodeName: string; message: string; suggestion?: string }[] = []
+    function walkIssues(nodeId: string) {
+      const node = figma.graph.getNode(nodeId)
+      if (!node) return
+      for (const issue of detectIssues(node, 8, figma.graph)) {
+        issues.push({ nodeId: node.id, nodeName: node.name, ...issue })
+      }
+      for (const childId of node.childIds) walkIssues(childId)
+    }
+    walkIssues(result.id)
+
+    return {
+      id: result.id, name: result.name, type: result.type,
+      children: result.childIds,
+      ...(issues.length > 0 ? { quality_issues: issues, _note: 'Fix these issues before proceeding.' } : {})
+    }
   }
 })
 

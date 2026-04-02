@@ -198,7 +198,7 @@ function detectVisibilityIssues(node: SceneNode, graph: SceneGraph, issues: Desc
   }
 }
 
-function detectIssues(node: SceneNode, gridSize: number, graph: SceneGraph): DescribeIssue[] {
+export function detectIssues(node: SceneNode, gridSize: number, graph: SceneGraph): DescribeIssue[] {
   const issues: DescribeIssue[] = []
   detectStructuralIssues(node, gridSize, issues)
   detectVisibilityIssues(node, graph, issues)
