@@ -496,6 +496,7 @@ function createTransport() {
     onFinish: () => {
       tools.commitAIBatch()
       aiProgress.value = 'idle'
+      saveChatToProject()
     }
   })
 
@@ -575,7 +576,18 @@ function getRestoredMessages(): UIMessage[] {
   }
 }
 
-/** Save current chat messages to the active project. */
+/** Sync current chat messages to the active project ref (no IDB write). */
+function syncChatToProject(): void {
+  if (!chat) return
+  try {
+    const { activeChat } = useProjects()
+    activeChat.value = { messages: [...chat.messages] }
+  } catch {
+    // ignore
+  }
+}
+
+/** Save current chat messages to the active project and persist to IDB. */
 function saveChatToProject(): void {
   if (!chat) return
   try {
@@ -635,6 +647,7 @@ export function useAIChat() {
     ensureChat,
     resetChat,
     saveChatToProject,
+    syncChatToProject,
     aiProgress,
     aiMode,
     aiModeLabel,

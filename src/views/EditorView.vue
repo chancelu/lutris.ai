@@ -30,7 +30,7 @@ const firstTab = createTab()
 const store = useEditorStore()
 useKeyboard()
 useMenu()
-const { activeTab: rightTab, focusRequested, inlinePanel, pendingMessage } = useAIChat()
+const { activeTab: rightTab, focusRequested, inlinePanel, pendingMessage, syncChatToProject } = useAIChat()
 const { updateFromDesign } = useProductDoc()
 const {
   init: initProjects, switchProject, activeProjectId,
@@ -52,9 +52,17 @@ onMounted(async () => {
 })
 onUnmounted(() => stopAutosave())
 
-// Save design when page becomes hidden (tab switch, close, refresh)
+// Save design and chat when page becomes hidden (tab switch, close, refresh)
 useEventListener(document, 'visibilitychange', () => {
-  if (document.visibilityState === 'hidden') void saveCurrentDesign(store)
+  if (document.visibilityState === 'hidden') {
+    syncChatToProject()
+    void saveCurrentDesign(store)
+  }
+})
+// Also sync on beforeunload as a safety net (visibilitychange may not fire on all browsers)
+useEventListener(window, 'beforeunload', () => {
+  syncChatToProject()
+  void saveCurrentDesign(store)
 })
 
 function onSyncPRD() {
