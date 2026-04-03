@@ -1,6 +1,7 @@
 import { parseColor, colorToFill } from '../color'
 import { TRANSPARENT } from '../constants'
 import { isTreeNode } from './tree'
+import { stripEmoji, emojiToIconName, getIconNetwork } from './emoji-icons'
 
 import type { SceneGraph, SceneNode, NodeType, LayoutMode, GridTrack, Stroke } from '../scene-graph'
 import type { TreeNode } from './tree'
@@ -110,7 +111,15 @@ function renderNode(graph: SceneGraph, tree: TreeNode, parentId: string): SceneN
 
   if (isText) {
     const textContent = tree.children.filter((c): c is string => typeof c === 'string').join('')
-    if (textContent) overrides.text = textContent
+    if (textContent) {
+      // If text is purely emoji, replace with a vector icon
+      const iconName = emojiToIconName(textContent.trim())
+      if (iconName) {
+        return createIconNode(graph, parentId, iconName, overrides)
+      }
+      // Strip any remaining emoji from mixed text
+      overrides.text = stripEmoji(textContent)
+    }
   }
 
   const node = graph.createNode(nodeType, parentId, overrides)
@@ -123,6 +132,41 @@ function renderNode(graph: SceneGraph, tree: TreeNode, parentId: string): SceneN
   }
 
   return node
+}
+
+function createIconNode(
+  graph: SceneGraph,
+  parentId: string,
+  iconName: string,
+  overrides: Partial<SceneNode>,
+): SceneNode {
+  const network = getIconNetwork(iconName)
+  if (!network) {
+    return graph.createNode('ELLIPSE', parentId, {
+      ...overrides, width: overrides.fontSize ?? 24, height: overrides.fontSize ?? 24,
+      name: iconName,
+    })
+  }
+  const size = overrides.fontSize ?? 24
+  const scale = size / 24
+  const scaled = {
+    vertices: network.vertices.map(v => ({ x: v.x * scale, y: v.y * scale })),
+    segments: network.segments.map(s => ({
+      ...s,
+      tangentStart: { x: s.tangentStart.x * scale, y: s.tangentStart.y * scale },
+      tangentEnd: { x: s.tangentEnd.x * scale, y: s.tangentEnd.y * scale },
+    })),
+    regions: network.regions,
+  }
+  const color = overrides.fills?.[0]?.color ?? parseColor('#374151')
+  return graph.createNode('VECTOR', parentId, {
+    name: iconName,
+    width: size,
+    height: size,
+    vectorNetwork: scaled,
+    strokes: [{ color, weight: scale * 2, opacity: 1, visible: true, align: 'CENTER' as const }],
+    fills: [],
+  })
 }
 
 function applySizeOverrides(
