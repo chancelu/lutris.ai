@@ -81,7 +81,7 @@ function circle(cx: number, cy: number, r: number): VectorNetwork {
   return { vertices, segments, regions: [{ windingRule: 'NONZERO', loops: [[0, 1, 2, 3]] }] }
 }
 
-const ICONS: Record<string, VectorNetwork> = {
+export const ICONS: Record<string, VectorNetwork> = {
   // Navigation
   home: merge(polyline([3,9],[12,2],[21,9]), polyline([4,10],[4,20],[10,20],[10,14],[14,14],[14,20],[20,20],[20,10])),
   'arrow-left': merge(polyline([19,12],[5,12]), polyline([12,19],[5,12],[12,5])),
