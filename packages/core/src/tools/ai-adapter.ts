@@ -12,7 +12,7 @@ import type * as valibot from 'valibot'
 export interface AIAdapterOptions {
   getFigma: () => FigmaAPI
   onBeforeExecute?: (def: ToolDef) => void
-  onAfterExecute?: (def: ToolDef, result: unknown) => void
+  onAfterExecute?: (def: ToolDef, result: unknown, args: Record<string, unknown>) => void
   onFlashNodes?: (nodeIds: string[]) => void
 }
 
@@ -77,7 +77,7 @@ export function toolsToAI(
         } catch (err) {
           return { error: err instanceof Error ? err.message : String(err) }
         } finally {
-          options.onAfterExecute?.(def, execResult)
+          options.onAfterExecute?.(def, execResult, args)
         }
       }
     }

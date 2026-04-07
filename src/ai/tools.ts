@@ -23,6 +23,22 @@ function findAutoLayoutAncestor(store: EditorStore, nodeId: string): string | nu
   return null
 }
 
+/** Collect all node IDs mentioned in tool args and result */
+function collectAffectedIds(args: Record<string, unknown>, result: unknown): string[] {
+  const ids = new Set<string>()
+  // From args: id, ids, parentId, parent_id, target_id, node_id
+  for (const key of ['id', 'parentId', 'parent_id', 'target_id', 'node_id']) {
+    const v = args[key]
+    if (typeof v === 'string' && v) ids.add(v)
+  }
+  if (Array.isArray(args.ids)) {
+    for (const v of args.ids) { if (typeof v === 'string') ids.add(v) }
+  }
+  // From result
+  for (const id of extractNodeIds(result)) ids.add(id)
+  return [...ids]
+}
+
 export function createAITools(store: EditorStore) {
   // Batch undo: capture one before-snapshot for the entire AI turn
   let batchBeforeSnapshot: Map<string, SceneNode> | null = null
@@ -43,22 +59,35 @@ export function createAITools(store: EditorStore) {
           batchActive = true
         }
       },
-      onAfterExecute: (def, result) => {
+      onAfterExecute: (def, result, args) => {
         // Only recompute layout for the auto-layout ancestors of affected nodes,
         // not the entire page — avoids disrupting other frames' layouts
-        const affectedIds = extractNodeIds(result)
-        if (affectedIds.length > 0) {
-          const recomputed = new Set<string>()
-          for (const id of affectedIds) {
-            const ancestor = findAutoLayoutAncestor(store, id)
-            if (ancestor && !recomputed.has(ancestor)) {
-              recomputed.add(ancestor)
-              computeLayout(store.graph, ancestor)
+        const affectedIds = collectAffectedIds(args, result)
+        const recomputed = new Set<string>()
+        for (const id of affectedIds) {
+          // Also check the node itself (it might be an auto-layout frame)
+          const node = store.graph.getNode(id)
+          if (node && node.layoutMode !== 'NONE' && !recomputed.has(id)) {
+            recomputed.add(id)
+            computeLayout(store.graph, id)
+          }
+          const ancestor = findAutoLayoutAncestor(store, id)
+          if (ancestor && !recomputed.has(ancestor)) {
+            recomputed.add(ancestor)
+            computeLayout(store.graph, ancestor)
+          }
+        }
+        // If no specific frames were recomputed but the tool mutates,
+        // only recompute layout for newly created top-level frames
+        // (don't touch existing frames that weren't modified)
+        if (recomputed.size === 0 && def.mutates) {
+          const resultIds = extractNodeIds(result)
+          for (const id of resultIds) {
+            const n = store.graph.getNode(id)
+            if (n && n.layoutMode !== 'NONE') {
+              computeLayout(store.graph, id)
             }
           }
-        } else {
-          // Fallback: if we can't determine affected nodes, recompute current page
-          computeAllLayouts(store.graph, store.state.currentPageId)
         }
         store.requestRender()
         // No per-tool undo push — commitAIBatch() handles it
