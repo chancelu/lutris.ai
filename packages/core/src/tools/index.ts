@@ -1,6 +1,6 @@
 export { ALL_TOOLS } from './registry'
 export { defineTool, nodeToResult, nodeSummary } from './schema'
 export type { ToolDef, ParamDef, ParamType } from './schema'
-export { toolsToAI } from './ai-adapter'
+export { toolsToAI, extractNodeIds } from './ai-adapter'
 export { buildTailwindConfig } from './export-tailwind-config'
 export { selectionToCode, type CodeFormat } from '../render/export-code'
