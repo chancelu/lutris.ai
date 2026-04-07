@@ -7,7 +7,12 @@ const AI_BASE_URL = process.env.AI_BASE_URL || 'https://api.anthropic.com'
 const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-6'
 const AI_PROVIDER = process.env.AI_PROVIDER || 'anthropic'
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+let _supabase = null
+function getSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return null
+  if (!_supabase) _supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+  return _supabase
+}
 
 export const config = { maxDuration: 60 }
 
@@ -28,18 +33,24 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  // Verify JWT
-  const authHeader = req.headers.authorization
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing auth token' })
-  }
-  const token = authHeader.slice(7)
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-  if (authError || !user) {
-    return res.status(401).json({ error: 'Invalid or expired token' })
+  // Verify JWT (skip if Supabase not configured — allow direct AI proxy)
+  const supabase = getSupabase()
+  if (supabase) {
+    const authHeader = req.headers.authorization
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing auth token' })
+    }
+    const token = authHeader.slice(7)
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid or expired token' })
+    }
   }
 
   // Proxy to AI provider
+  if (!AI_API_KEY) {
+    return res.status(503).json({ error: 'AI API key not configured on server' })
+  }
   try {
     const body = req.body
     if (!body || !Array.isArray(body.messages) || body.messages.length === 0) {
