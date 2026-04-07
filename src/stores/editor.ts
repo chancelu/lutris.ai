@@ -225,7 +225,7 @@ export function createEditorStore() {
       state.pageColor = { ...CANVAS_BG_COLOR }
     }
 
-    void loadFontsForNodes(graph.getChildren(pageId).map((n) => n.id))
+    void loadFontsForNodes(graph.getChildren(pageId).map((n) => n.id), pageId)
     requestRender()
   }
 
@@ -570,7 +570,8 @@ export function createEditorStore() {
       requestRender()
       // Auto-fit viewport to show imported content
       setTimeout(() => viewportOps.zoomToFit(), 100)
-      void loadFontsForNodes(graph.getChildren(pageId).map((n) => n.id))
+      // Pass the target pageId and request re-fit after fonts load
+      void loadFontsForNodes(graph.getChildren(pageId).map((n) => n.id), pageId, true)
       void startWatchingFile()
     } catch (e) {
       console.error('Failed to open .fig file:', e)
@@ -580,7 +581,7 @@ export function createEditorStore() {
     }
   }
 
-  async function loadFontsForNodes(nodeIds: string[]) {
+  async function loadFontsForNodes(nodeIds: string[], targetPageId?: string, refitViewport = false) {
     const toLoad = collectFontKeys(graph, nodeIds)
     if (toLoad.length === 0) return
 
@@ -598,8 +599,15 @@ export function createEditorStore() {
     } else {
       toast.show(`${toLoad.length} font${toLoad.length > 1 ? 's' : ''} loaded`)
     }
-    computeAllLayouts(graph, state.currentPageId)
+    // Use the page that initiated the font load, not the current page
+    // (user may have switched pages while fonts were loading)
+    const layoutPageId = targetPageId ?? state.currentPageId
+    computeAllLayouts(graph, layoutPageId)
     requestRender()
+    // Re-fit viewport if this was the initial load and we're still on that page
+    if (refitViewport && state.currentPageId === layoutPageId) {
+      viewportOps.zoomToFit()
+    }
   }
 
   function setCanvasKit(ck: CanvasKit, renderer: SkiaRenderer) {
