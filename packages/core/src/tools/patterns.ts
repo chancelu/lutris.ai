@@ -182,7 +182,8 @@ export const getDesignPattern = defineTool({
     }
   },
   execute: (_figma, { pattern }) => {
-    const p = PATTERNS[pattern]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: runtime key may not exist
+    const p: DesignPattern | undefined = PATTERNS[pattern]
     return p ?? { error: `Unknown pattern "${pattern}". Available: ${Object.keys(PATTERNS).join(', ')}` }
   }
 })

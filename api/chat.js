@@ -12,8 +12,17 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 export const config = { maxDuration: 60 }
 
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  // CORS — restrict to known origins
+  const ALLOWED_ORIGINS = [
+    'https://lutris.ai',
+    'https://app.lutris.ai',
+    'http://localhost:1420',
+    'http://localhost:5173',
+  ]
+  const origin = req.headers.origin
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   if (req.method === 'OPTIONS') return res.status(200).end()
@@ -33,7 +42,13 @@ export default async function handler(req, res) {
   // Proxy to AI provider
   try {
     const body = req.body
-    const messages = body.messages || []
+    if (!body || !Array.isArray(body.messages) || body.messages.length === 0) {
+      return res.status(400).json({ error: 'Invalid request: messages array required' })
+    }
+    if (body.max_tokens != null && (typeof body.max_tokens !== 'number' || body.max_tokens > 16384)) {
+      return res.status(400).json({ error: 'Invalid max_tokens (must be number <= 16384)' })
+    }
+    const messages = body.messages
     const model = AI_MODEL
     const stream = body.stream ?? false
 
@@ -52,7 +67,6 @@ export default async function handler(req, res) {
         model,
         max_tokens: body.max_tokens || 4096,
         messages,
-        system: body.system || undefined,
         stream,
       }
     } else {
@@ -64,9 +78,7 @@ export default async function handler(req, res) {
       }
       payload = {
         model,
-        messages: body.system
-          ? [{ role: 'system', content: body.system }, ...messages]
-          : messages,
+        messages: messages,
         max_tokens: body.max_tokens || 4096,
         stream,
       }
@@ -76,9 +88,14 @@ export default async function handler(req, res) {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(55000),
     })
 
     if (stream) {
+      if (!aiRes.ok || !aiRes.body) {
+        const errText = await aiRes.text().catch(() => 'Unknown upstream error')
+        return res.status(aiRes.status || 502).json({ error: 'AI provider error' })
+      }
       res.setHeader('Content-Type', 'text/event-stream')
       res.setHeader('Cache-Control', 'no-cache')
       res.setHeader('Connection', 'keep-alive')
@@ -96,6 +113,6 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error('[api/chat] Error:', err)
-    res.status(500).json({ error: 'AI proxy error', detail: err.message })
+    res.status(500).json({ error: 'AI proxy error' })
   }
 }

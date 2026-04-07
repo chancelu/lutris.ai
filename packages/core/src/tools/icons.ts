@@ -172,7 +172,8 @@ export const createIcon = defineTool({
     parent_id: { type: 'string', description: 'Parent node ID' }
   },
   execute: (figma, args) => {
-    const network = ICONS[args.name]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: runtime key may not exist
+    const network: VectorNetwork | undefined = ICONS[args.name]
     if (!network) return { error: `Unknown icon "${args.name}". Available: ${ICON_NAMES.join(', ')}` }
 
     const size = args.size ?? 24

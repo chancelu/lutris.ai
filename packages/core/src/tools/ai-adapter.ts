@@ -107,7 +107,7 @@ function patchEnumType(schema: Record<string, unknown>): void {
   }
   if (schema.properties && typeof schema.properties === 'object') {
     for (const prop of Object.values(schema.properties as Record<string, Record<string, unknown>>)) {
-      if (prop && typeof prop === 'object') patchEnumType(prop)
+      patchEnumType(prop)
     }
   }
   if (schema.items && typeof schema.items === 'object') {

@@ -550,7 +550,8 @@ export function createEditorStore() {
       const imported = await readFigFile(file)
       await yieldToUI()
       graph = imported
-      computeAllLayouts(graph)
+      // Skip computeAllLayouts here — deserialized positions are already correct.
+      // Layout will be recomputed after fonts load in loadFontsForNodes().
       subscribeToGraph()
       undo.clear()
       pageViewports.clear()
@@ -654,8 +655,9 @@ export function createEditorStore() {
             // No file handle — save to IndexedDB for session recovery
             await saveToIDB(data)
           }
-        } catch {
-          // silently fail — user can still save manually
+        } catch (e) {
+          console.warn('[autosave] failed:', e)
+          toast.show('Autosave failed — save manually with Ctrl+S', 'error')
         }
       }, AUTOSAVE_DELAY)
     }
@@ -690,13 +692,11 @@ export function createEditorStore() {
       const file = new File([blob], state.documentName + '.fig')
       const imported = await readFigFile(file)
       graph = imported
-      computeAllLayouts(graph)
       subscribeToGraph()
     } else if (fileHandle) {
       const file = await fileHandle.getFile()
       const imported = await readFigFile(file)
       graph = imported
-      computeAllLayouts(graph)
       subscribeToGraph()
     } else {
       return
@@ -828,12 +828,24 @@ export function createEditorStore() {
     requestRender()
   }
 
+  function onNodeCreated(node: SceneNode) { onNodeStructureChanged(node.id) }
+
+  let graphUnbinds: Array<() => void> = []
+
+  function unsubscribeFromGraph() {
+    for (const unbind of graphUnbinds) unbind()
+    graphUnbinds = []
+  }
+
   function subscribeToGraph() {
-    graph.emitter.on('node:updated', onNodeUpdated)
-    graph.emitter.on('node:created', (node) => onNodeStructureChanged(node.id))
-    graph.emitter.on('node:deleted', onNodeStructureChanged)
-    graph.emitter.on('node:reparented', onNodeStructureChanged)
-    graph.emitter.on('node:reordered', onNodeStructureChanged)
+    unsubscribeFromGraph()
+    graphUnbinds = [
+      graph.emitter.on('node:updated', onNodeUpdated),
+      graph.emitter.on('node:created', onNodeCreated),
+      graph.emitter.on('node:deleted', onNodeStructureChanged),
+      graph.emitter.on('node:reparented', onNodeStructureChanged),
+      graph.emitter.on('node:reordered', onNodeStructureChanged),
+    ]
   }
 
   subscribeToGraph()

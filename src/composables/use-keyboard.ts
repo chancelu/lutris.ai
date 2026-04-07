@@ -14,7 +14,7 @@ function isEditing(e: Event) {
   const t = e.target
   if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable)) return true
   const sel = window.getSelection()
-  if (sel && sel.type === 'Range' && sel.toString().length > 0) return true
+  if (sel?.type === 'Range' && sel.toString().length > 0) return true
   return false
 }
 
