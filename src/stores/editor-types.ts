@@ -62,7 +62,7 @@ export interface EditorContext {
   selectedNodes(): SceneNode[]
   requestRender(): void
   requestRepaint(): void
-  loadFontsForNodes(nodeIds: string[]): Promise<void>
+  loadFontsForNodes(nodeIds: string[], targetPageId?: string, refitViewport?: boolean): Promise<void>
   toast(message: string, type: 'warning' | 'error'): void
 
   // File management accessors (used by export ops)

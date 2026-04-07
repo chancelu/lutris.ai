@@ -127,7 +127,7 @@ async function handleDesignFileChange(event: Event) {
       // Load fonts for all imported nodes (reuses collectFontKeys which scans descendants)
       const pageChildren = store.graph.getChildren(store.state.currentPageId)
       if (pageChildren.length > 0) {
-        store.loadFontsForNodes(pageChildren.map(n => n.id))
+        store.loadFontsForNodes(pageChildren.map(n => n.id), store.state.currentPageId, true)
       }
       // Suggest analysis in chat
       nextTick(() => {
