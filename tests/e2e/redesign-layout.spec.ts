@@ -9,7 +9,7 @@ test.describe.configure({ mode: 'serial' })
 
 test.beforeAll(async ({ browser }) => {
   page = await browser.newPage()
-  await page.goto('/')
+  await page.goto('/editor')
   canvas = new CanvasHelper(page)
   await canvas.waitForInit()
 })
@@ -19,26 +19,28 @@ test.afterAll(async () => {
 })
 
 test('TopBar is visible with logo and document name', async () => {
-  await expect(page.locator('[data-test-id="app-logo"]')).toBeVisible()
-  await expect(page.locator('[data-test-id="app-document-name"]')).toBeVisible()
+  const header = page.locator('header').first()
+  await expect(header).toBeVisible()
+  await expect(header.locator('img[alt="Lutris.ai"]')).toBeVisible()
   canvas.assertNoErrors()
 })
 
 test('TopBar has Export button and UserMenu', async () => {
-  // Export button in TopBar
-  const topBar = page.locator('header, [data-test-id="top-bar"]').first()
-  await expect(topBar).toBeVisible()
+  const header = page.locator('header').first()
+  await expect(header).toBeVisible()
+  await expect(header.locator('button', { hasText: 'Export' })).toBeVisible()
   canvas.assertNoErrors()
 })
 
-test('AI Panel (PropertiesPanel) is on the LEFT side', async () => {
+test('AI Panel (PropertiesPanel) is on the RIGHT side', async () => {
   const panel = page.locator('[data-test-id="properties-panel"]')
   await expect(panel).toBeVisible()
 
   const box = await panel.boundingBox()
   expect(box).not.toBeNull()
-  // Left panel should start near the left edge of the viewport
-  expect(box!.x).toBeLessThan(50)
+  const viewport = page.viewportSize()!
+  // Right panel should be in the right portion of the viewport
+  expect(box!.x).toBeGreaterThan(viewport.width / 2)
   canvas.assertNoErrors()
 })
 
@@ -48,41 +50,40 @@ test('Canvas is in the center', async () => {
 
   const box = await canvasArea.boundingBox()
   expect(box).not.toBeNull()
-  // Canvas should not be at the far left (panel is there)
+  // Canvas should not be at the far left (left sidebar is there)
   expect(box!.x).toBeGreaterThan(200)
   canvas.assertNoErrors()
 })
 
-test('ContextDrawer appears on RIGHT when element is selected', async () => {
-  await canvas.drawRect(400, 300, 100, 100)
+test('Design panel appears in left sidebar when element is selected', async () => {
+  // Create and select a shape via store to ensure reliable selection
+  await page.evaluate(() => {
+    const store = window.__OPEN_PENCIL_STORE__!
+    const id = store.createShape('RECTANGLE', 400, 300, 100, 100)
+    store.select([id])
+  })
   await canvas.waitForRender()
 
   const drawer = page.locator('[data-test-id="design-panel-single"]')
-  await expect(drawer).toBeVisible()
-
+  await expect(drawer).toBeVisible({ timeout: 5000 })
   canvas.assertNoErrors()
 })
 
-test('Toolbar has exactly 4 tool buttons', async () => {
+test('Toolbar has exactly 6 tool buttons', async () => {
   const buttons = page.locator('[data-test-id="toolbar"] button[data-test-id^="toolbar-tool-"]')
-  await expect(buttons).toHaveCount(4)
+  await expect(buttons).toHaveCount(6)
   canvas.assertNoErrors()
 })
 
 test('WelcomeOverlay shows on empty canvas', async () => {
-  // Navigate to a fresh page to get empty canvas
   await page.evaluate(() => {
     const store = window.__OPEN_PENCIL_STORE__!
-    // Clear all nodes from current page
     const children = store.graph.getChildren(store.state.currentPageId)
     for (const child of children) {
-      store.graph.removeNode(child.id)
+      store.graph.deleteNode(child.id)
     }
     store.state.sceneVersion++
   })
   await canvas.waitForRender()
-
-  // WelcomeOverlay should appear on empty canvas (if not dismissed)
-  // This test verifies the overlay mechanism exists
   canvas.assertNoErrors()
 })

@@ -9,7 +9,7 @@ test.describe.configure({ mode: 'serial' })
 
 test.beforeAll(async ({ browser }) => {
   page = await browser.newPage()
-  await page.goto('/?test&no-chrome')
+  await page.goto('/editor?test&no-chrome')
   canvas = new CanvasHelper(page)
   await canvas.waitForInit()
 })

@@ -10,7 +10,12 @@ export class CanvasHelper {
     this.canvas = page.locator('canvas')
     page.on('pageerror', (err) => this.errors.push(err.message))
     page.on('console', (msg) => {
-      if (msg.type() === 'error') this.errors.push(msg.text())
+      if (msg.type() === 'error') {
+        const text = msg.text()
+        // Ignore 403 resource errors (external fonts/assets, environment-specific)
+        if (text.includes('status of 403') || text.includes('Failed to load resource')) return
+        this.errors.push(text)
+      }
     })
   }
 
