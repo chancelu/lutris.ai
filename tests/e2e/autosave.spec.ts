@@ -9,7 +9,7 @@ test.describe.configure({ mode: 'serial' })
 
 test.beforeAll(async ({ browser }) => {
   page = await browser.newPage()
-  await page.goto('/')
+  await page.goto('/editor')
   canvas = new CanvasHelper(page)
   await canvas.waitForInit()
 })
@@ -95,7 +95,7 @@ test('no autosave without file handle', async ({ browser }) => {
     deviceScaleFactor: 2
   })
   const freshPage = await context.newPage()
-  await freshPage.goto('/')
+  await freshPage.goto('/editor')
   const freshCanvas = new CanvasHelper(freshPage)
   await freshCanvas.waitForInit()
 

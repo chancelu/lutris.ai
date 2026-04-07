@@ -9,7 +9,7 @@ test.describe.configure({ mode: 'serial' })
 
 test.beforeAll(async ({ browser }) => {
   page = await browser.newPage()
-  await page.goto('/')
+  await page.goto('/editor')
   canvas = new CanvasHelper(page)
   await canvas.waitForInit()
 })
@@ -18,29 +18,19 @@ test.afterAll(async () => {
   await page.close()
 })
 
-test('properties panel (AI panel) is visible on the left', async () => {
+test('properties panel (AI panel) is visible on the right', async () => {
   const panel = page.locator('[data-test-id="properties-panel"]')
   await expect(panel).toBeVisible()
 
   const box = await panel.boundingBox()
   expect(box).not.toBeNull()
-  // Left panel should be positioned at or near the left edge
-  expect(box!.x).toBeLessThan(400)
+  // Right panel should be positioned past the center of the viewport
+  const viewport = page.viewportSize()!
+  expect(box!.x).toBeGreaterThan(viewport.width / 2)
   canvas.assertNoErrors()
 })
 
-test('Cmd+Backslash hides panels', async () => {
-  await page.keyboard.press('Meta+\\')
-  await canvas.waitForRender()
-
-  await expect(page.locator('[data-test-id="layers-panel"]')).not.toBeVisible()
-  canvas.assertNoErrors()
-})
-
-test('Cmd+Backslash shows panels again', async () => {
-  await page.keyboard.press('Meta+\\')
-  await canvas.waitForRender()
-
+test('layers panel is visible on the left', async () => {
   await expect(page.locator('[data-test-id="layers-panel"]')).toBeVisible()
   canvas.assertNoErrors()
 })

@@ -9,7 +9,7 @@ test.describe('Zoom and pan', () => {
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage()
     helper = new CanvasHelper(page)
-    await page.goto('http://localhost:1420/?test&no-chrome')
+    await page.goto('/editor?test&no-chrome')
     await helper.waitForInit()
 
     await page.evaluate((count: number) => {

@@ -9,7 +9,7 @@ test.describe.configure({ mode: 'serial' })
 
 test.beforeAll(async ({ browser }) => {
   page = await browser.newPage()
-  await page.goto('/')
+  await page.goto('/editor')
   canvas = new CanvasHelper(page)
   await canvas.waitForInit()
 })
@@ -23,9 +23,9 @@ test('toolbar is visible', async () => {
   canvas.assertNoErrors()
 })
 
-test('toolbar has exactly 4 tool buttons', async () => {
+test('toolbar has exactly 6 tool buttons', async () => {
   const buttons = page.locator('[data-test-id="toolbar"] button[data-test-id^="toolbar-tool-"]')
-  await expect(buttons).toHaveCount(4)
+  await expect(buttons).toHaveCount(6)
   canvas.assertNoErrors()
 })
 
@@ -77,7 +77,8 @@ test('active tool gets visual highlight', async () => {
   await page.locator('[data-test-id="toolbar-tool-select"]').click()
   await canvas.waitForRender()
 
+  // Active tool gets 'bg-accent text-white' classes
   const selectBtn = page.locator('[data-test-id="toolbar-tool-select"]')
-  await expect(selectBtn).toHaveAttribute('data-active', 'true')
+  await expect(selectBtn).toHaveClass(/bg-accent/)
   canvas.assertNoErrors()
 })
