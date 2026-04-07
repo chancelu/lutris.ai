@@ -3,13 +3,25 @@ import { tool } from 'ai'
 import * as v from 'valibot'
 
 import { makeFigmaFromStore } from '@/automation/figma-factory'
-import { ALL_TOOLS, computeAllLayouts, toolsToAI } from '@open-pencil/core'
+import { ALL_TOOLS, computeAllLayouts, computeLayout, extractNodeIds, toolsToAI } from '@open-pencil/core'
 import { useImageGen } from '@/composables/use-image-gen'
 import { useProductDoc } from '@/composables/use-product-doc'
 import { toast } from '@/composables/use-toast'
 
 import type { EditorStore } from '@/stores/editor'
 import type { SceneNode } from '@open-pencil/core'
+
+/** Walk up the tree to find the nearest auto-layout ancestor frame */
+function findAutoLayoutAncestor(store: EditorStore, nodeId: string): string | null {
+  let current = store.graph.getNode(nodeId)
+  while (current) {
+    if (current.layoutMode !== 'NONE') return current.id
+    const parent = current.parentId ? store.graph.getNode(current.parentId) : null
+    if (!parent || parent.type === 'CANVAS') break
+    current = parent
+  }
+  return null
+}
 
 export function createAITools(store: EditorStore) {
   // Batch undo: capture one before-snapshot for the entire AI turn
@@ -31,8 +43,23 @@ export function createAITools(store: EditorStore) {
           batchActive = true
         }
       },
-      onAfterExecute: (def) => {
-        computeAllLayouts(store.graph, store.state.currentPageId)
+      onAfterExecute: (def, result) => {
+        // Only recompute layout for the auto-layout ancestors of affected nodes,
+        // not the entire page — avoids disrupting other frames' layouts
+        const affectedIds = extractNodeIds(result)
+        if (affectedIds.length > 0) {
+          const recomputed = new Set<string>()
+          for (const id of affectedIds) {
+            const ancestor = findAutoLayoutAncestor(store, id)
+            if (ancestor && !recomputed.has(ancestor)) {
+              recomputed.add(ancestor)
+              computeLayout(store.graph, ancestor)
+            }
+          }
+        } else {
+          // Fallback: if we can't determine affected nodes, recompute current page
+          computeAllLayouts(store.graph, store.state.currentPageId)
+        }
         store.requestRender()
         // No per-tool undo push — commitAIBatch() handles it
         if (def.mutates) {

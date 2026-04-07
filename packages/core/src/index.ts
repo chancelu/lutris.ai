@@ -52,7 +52,7 @@ export {
 } from './scene-graph'
 
 export { FigmaAPI, FigmaNodeProxy, computeImageHash, type FigmaFontName } from './figma-api'
-export { ALL_TOOLS, defineTool, toolsToAI, buildTailwindConfig } from './tools'
+export { ALL_TOOLS, defineTool, toolsToAI, extractNodeIds, buildTailwindConfig } from './tools'
 export type { ToolDef, ParamDef, ParamType } from './tools'
 export { executeRpcCommand, ALL_RPC_COMMANDS } from './rpc'
 export { queryByXPath, matchByXPath } from './xpath'

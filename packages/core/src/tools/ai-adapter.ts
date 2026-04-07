@@ -12,7 +12,7 @@ import type * as valibot from 'valibot'
 export interface AIAdapterOptions {
   getFigma: () => FigmaAPI
   onBeforeExecute?: (def: ToolDef) => void
-  onAfterExecute?: (def: ToolDef) => void
+  onAfterExecute?: (def: ToolDef, result: unknown) => void
   onFlashNodes?: (nodeIds: string[]) => void
 }
 
@@ -26,7 +26,7 @@ function extractIdsFromArray(arr: unknown[]): string[] {
   return ids
 }
 
-function extractNodeIds(result: unknown): string[] {
+export function extractNodeIds(result: unknown): string[] {
   if (!result || typeof result !== 'object') return []
   if ('deleted' in result && typeof result.deleted === 'string') return []
   const ids: string[] = []
@@ -66,8 +66,9 @@ export function toolsToAI(
       inputSchema: rawSchema,
       execute: async (args: Record<string, unknown>) => {
         options.onBeforeExecute?.(def)
+        let execResult: unknown
         try {
-          const execResult = await def.execute(options.getFigma(), args as any)
+          execResult = await def.execute(options.getFigma(), args as any)
           if (def.mutates && options.onFlashNodes) {
             const ids = extractNodeIds(execResult)
             if (ids.length > 0) options.onFlashNodes(ids)
@@ -76,7 +77,7 @@ export function toolsToAI(
         } catch (err) {
           return { error: err instanceof Error ? err.message : String(err) }
         } finally {
-          options.onAfterExecute?.(def)
+          options.onAfterExecute?.(def, execResult)
         }
       }
     }
