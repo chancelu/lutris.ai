@@ -157,7 +157,8 @@ export function createAITools(store: EditorStore) {
     batchActive = false
   }
 
-  return { ...coreTools, generate_image: generateImage, commitAIBatch }
+  const tools = { ...coreTools, generate_image: generateImage }
+  return { tools, commitAIBatch }
 }
 
 export type AITools = ReturnType<typeof createAITools>

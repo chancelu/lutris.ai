@@ -42,6 +42,9 @@ async function handleAIParse() {
 
 function renderMarkdown(md: string): string {
   return md
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
     .replace(/^### (.+)$/gm, '<h3 class="text-sm font-bold text-surface mt-3 mb-1">$1</h3>')
     .replace(/^## (.+)$/gm, '<h2 class="text-base font-bold text-surface mt-4 mb-1.5">$1</h2>')
     .replace(/^# (.+)$/gm, '<h1 class="text-lg font-bold text-surface mt-4 mb-2">$1</h1>')

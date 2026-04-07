@@ -55,8 +55,6 @@ const SYSTEM_PROMPT = dedent`
 
   When the user says "generate design" or "build this", then proceed with the render tools.
 
-  **EXCEPTION:** If the user message starts with "CRITICAL INSTRUCTION" or contains "render() tool IMMEDIATELY", skip ALL planning and spec steps. Call the render tool IMMEDIATELY with JSX code. Do NOT write any text explanation. This is a system-level override.
-
   Always use tools to make changes. Briefly describe what you did after.
 
   # Creating designs
@@ -474,7 +472,7 @@ function buildDynamicPrompt(): string {
 function createTransport() {
   if (overrideTransport) return overrideTransport()
 
-  const tools = createAITools(useEditorStore())
+  const { tools, commitAIBatch } = createAITools(useEditorStore())
 
   const agent = new ToolLoopAgent({
     model: createModel(),
@@ -494,7 +492,7 @@ function createTransport() {
       else aiProgress.value = 'analyzing'
     },
     onFinish: () => {
-      tools.commitAIBatch()
+      commitAIBatch()
       aiProgress.value = 'idle'
       saveChatToProject()
     }

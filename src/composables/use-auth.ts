@@ -6,6 +6,7 @@ const currentUser = ref<User | null>(null)
 const currentSession = ref<Session | null>(null)
 const loading = ref(true)
 const authError = ref('')
+let authUnsub: (() => void) | null = null
 
 export function useAuth() {
   const isLoggedIn = computed(() => !!currentUser.value)
@@ -18,14 +19,16 @@ export function useAuth() {
       return
     }
     try {
+      authUnsub?.()
       const { data } = await supabase.auth.getSession()
       currentSession.value = data.session
       currentUser.value = data.session?.user ?? null
 
-      supabase.auth.onAuthStateChange((_event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         currentSession.value = session
         currentUser.value = session?.user ?? null
       })
+      authUnsub = () => subscription.unsubscribe()
     } catch (e) {
       console.warn('[Auth] init failed, continuing without auth:', e)
     } finally {

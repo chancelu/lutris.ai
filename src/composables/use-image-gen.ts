@@ -82,13 +82,24 @@ export function useImageGen() {
     }
   }
 
+  /** Track blob URLs for cleanup */
+  const blobUrls: string[] = []
+
   /** Convert base64 to a blob URL for canvas rendering */
   function base64ToBlobUrl(base64: string, mimeType: string): string {
     const bytes = atob(base64)
     const arr = new Uint8Array(bytes.length)
     for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i)
     const blob = new Blob([arr], { type: mimeType })
-    return URL.createObjectURL(blob)
+    const url = URL.createObjectURL(blob)
+    blobUrls.push(url)
+    return url
+  }
+
+  /** Revoke all tracked blob URLs to free memory */
+  function revokeAll() {
+    for (const url of blobUrls) URL.revokeObjectURL(url)
+    blobUrls.length = 0
   }
 
   return {
@@ -99,5 +110,6 @@ export function useImageGen() {
     getApiKey,
     generateImage,
     base64ToBlobUrl,
+    revokeAll,
   }
 }

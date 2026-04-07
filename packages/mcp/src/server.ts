@@ -67,7 +67,7 @@ async function getCanvasKit(): Promise<CanvasKit> {
 
 export function createServer(version: string, options: CreateServerOptions = {}): McpServer {
   const server = new McpServer({ name: 'open-pencil', version })
-  const enableEval = options.enableEval ?? true
+  const enableEval = options.enableEval ?? false
   const fileRoot = options.fileRoot === null || options.fileRoot === undefined
     ? resolve(process.cwd())
     : resolve(options.fileRoot)

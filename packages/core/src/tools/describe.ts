@@ -132,6 +132,22 @@ function findAncestorBackground(node: SceneNode, graph: SceneGraph): Color | nul
   return null
 }
 
+function detectSizeIssues(node: SceneNode, isContainer: boolean, issues: DescribeIssue[]): void {
+  if (isContainer && node.parentId) {
+    const name = node.name.toLowerCase()
+    const isCard = name.includes('card') || name.includes('item') || name.includes('tile')
+    if (isCard && node.width > 440) {
+      issues.push({ message: `Card too wide (${Math.round(node.width)}px)`, suggestion: 'Max 400px for cards, 440px absolute max' })
+    }
+    if (looksLikeButton(node) && node.width > 200) {
+      issues.push({ message: `Button too wide (${Math.round(node.width)}px)`, suggestion: 'Buttons should hug content, max ~200px' })
+    }
+  }
+  if (node.type === 'TEXT' && node.fontSize > 48) {
+    issues.push({ message: `Text size ${node.fontSize}px is very large`, suggestion: 'Use 32-40px for display, 24px for headings' })
+  }
+}
+
 function detectStructuralIssues(node: SceneNode, gridSize: number, issues: DescribeIssue[]): void {
   if (node.x % 1 !== 0 || node.y % 1 !== 0) {
     issues.push({
@@ -150,21 +166,7 @@ function detectStructuralIssues(node: SceneNode, gridSize: number, issues: Descr
     const nearest = Math.round(node.itemSpacing / gridSize) * gridSize
     issues.push({ message: `Gap ${node.itemSpacing} not on ${gridSize}px grid`, suggestion: `${nearest}` })
   }
-  // Detect oversized cards/components
-  if (isContainer && node.parentId) {
-    const name = node.name.toLowerCase()
-    const isCard = name.includes('card') || name.includes('item') || name.includes('tile')
-    if (isCard && node.width > 440) {
-      issues.push({ message: `Card too wide (${Math.round(node.width)}px)`, suggestion: 'Max 400px for cards, 440px absolute max' })
-    }
-    if (looksLikeButton(node) && node.width > 200) {
-      issues.push({ message: `Button too wide (${Math.round(node.width)}px)`, suggestion: 'Buttons should hug content, max ~200px' })
-    }
-  }
-  // Detect oversized text
-  if (node.type === 'TEXT' && node.fontSize > 48) {
-    issues.push({ message: `Text size ${node.fontSize}px is very large`, suggestion: 'Use 32-40px for display, 24px for headings' })
-  }
+  detectSizeIssues(node, isContainer, issues)
 }
 
 function detectVisibilityIssues(node: SceneNode, graph: SceneGraph, issues: DescribeIssue[]): void {
