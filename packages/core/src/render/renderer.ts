@@ -351,14 +351,14 @@ function applyAutoLayoutSizing(
   const isVertical = dir === 'col' || dir === 'column'
   o.layoutMode = (isVertical ? 'VERTICAL' : 'HORIZONTAL') as LayoutMode
 
-  o.primaryAxisSizing = 'HUG'
-  o.counterAxisSizing = 'HUG'
+  // Default to FIXED so users can freely resize elements on canvas.
+  // Only use HUG when explicitly requested via w="hug" or h="hug".
+  o.primaryAxisSizing = 'FIXED'
+  o.counterAxisSizing = 'FIXED'
 
   const primaryDim = isVertical ? h : w
   const counterDim = isVertical ? w : h
 
-  if (typeof primaryDim === 'number') o.primaryAxisSizing = 'FIXED'
-  if (typeof counterDim === 'number') o.counterAxisSizing = 'FIXED'
   if (primaryDim === 'hug') o.primaryAxisSizing = 'HUG'
   if (counterDim === 'hug') o.counterAxisSizing = 'HUG'
 }
