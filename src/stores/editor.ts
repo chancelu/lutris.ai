@@ -599,10 +599,11 @@ export function createEditorStore() {
     } else {
       toast.show(`${toLoad.length} font${toLoad.length > 1 ? 's' : ''} loaded`)
     }
-    // Use the page that initiated the font load, not the current page
-    // (user may have switched pages while fonts were loading)
-    const layoutPageId = targetPageId ?? state.currentPageId
-    computeAllLayouts(graph, layoutPageId)
+    // Only re-render after fonts load — do NOT recompute layouts.
+    // Deserialized positions from .fig are already correct.
+    // Running computeAllLayouts here would recalculate all auto-layout
+    // frames, potentially compressing/shifting elements that were already
+    // correctly positioned.
     requestRender()
     // Re-fit viewport if this was the initial load and we're still on that page
     if (refitViewport && state.currentPageId === layoutPageId) {
