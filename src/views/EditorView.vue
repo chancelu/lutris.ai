@@ -20,10 +20,12 @@ import PropertiesPanel from '@/components/PropertiesPanel.vue'
 import TopBar from '@/components/TopBar.vue'
 import Toolbar from '@/components/Toolbar.vue'
 import WelcomeOverlay from '@/components/WelcomeOverlay.vue'
+import FigmaFileBrowser from '@/components/FigmaFileBrowser.vue'
 import LeftSidebar from '@/components/LeftSidebar.vue'
 
 const designFileInput = ref<HTMLInputElement | null>(null)
 const aiPanelHighlight = ref(false)
+const showFigmaBrowser = ref(false)
 const route = useRoute()
 const router = useRouter()
 const firstTab = createTab()
@@ -176,6 +178,7 @@ function onWelcomeAction(type: string) {
     return
   }
   if (type === 'import' || type === 'import-fig') { designFileInput.value?.click(); return }
+  if (type === 'import-figma-cloud') { showFigmaBrowser.value = true; return }
   if (type === 'import-prd') {
     const input = document.createElement('input')
     input.type = 'file'
@@ -206,6 +209,18 @@ function onExportClick() {
   inlinePanel.value = inlinePanel.value === 'export' ? null : 'export'
 }
 
+async function handleFigmaImport(file: import('@/lib/figma-client').FigmaFileResponse, name: string) {
+  showFigmaBrowser.value = false
+  try {
+    const { figmaFileToSceneGraph } = await import('@open-pencil/core')
+    const graph = figmaFileToSceneGraph(file)
+    store.openFigmaGraph(graph, name)
+    toast.show(`Imported "${name}" from Figma`)
+  } catch (err) {
+    toast.show(`Failed to import from Figma: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
+  }
+}
+
 const disconnectAutomation = import.meta.env.DEV ? connectAutomation(getActiveStore).disconnect : undefined
 if (disconnectAutomation) onUnmounted(disconnectAutomation)
 
@@ -223,6 +238,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
 <template>
   <div data-test-id="editor-root" class="flex h-screen w-screen flex-col overflow-hidden">
     <input ref="designFileInput" type="file" accept=".fig" class="hidden" @change="handleDesignFileChange" />
+    <FigmaFileBrowser v-if="showFigmaBrowser" @import="handleFigmaImport" @close="showFigmaBrowser = false" />
 
     <TopBar
       v-if="showChrome && store.state.showUI"

@@ -13,6 +13,7 @@ const router = createRouter({
     { path: '/editor/:projectId', component: EditorView },
     { path: '/demo', component: EditorView, meta: { demo: true } },
     { path: '/share/:roomId', component: EditorView },
+    { path: '/figma-callback', component: () => import('./views/FigmaCallbackView.vue') },
   ],
 })
 

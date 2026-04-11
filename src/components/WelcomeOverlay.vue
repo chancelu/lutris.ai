@@ -8,7 +8,7 @@ const store = useEditorStore()
 const { draftMessage, activeTab } = useAIChat()
 
 const emit = defineEmits<{
-  action: [type: 'blank' | 'template' | 'ai' | 'import' | 'import-prd' | 'import-fig' | 'import-code']
+  action: [type: 'blank' | 'template' | 'ai' | 'import' | 'import-prd' | 'import-fig' | 'import-code' | 'import-figma-cloud']
 }>()
 
 const dismissed = ref(false)
@@ -62,6 +62,7 @@ function handleAction(type: Parameters<typeof emit>[1]) {
 
         <div class="mt-5 flex items-center justify-center gap-2 text-[12px]">
           <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('import-fig')">Import .fig file</button>
+          <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('import-figma-cloud')">Import from Figma</button>
           <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('import-prd')">Import PRD</button>
           <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('blank')">Start from template</button>
         </div>
