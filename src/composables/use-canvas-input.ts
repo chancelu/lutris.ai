@@ -1,5 +1,5 @@
 import { useEventListener } from '@vueuse/core'
-import { ref, type Ref } from 'vue'
+import { onUnmounted, ref, type Ref } from 'vue'
 
 import {
   AUTO_LAYOUT_BREAK_THRESHOLD,
@@ -250,6 +250,20 @@ export function useCanvasInput(
     return { sx, sy, cx, cy }
   }
 
+  function capturePointer(e: MouseEvent) {
+    const el = canvasRef.value
+    if (el && 'setPointerCapture' in el && e instanceof PointerEvent) {
+      el.setPointerCapture(e.pointerId)
+    }
+  }
+
+  function releasePointer(e?: MouseEvent) {
+    const el = canvasRef.value
+    if (el && 'releasePointerCapture' in el && e instanceof PointerEvent) {
+      try { el.releasePointerCapture(e.pointerId) } catch { /* already released */ }
+    }
+  }
+
   function startPanDrag(e: MouseEvent) {
     drag.value = {
       type: 'pan',
@@ -259,6 +273,7 @@ export function useCanvasInput(
       startPanY: store.state.panY
     }
     cursorOverride.value = 'grabbing'
+    capturePointer(e)
   }
 
   function handleTextEditClick(cx: number, cy: number, shiftKey: boolean): boolean {
@@ -503,12 +518,14 @@ export function useCanvasInput(
 
     if (tool === 'SELECT') {
       handleSelectDown(e, sx, sy, cx, cy)
+      if (drag.value) capturePointer(e)
       return
     }
 
     if (tool === 'PEN') {
       store.penAddVertex(cx, cy)
       drag.value = { type: 'pen-drag', startX: cx, startY: cy } as DragState
+      capturePointer(e)
       return
     }
 
@@ -529,6 +546,7 @@ export function useCanvasInput(
     store.select([nodeId])
 
     drag.value = { type: 'draw', startX: cx, startY: cy, nodeId }
+    capturePointer(e)
   }
 
   function updateHoverCursor(e: MouseEvent) {
@@ -804,6 +822,7 @@ export function useCanvasInput(
     if (!drag.value) return
     const d = drag.value
 
+    try {
     if (d.type === 'pan') {
       handlePanMove(d, e)
       return
@@ -843,6 +862,11 @@ export function useCanvasInput(
     }
 
     handleMarqueeMove(d, cx, cy)
+    } catch (err) {
+      console.error('Drag handler error, resetting drag state:', err)
+      drag.value = null
+      cursorOverride.value = null
+    }
   }
 
   function constrainToAspectRatio(
@@ -974,7 +998,8 @@ export function useCanvasInput(
     store.setTool('SELECT')
   }
 
-  function onMouseUp() {
+  function onMouseUp(e?: MouseEvent) {
+    releasePointer(e)
     if (!drag.value) return
     const d = drag.value
 
@@ -1053,7 +1078,8 @@ export function useCanvasInput(
     if (!canvas) return
     const { dx, dy } = normalizeWheelDelta(e)
 
-    if (e.ctrlKey || e.metaKey) {
+    if (e.ctrlKey || e.metaKey || (dx === 0 && Number.isInteger(dy) && Math.abs(dy) > 0)) {
+      // Ctrl/Meta+wheel = zoom, or plain mouse wheel (integer deltaY, no deltaX) = zoom
       const rect = canvas.getBoundingClientRect()
       wheelAccum.zoomCenterX = e.clientX - rect.left
       wheelAccum.zoomCenterY = e.clientY - rect.top
@@ -1409,6 +1435,24 @@ export function useCanvasInput(
   }
   window.addEventListener('keydown', handleKeyDown)
   window.addEventListener('keyup', handleKeyUp)
+
+  function onVisibilityChange() {
+    if (document.hidden && drag.value) {
+      drag.value = null
+      cursorOverride.value = null
+    }
+  }
+  document.addEventListener('visibilitychange', onVisibilityChange)
+
+  onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeyDown)
+    window.removeEventListener('keyup', handleKeyUp)
+    document.removeEventListener('visibilitychange', onVisibilityChange)
+    if (wheelAccum.rafId) {
+      cancelAnimationFrame(wheelAccum.rafId)
+      wheelAccum.rafId = 0
+    }
+  })
 
   return {
     drag,
