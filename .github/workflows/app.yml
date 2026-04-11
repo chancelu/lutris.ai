@@ -2,7 +2,7 @@ name: Deploy app
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths-ignore:
       - 'packages/docs/**'
       - 'openspec/**'
