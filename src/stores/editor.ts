@@ -579,6 +579,28 @@ export function createEditorStore() {
     }
   }
 
+  function openFigmaGraph(imported: SceneGraph, name: string) {
+    graph = imported
+    subscribeToGraph()
+    undo.clear()
+    pageViewports.clear()
+    fileHandle = null
+    filePath = null
+    state.documentName = name
+    downloadName = null
+    state.selectedIds = new Set()
+    const firstPage = graph.getPages()[0] as SceneNode | undefined
+    const pageId = firstPage?.id ?? graph.rootId
+    state.currentPageId = pageId
+    state.panX = 0
+    state.panY = 0
+    state.zoom = 1
+    state.pageColor = { ...CANVAS_BG_COLOR }
+    requestRender()
+    setTimeout(() => viewportOps.zoomToFit(), 100)
+    void loadFontsForNodes(graph.getChildren(pageId).map((n) => n.id), pageId, true)
+  }
+
   async function loadFontsForNodes(nodeIds: string[], targetPageId?: string, refitViewport = false) {
     const toLoad = collectFontKeys(graph, nodeIds)
     if (toLoad.length === 0) return
@@ -1874,6 +1896,7 @@ export function createEditorStore() {
     startTextEditing,
     commitTextEdit,
     openFigFile,
+    openFigmaGraph,
     resetToBlank,
     saveFigFile: exportOps.saveFigFile,
     buildFigFile: exportOps.buildFigFile,

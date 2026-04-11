@@ -243,3 +243,5 @@ export {
   parseVarint,
   FIG_WIRE_MAGIC
 } from './kiwi/protocol'
+
+export { figmaFileToSceneGraph } from './figma-rest-import'
