@@ -14,7 +14,6 @@ import { loadFont } from '@/engine/fonts'
 import {
   collectFontKeys,
   computeLayout,
-  computeAllLayouts,
   computeVectorBounds,
   prefetchFigmaSchema,
   readFigFile,
@@ -525,7 +524,6 @@ export function createEditorStore() {
 
   function resetToBlank(name = 'Untitled') {
     graph = new SceneGraph()
-    computeAllLayouts(graph)
     subscribeToGraph()
     undo.clear()
     pageViewports.clear()
@@ -606,7 +604,7 @@ export function createEditorStore() {
     // correctly positioned.
     requestRender()
     // Re-fit viewport if this was the initial load and we're still on that page
-    if (refitViewport && state.currentPageId === layoutPageId) {
+    if (refitViewport && state.currentPageId === targetPageId) {
       viewportOps.zoomToFit()
     }
   }
@@ -1766,7 +1764,7 @@ export function createEditorStore() {
     }
 
     graph.clearAbsPosCache()
-    computeAllLayouts(graph, state.currentPageId)
+    // Snapshot positions are already correct — do NOT recompute auto-layout
     state.selectedIds = new Set()
     state.hoveredNodeId = null
     requestRender()
