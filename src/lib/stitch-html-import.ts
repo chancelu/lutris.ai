@@ -177,11 +177,13 @@ function parseClasses(classList: string[]): NodeOverrides {
 }
 
 /** Map HTML tag to SceneNode type */
-function tagToNodeType(tag: string): 'FRAME' | 'TEXT' | 'RECTANGLE' {
-  const textTags = new Set(['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'SPAN', 'A', 'LABEL', 'BUTTON'])
-  if (textTags.has(tag)) return 'TEXT'
+function tagToNodeType(tag: string, el: Element): 'FRAME' | 'TEXT' | 'RECTANGLE' {
   if (tag === 'IMG') return 'RECTANGLE'
-  return 'FRAME'
+  // Only treat as TEXT if it's a leaf node (no child elements)
+  const textTags = new Set(['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'SPAN', 'A', 'LABEL'])
+  if (textTags.has(tag) && el.children.length === 0) return 'TEXT'
+  // BUTTON with children → FRAME so children are preserved
+  return el.children.length > 0 ? 'FRAME' : (textTags.has(tag) ? 'TEXT' : 'FRAME')
 }
 
 /** Default font sizes for heading tags */
@@ -197,7 +199,7 @@ function convertElement(el: Element, parentId: string, graph: SceneGraph, depth:
   const tag = el.tagName
   const classes = Array.from(el.classList)
   const overrides = parseClasses(classes)
-  const nodeType = tagToNodeType(tag)
+  const nodeType = tagToNodeType(tag, el)
 
   let created = 0
 
@@ -271,8 +273,22 @@ function convertElement(el: Element, parentId: string, graph: SceneGraph, depth:
  * Import Stitch HTML into the scene graph under the given parent.
  */
 export function importStitchHtml(html: string, parentId: string, graph: SceneGraph): ImportResult {
+  // Stitch may return HTML wrapped in markdown code blocks — extract it
+  let cleaned = html.trim()
+  const mdMatch = cleaned.match(/```(?:html)?\s*\n([\s\S]*?)```/)
+  if (mdMatch) cleaned = mdMatch[1].trim()
+
+  // If it looks like JSON wrapping HTML, try to extract
+  if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(cleaned)
+      const candidate = parsed.html || parsed.code || parsed.content
+      if (typeof candidate === 'string' && candidate.includes('<')) cleaned = candidate
+    } catch { /* not JSON, use as-is */ }
+  }
+
   const parser = new DOMParser()
-  const doc = parser.parseFromString(html, 'text/html')
+  const doc = parser.parseFromString(cleaned, 'text/html')
 
   // Find the root element — skip <html><head><body> wrapper
   const body = doc.body
@@ -282,11 +298,15 @@ export function importStitchHtml(html: string, parentId: string, graph: SceneGra
   const wrapper = graph.createNode('FRAME', parentId, {
     name: 'Stitch Import',
     layoutMode: 'VERTICAL',
+    width: 375,
+    height: 812,
     paddingTop: 0,
     paddingRight: 0,
     paddingBottom: 0,
     paddingLeft: 0,
     itemSpacing: 0,
+    primaryAxisSizingMode: 'AUTO',
+    counterAxisSizingMode: 'FIXED',
   })
 
   let nodeCount = 1
