@@ -16,6 +16,7 @@ const SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
 const ALLOWED_ORIGINS = [
   'https://lutris.ai',
   'https://app.lutris.ai',
+  'https://lutris-ai.vercel.app',
   'http://localhost:1420',
   'http://localhost:5173',
 ]
@@ -24,9 +25,8 @@ const ALLOWED_METHODS = ['tools/list', 'tools/call']
 
 let cachedToken = null
 let tokenExpiresAt = 0
-let mcpSessionId = null
 
-export const config = { maxDuration: 30 }
+export const config = { maxDuration: 60 }
 
 function base64url(data) {
   return Buffer.from(data).toString('base64url')
@@ -95,54 +95,52 @@ export default async function handler(req, res) {
     }
     if (projectId) authHeaders['X-Goog-User-Project'] = projectId
 
-    // Initialize MCP session if needed
-    if (!mcpSessionId) {
-      const initPayload = { jsonrpc: '2.0', id: 1, method: 'initialize', params: {
-        protocolVersion: '2025-03-26',
-        capabilities: {},
-        clientInfo: { name: 'lutris-stitch-proxy', version: '1.0.0' },
-      }}
-      const initRes = await fetch(STITCH_ENDPOINT, {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify(initPayload),
-        signal: AbortSignal.timeout(10000),
-      })
-      if (initRes.ok) {
-        mcpSessionId = initRes.headers.get('mcp-session-id')
-      } else {
-        const errText = await initRes.text().catch(() => '')
-        console.error('[stitch-mcp] Init failed:', initRes.status, errText)
-        return res.status(initRes.status || 502).json({ error: 'Stitch init failed', detail: errText })
-      }
+    // Always initialize a fresh MCP session per request
+    // (Vercel serverless can't reliably persist session across invocations)
+    const initPayload = { jsonrpc: '2.0', id: 1, method: 'initialize', params: {
+      protocolVersion: '2025-03-26',
+      capabilities: {},
+      clientInfo: { name: 'lutris-stitch-proxy', version: '1.0.0' },
+    }}
+    const initRes = await fetch(STITCH_ENDPOINT, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify(initPayload),
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!initRes.ok) {
+      const errText = await initRes.text().catch(() => '')
+      console.error('[stitch-mcp] Init failed:', initRes.status, errText)
+      return res.status(initRes.status || 502).json({ error: 'Stitch init failed', detail: errText })
     }
+    const sessionId = initRes.headers.get('mcp-session-id')
 
     const mcpPayload = { jsonrpc: '2.0', id: Date.now(), method, ...(params ? { params } : {}) }
     const headers = { ...authHeaders }
-    if (mcpSessionId) headers['Mcp-Session-Id'] = mcpSessionId
+    if (sessionId) headers['Mcp-Session-Id'] = sessionId
 
     const mcpRes = await fetch(STITCH_ENDPOINT, {
       method: 'POST',
       headers,
       body: JSON.stringify(mcpPayload),
-      signal: AbortSignal.timeout(25000),
+      signal: AbortSignal.timeout(50000),
     })
 
     if (!mcpRes.ok) {
       const errText = await mcpRes.text().catch(() => 'Unknown error')
       console.error('[stitch-mcp] Error:', mcpRes.status, errText)
-      if (mcpRes.status >= 400 && mcpRes.status < 500) mcpSessionId = null
       return res.status(mcpRes.status || 502).json({ error: 'Stitch MCP error', detail: errText })
     }
-
-    const newSessionId = mcpRes.headers.get('mcp-session-id')
-    if (newSessionId) mcpSessionId = newSessionId
 
     const data = await mcpRes.json()
     return res.status(200).json(data)
   } catch (err) {
-    console.error('[stitch-mcp] Error:', err)
-    mcpSessionId = null
-    return res.status(500).json({ error: 'Stitch proxy error', message: err.message })
+    console.error('[stitch-mcp] Error:', err.message || err)
+    const message = err.message || 'Unknown error'
+    // Provide more specific error messages
+    if (message.includes('timeout') || message.includes('abort')) {
+      return res.status(504).json({ error: 'Stitch request timed out — generation may take longer than expected', message })
+    }
+    return res.status(500).json({ error: 'Stitch proxy error', message })
   }
 }
