@@ -8,7 +8,7 @@ import { useImageGen } from '@/composables/use-image-gen'
 import { useProductDoc } from '@/composables/use-product-doc'
 import { toast } from '@/composables/use-toast'
 import * as stitchClient from '@/lib/stitch-client'
-import { importStitchHtml } from '@/lib/stitch-html-import'
+import { importStitchHtml, importStitchImage } from '@/lib/stitch-html-import'
 
 import type { EditorStore } from '@/stores/editor'
 import type { SceneNode } from '@open-pencil/core'
@@ -252,35 +252,27 @@ export function createAITools(store: EditorStore) {
 
         console.log('[stitch_generate] result text length:', result.text?.length, 'has image:', !!result.image)
 
-        // Stitch returns text content (may be HTML, JSON, or description) and optionally an image
+        // Priority 1: Use Stitch image directly if available
+        if (result.image) {
+          const { rootId } = importStitchImage(result.image.data, result.image.mimeType, pageId, store.graph)
+          store.requestRender()
+          store.select([rootId])
+          store.flashNodes([rootId])
+          toast.show('✅ Stitch design imported')
+          return { success: true, nodeId: rootId, message: result.text || 'Design generated' }
+        }
+
+        // Priority 2: Render HTML as screenshot
         const html = result.text
         const hasHtmlContent = html && (html.includes('<') && html.includes('>'))
 
         if (hasHtmlContent) {
-          const { rootId, nodeCount } = importStitchHtml(html, pageId, store.graph)
-          computeAllLayouts(store.graph, pageId)
+          const { rootId } = await importStitchHtml(html, pageId, store.graph)
           store.requestRender()
           store.select([rootId])
           store.flashNodes([rootId])
-          toast.show(`✅ Stitch UI imported (${nodeCount} nodes)`)
-          return { success: true, nodeId: rootId, nodeCount }
-        }
-
-        // If we got an image but no HTML, insert it as an image node
-        if (result.image) {
-          const blobUrl = `data:${result.image.mimeType};base64,${result.image.data}`
-          const imgNode = store.graph.createNode('RECTANGLE', pageId, {
-            name: 'Stitch Design',
-            x: 100, y: 100, width: 375, height: 812,
-            fills: [{ type: 'IMAGE', imageHash: blobUrl, imageScaleMode: 'FILL', visible: true, opacity: 1 } as never],
-            cornerRadius: 0,
-          })
-          computeAllLayouts(store.graph, pageId)
-          store.requestRender()
-          store.select([imgNode.id])
-          store.flashNodes([imgNode.id])
-          toast.show('✅ Stitch design imported as image')
-          return { success: true, nodeId: imgNode.id, message: result.text || 'Design generated' }
+          toast.show('✅ Stitch UI imported')
+          return { success: true, nodeId: rootId }
         }
 
         // Text-only response (description, suggestions, etc.)
@@ -324,32 +316,27 @@ export function createAITools(store: EditorStore) {
         const result = await stitchClient.getScreen(projectId, screenId)
         const pageId = store.state.currentPageId
 
+        // Priority 1: Use image directly
+        if (result.image) {
+          const { rootId } = importStitchImage(result.image.data, result.image.mimeType, pageId, store.graph)
+          store.requestRender()
+          store.select([rootId])
+          store.flashNodes([rootId])
+          toast.show('✅ Screen imported')
+          return { success: true, nodeId: rootId }
+        }
+
+        // Priority 2: Render HTML as screenshot
         const html = result.text
         const hasHtmlContent = html && (html.includes('<') && html.includes('>'))
 
         if (hasHtmlContent) {
-          const { rootId, nodeCount } = importStitchHtml(html, pageId, store.graph)
-          computeAllLayouts(store.graph, pageId)
+          const { rootId } = await importStitchHtml(html, pageId, store.graph)
           store.requestRender()
           store.select([rootId])
           store.flashNodes([rootId])
-          toast.show(`✅ Screen imported (${nodeCount} nodes)`)
-          return { success: true, nodeId: rootId, nodeCount }
-        }
-
-        if (result.image) {
-          const blobUrl = `data:${result.image.mimeType};base64,${result.image.data}`
-          const imgNode = store.graph.createNode('RECTANGLE', pageId, {
-            name: 'Stitch Screen',
-            x: 100, y: 100, width: 375, height: 812,
-            fills: [{ type: 'IMAGE', imageHash: blobUrl, imageScaleMode: 'FILL', visible: true, opacity: 1 } as never],
-          })
-          computeAllLayouts(store.graph, pageId)
-          store.requestRender()
-          store.select([imgNode.id])
-          store.flashNodes([imgNode.id])
-          toast.show('✅ Screen imported as image')
-          return { success: true, nodeId: imgNode.id, message: result.text || 'Screen imported' }
+          toast.show('✅ Screen imported')
+          return { success: true, nodeId: rootId }
         }
 
         return { success: false, error: 'No visual content returned for screen' }
