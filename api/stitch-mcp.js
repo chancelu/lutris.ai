@@ -23,6 +23,9 @@ const ALLOWED_METHODS = ['tools/list', 'tools/call', 'initialize']
 let cachedToken = null
 let tokenExpiresAt = 0
 
+// Cached MCP session ID (Streamable HTTP requires initialize → session)
+let mcpSessionId = null
+
 export const config = { maxDuration: 30 }
 
 /**
@@ -105,6 +108,30 @@ export default async function handler(req, res) {
     const serviceAccount = JSON.parse(saJson)
     const accessToken = await getAccessToken(serviceAccount)
 
+    const baseHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    }
+    if (projectId) baseHeaders['X-Goog-User-Project'] = projectId
+
+    // Auto-initialize MCP session if we don't have one
+    if (!mcpSessionId && method !== 'initialize') {
+      const initPayload = { jsonrpc: '2.0', id: Date.now() - 1, method: 'initialize', params: {
+        protocolVersion: '2025-03-26',
+        capabilities: {},
+        clientInfo: { name: 'lutris-stitch-proxy', version: '1.0.0' },
+      }}
+      const initRes = await fetch(STITCH_ENDPOINT, {
+        method: 'POST',
+        headers: baseHeaders,
+        body: JSON.stringify(initPayload),
+        signal: AbortSignal.timeout(10000),
+      })
+      if (initRes.ok) {
+        mcpSessionId = initRes.headers.get('mcp-session-id')
+      }
+    }
+
     const mcpPayload = {
       jsonrpc: '2.0',
       id: Date.now(),
@@ -112,11 +139,8 @@ export default async function handler(req, res) {
       ...(params ? { params } : {}),
     }
 
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    }
-    if (projectId) headers['X-Goog-User-Project'] = projectId
+    const headers = { ...baseHeaders }
+    if (mcpSessionId) headers['Mcp-Session-Id'] = mcpSessionId
 
     const mcpRes = await fetch(STITCH_ENDPOINT, {
       method: 'POST',
@@ -128,8 +152,14 @@ export default async function handler(req, res) {
     if (!mcpRes.ok) {
       const errText = await mcpRes.text().catch(() => 'Unknown Stitch error')
       console.error('[api/stitch-mcp] Stitch error:', mcpRes.status, errText)
+      // Reset session on 4xx errors — may need re-init
+      if (mcpRes.status >= 400 && mcpRes.status < 500) mcpSessionId = null
       return res.status(mcpRes.status || 502).json({ error: 'Stitch MCP error', detail: errText })
     }
+
+    // Capture session ID from response
+    const newSessionId = mcpRes.headers.get('mcp-session-id')
+    if (newSessionId) mcpSessionId = newSessionId
 
     const data = await mcpRes.json()
     return res.status(200).json(data)
