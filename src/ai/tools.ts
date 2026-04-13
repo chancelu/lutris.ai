@@ -45,6 +45,7 @@ export function createAITools(store: EditorStore) {
   // Batch undo: capture one before-snapshot for the entire AI turn
   let batchBeforeSnapshot: Map<string, SceneNode> | null = null
   let batchActive = false
+  let batchHasMutations = false
 
   // Filter out dangerous tools in production (evalCode allows arbitrary code execution)
   const safeTools = import.meta.env.DEV
@@ -93,15 +94,9 @@ export function createAITools(store: EditorStore) {
         }
         store.requestRender()
         // No per-tool undo push — commitAIBatch() handles it
+        // Track that mutations happened; toast + PRD sync deferred to commitAIBatch()
         if (def.mutates) {
-          const { hasContent, updateFromDesign } = useProductDoc()
-          if (hasContent.value) {
-            const timestamp = new Date().toLocaleTimeString()
-            updateFromDesign(
-              `[AI modification at ${timestamp}] Tool: ${def.name}. Design canvas was updated. Please review and sync your product document if needed.`
-            )
-          }
-          toast.show('Design updated by AI. PRD sync pending — check Product Doc tab.')
+          batchHasMutations = true
         }
       },
       onFlashNodes: (nodeIds) => {
@@ -393,8 +388,20 @@ export function createAITools(store: EditorStore) {
         inverse: () => store.restorePageFromSnapshot(before),
       })
     }
+    // Show toast + PRD sync once per batch, not per tool call
+    if (batchHasMutations) {
+      const { hasContent, updateFromDesign } = useProductDoc()
+      if (hasContent.value) {
+        const timestamp = new Date().toLocaleTimeString()
+        updateFromDesign(
+          `[AI modification at ${timestamp}] Design canvas was updated. Please review and sync your product document if needed.`
+        )
+        toast.show('Design updated by AI. PRD sync pending — check Product Doc tab.')
+      }
+    }
     batchBeforeSnapshot = null
     batchActive = false
+    batchHasMutations = false
   }
 
   const tools = {
