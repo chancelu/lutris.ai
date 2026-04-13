@@ -1,16 +1,17 @@
 /**
  * Vercel Serverless MCP Proxy for Google Stitch
  *
- * Uses @google/stitch-sdk for proper auth handling.
- * Accepts: POST { method: 'tools/list' | 'tools/call', params: {...} }
+ * Directly calls stitch.googleapis.com/mcp using the same auth headers
+ * as @google/stitch-sdk (X-Goog-Api-Key), without the SDK dependency
+ * that has issues in serverless environments.
  *
- * Env vars (in priority order):
- *   STITCH_API_KEY — API key from Google AI Studio
- *   STITCH_ACCESS_TOKEN — pre-generated OAuth2 token
+ * Env vars:
+ *   STITCH_API_KEY — API key from Google AI Studio (recommended)
+ *   STITCH_ACCESS_TOKEN — pre-generated OAuth2 token (alternative)
  *   GOOGLE_CLOUD_PROJECT_ID — optional, for quota/billing
  */
 
-import { StitchToolClient } from '@google/stitch-sdk'
+const STITCH_ENDPOINT = 'https://stitch.googleapis.com/mcp'
 
 const ALLOWED_ORIGINS = [
   'https://lutris.ai',
@@ -21,19 +22,31 @@ const ALLOWED_ORIGINS = [
 
 const ALLOWED_METHODS = ['tools/list', 'tools/call']
 
-let client = null
-
-function getClient() {
-  if (client) return client
-  const config = {}
-  if (process.env.STITCH_API_KEY) config.apiKey = process.env.STITCH_API_KEY
-  if (process.env.STITCH_ACCESS_TOKEN) config.accessToken = process.env.STITCH_ACCESS_TOKEN
-  if (process.env.GOOGLE_CLOUD_PROJECT_ID) config.projectId = process.env.GOOGLE_CLOUD_PROJECT_ID
-  client = new StitchToolClient(config)
-  return client
-}
+let mcpSessionId = null
 
 export const config = { maxDuration: 30 }
+
+function buildAuthHeaders() {
+  const apiKey = process.env.STITCH_API_KEY
+  const accessToken = process.env.STITCH_ACCESS_TOKEN
+  const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json, text/event-stream',
+  }
+
+  if (apiKey) {
+    headers['X-Goog-Api-Key'] = apiKey
+  } else if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`
+    if (projectId) headers['X-Goog-User-Project'] = projectId
+  } else {
+    throw new Error('No Stitch credentials. Set STITCH_API_KEY or STITCH_ACCESS_TOKEN.')
+  }
+
+  return headers
+}
 
 export default async function handler(req, res) {
   const origin = req.headers.origin
@@ -51,28 +64,58 @@ export default async function handler(req, res) {
   }
 
   try {
-    const stitch = getClient()
-    await stitch.connect()
+    const authHeaders = buildAuthHeaders()
 
-    if (method === 'tools/list') {
-      const result = await stitch.listTools()
-      return res.status(200).json({ jsonrpc: '2.0', id: 1, result })
+    // Initialize MCP session if needed
+    if (!mcpSessionId) {
+      const initPayload = { jsonrpc: '2.0', id: 1, method: 'initialize', params: {
+        protocolVersion: '2025-03-26',
+        capabilities: {},
+        clientInfo: { name: 'lutris-stitch-proxy', version: '1.0.0' },
+      }}
+      const initRes = await fetch(STITCH_ENDPOINT, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify(initPayload),
+        signal: AbortSignal.timeout(10000),
+      })
+      if (initRes.ok) {
+        mcpSessionId = initRes.headers.get('mcp-session-id')
+        console.log('[stitch-mcp] Session initialized:', mcpSessionId)
+      } else {
+        const errText = await initRes.text().catch(() => '')
+        console.error('[stitch-mcp] Init failed:', initRes.status, errText)
+        return res.status(initRes.status || 502).json({ error: 'Stitch init failed', detail: errText })
+      }
     }
 
-    if (method === 'tools/call') {
-      const { name, arguments: args } = params || {}
-      if (!name) return res.status(400).json({ error: 'Missing tool name in params' })
-      const result = await stitch.callTool(name, args || {})
-      return res.status(200).json({ jsonrpc: '2.0', id: 1, result })
+    // Forward the actual MCP call
+    const mcpPayload = { jsonrpc: '2.0', id: Date.now(), method, ...(params ? { params } : {}) }
+    const headers = { ...authHeaders }
+    if (mcpSessionId) headers['Mcp-Session-Id'] = mcpSessionId
+
+    const mcpRes = await fetch(STITCH_ENDPOINT, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(mcpPayload),
+      signal: AbortSignal.timeout(25000),
+    })
+
+    if (!mcpRes.ok) {
+      const errText = await mcpRes.text().catch(() => 'Unknown error')
+      console.error('[stitch-mcp] Error:', mcpRes.status, errText)
+      if (mcpRes.status >= 400 && mcpRes.status < 500) mcpSessionId = null
+      return res.status(mcpRes.status || 502).json({ error: 'Stitch MCP error', detail: errText })
     }
 
-    return res.status(400).json({ error: 'Unsupported method' })
+    const newSessionId = mcpRes.headers.get('mcp-session-id')
+    if (newSessionId) mcpSessionId = newSessionId
+
+    const data = await mcpRes.json()
+    return res.status(200).json(data)
   } catch (err) {
-    console.error('[api/stitch-mcp] Error:', err)
-    // Reset client on auth errors so next request retries
-    if (err.message?.includes('401') || err.message?.includes('auth') || err.message?.includes('Unauthorized')) {
-      client = null
-    }
+    console.error('[stitch-mcp] Error:', err)
+    mcpSessionId = null
     return res.status(500).json({ error: 'Stitch proxy error', message: err.message })
   }
 }
