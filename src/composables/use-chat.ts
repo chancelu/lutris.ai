@@ -229,19 +229,19 @@ const SYSTEM_PROMPT = dedent`
   - Use when the user asks for visual assets, hero images, placeholder photos, icons, or any bitmap content.
   - Requires Gemini API key configured in Brand Settings.
 
-  # Stitch Integration
-  You can generate complete UI designs using Google Stitch:
-  - \`stitch_generate\`: Generate a full UI screen from a text description. Use when the user asks to create screens, pages, or UI layouts using Stitch (e.g. "用 Stitch 生成一个登录页面").
+  # Stitch Integration (DEFAULT for UI generation)
+  You MUST use Google Stitch as the primary tool for generating UI screens and pages:
+  - \`stitch_generate\`: Generate a full UI screen from a text description. **Use this by default** whenever the user asks to create any screen, page, or UI layout.
   - \`stitch_import_screen\`: Import an existing screen from a Stitch project into the canvas.
   - \`stitch_list_projects\`: List the user's Stitch projects to browse or import screens.
-  Use Stitch when the user explicitly mentions "Stitch" or asks for complete, production-ready UI screens. For simpler UI layouts, prefer the \`render\` tool with JSX.
 
-  # Smart routing: UI layout vs Image generation
+  # Smart routing: Stitch vs render vs generate_image
   Automatically decide which tool to use based on the user's request:
-  - **Use \`render\` (JSX)** when: creating UI screens, layouts, forms, buttons, cards, navigation bars, dashboards, wireframes, or any structured interface elements.
+  - **Use \`stitch_generate\`** (DEFAULT) when: creating UI screens, pages, app layouts, dashboards, forms, landing pages, or any complete interface design. This produces higher quality, production-ready results.
+  - **Use \`render\` (JSX)** when: making small modifications to existing elements, creating simple shapes, or when the user explicitly asks for JSX/manual layout.
   - **Use \`generate_image\`** when: creating photos, illustrations, artwork, realistic images, product shots, hero backgrounds, app icons, avatars, or any bitmap/raster content.
-  - **Use both** when: the user wants a UI layout that includes generated images (e.g. "create a landing page with a hero photo"). First \`generate_image\` for the visual assets, then \`render\` the layout referencing those images.
-  - When in doubt, prefer \`render\` for anything that looks like UI, and \`generate_image\` for anything that looks like a photo or illustration.
+  - **Use stitch_generate + generate_image** when: the user wants a UI layout that includes generated images (e.g. "create a landing page with a hero photo"). First \`stitch_generate\` for the UI, then \`generate_image\` for visual assets.
+  - When in doubt, prefer \`stitch_generate\` for anything that looks like UI.
 
   # Targeted modifications
   When the user's message includes "--- Selected elements for modification ---", they have selected specific elements on the canvas for editing.
@@ -564,16 +564,23 @@ function initChatProjectWatch(): void {
     // When IDB finishes loading and activeChat gets populated after chat was
     // already created with empty messages, re-create chat with restored messages.
     watch(() => activeChat.value.messages.length, (newLen) => {
-      if (newLen > 0 && chat && chat.messages.length === 0) {
-        const restored = getRestoredMessages()
-        if (restored.length > 0) {
-          resetChat()
-          chat = new Chat<UIMessage>({
-            transport: createTransport(),
-            initialMessages: restored,
-            onError: () => { aiProgress.value = 'idle' },
-          })
-          // Notify ChatPanel to pick up the new chat instance
+      if (newLen > 0) {
+        // Case 1: chat exists but has no messages (created before IDB loaded)
+        if (chat && chat.messages.length === 0) {
+          const restored = getRestoredMessages()
+          if (restored.length > 0) {
+            resetChat()
+            chat = new Chat<UIMessage>({
+              transport: createTransport(),
+              initialMessages: restored,
+              onError: () => { aiProgress.value = 'idle' },
+            })
+            chatInstanceVersion.value++
+          }
+        }
+        // Case 2: chat is null (resetChat was called during project switch)
+        // Just bump version so ChatPanel calls ensureChat() which will pick up the data
+        if (!chat) {
           chatInstanceVersion.value++
         }
       }
@@ -658,8 +665,14 @@ function saveChatToProject(): void {
   try {
     const { activeChat, activeProjectId, saveActiveProjectData } = useProjects()
     activeChat.value = { messages: [...chat.messages] }
+    // Also write to localStorage as synchronous backup
+    const pid = activeProjectId.value
+    if (pid && chat.messages.length > 0) {
+      try {
+        localStorage.setItem(`${STORAGE_PREFIX}chat-backup:${pid}`, JSON.stringify({ messages: chat.messages }))
+      } catch { /* best effort */ }
+    }
     void saveActiveProjectData().then(() => {
-      // Clean up localStorage backup after successful IDB write
       if (activeProjectId.value) {
         localStorage.removeItem(`${STORAGE_PREFIX}chat-backup:${activeProjectId.value}`)
       }
