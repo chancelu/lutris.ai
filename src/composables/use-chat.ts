@@ -563,7 +563,17 @@ function initChatProjectWatch(): void {
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', () => {
         syncChatToProject()
-        // Use saveActiveProjectData for a fire-and-forget IDB write
+        // Synchronous localStorage write as fallback — IDB is async and may not
+        // complete before the page unloads
+        const pid = activeProjectId.value
+        if (pid && chat) {
+          try {
+            const data = JSON.stringify({ messages: chat.messages })
+            localStorage.setItem(`${STORAGE_PREFIX}chat-backup:${pid}`, data)
+          } catch {
+            // localStorage full or unavailable — best effort
+          }
+        }
         void saveActiveProjectData()
       })
     }
@@ -574,8 +584,27 @@ function initChatProjectWatch(): void {
 
 function getRestoredMessages(): UIMessage[] {
   try {
-    const { activeChat } = useProjects()
-    const messages = activeChat.value.messages
+    const { activeChat, activeProjectId } = useProjects()
+    let messages = activeChat.value.messages
+
+    // If IDB had no messages, try localStorage backup (written synchronously on beforeunload)
+    if ((!messages || messages.length === 0) && activeProjectId.value) {
+      const backup = localStorage.getItem(`${STORAGE_PREFIX}chat-backup:${activeProjectId.value}`)
+      if (backup) {
+        try {
+          const parsed = JSON.parse(backup)
+          if (Array.isArray(parsed.messages) && parsed.messages.length > 0) {
+            messages = parsed.messages
+            // Restore into activeChat so IDB gets updated on next save
+            activeChat.value = { messages }
+          }
+        } catch {
+          // corrupt backup — ignore
+        }
+        // Clean up backup after successful restore
+        localStorage.removeItem(`${STORAGE_PREFIX}chat-backup:${activeProjectId.value}`)
+      }
+    }
     // Filter out incomplete tool calls that would show permanent spinners
     return messages.map((msg: UIMessage) => ({
       ...msg,
@@ -607,9 +636,14 @@ function syncChatToProject(): void {
 function saveChatToProject(): void {
   if (!chat) return
   try {
-    const { activeChat, saveActiveProjectData } = useProjects()
+    const { activeChat, activeProjectId, saveActiveProjectData } = useProjects()
     activeChat.value = { messages: [...chat.messages] }
-    void saveActiveProjectData()
+    void saveActiveProjectData().then(() => {
+      // Clean up localStorage backup after successful IDB write
+      if (activeProjectId.value) {
+        localStorage.removeItem(`${STORAGE_PREFIX}chat-backup:${activeProjectId.value}`)
+      }
+    })
   } catch {
     // ignore
   }
