@@ -1,5 +1,5 @@
 import { valibotSchema } from '@ai-sdk/valibot'
-import { tool } from 'ai'
+import { tool, jsonSchema } from 'ai'
 import * as v from 'valibot'
 
 import { makeFigmaFromStore } from '@/automation/figma-factory'
@@ -203,14 +203,14 @@ export function createAITools(store: EditorStore) {
 
   const stitchGenerate = tool({
     description: 'Generate a UI screen from a text description using Google Stitch. Returns HTML that is automatically imported as design nodes on the canvas. Use when the user asks to create screens, pages, or UI from a description using Stitch.',
-    parameters: valibotSchema(
-      v.object({
-        prompt: v.pipe(v.string(), v.description('Description of the UI screen to generate')),
-        projectId: v.optional(v.pipe(v.string(), v.description('Optional Stitch project ID to associate with'))),
-      })
-    ),
-    // @ts-expect-error -- valibotSchema doesn't properly infer execute param types for tool()
-    // eslint-disable-next-line typescript/no-explicit-any -- valibotSchema doesn't infer execute params
+    parameters: jsonSchema({
+      type: 'object',
+      properties: {
+        prompt: { type: 'string', description: 'Description of the UI screen to generate' },
+        projectId: { type: 'string', description: 'Optional Stitch project ID to associate with' },
+      },
+      required: ['prompt'],
+    }),
     execute: async (args: any) => {
       console.log('[stitch_generate] received args:', JSON.stringify(args))
       const prompt: string | undefined = args?.prompt
@@ -282,14 +282,14 @@ export function createAITools(store: EditorStore) {
 
   const stitchImportScreen = tool({
     description: 'Import an existing screen from a Google Stitch project into the canvas. Fetches the screen HTML and converts it to design nodes.',
-    parameters: valibotSchema(
-      v.object({
-        projectId: v.pipe(v.string(), v.description('Stitch project ID')),
-        screenId: v.pipe(v.string(), v.description('Stitch screen ID to import')),
-      })
-    ),
-    // @ts-expect-error -- valibotSchema doesn't properly infer execute param types for tool()
-    // eslint-disable-next-line typescript/no-explicit-any -- valibotSchema doesn't infer execute params
+    parameters: jsonSchema({
+      type: 'object',
+      properties: {
+        projectId: { type: 'string', description: 'Stitch project ID' },
+        screenId: { type: 'string', description: 'Stitch screen ID to import' },
+      },
+      required: ['projectId', 'screenId'],
+    }),
     execute: async (args: any) => {
       const projectId: string | undefined = args?.projectId
       const screenId: string | undefined = args?.screenId
@@ -327,7 +327,10 @@ export function createAITools(store: EditorStore) {
 
   const stitchListProjects = tool({
     description: 'List the user\'s Google Stitch projects. Returns project names and IDs for browsing or importing screens.',
-    parameters: valibotSchema(v.object({})),
+    parameters: jsonSchema({
+      type: 'object',
+      properties: {},
+    }),
     execute: async () => {
       try {
         const projects = await stitchClient.listProjects()
