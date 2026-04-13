@@ -1,25 +1,35 @@
 /**
  * Stitch MCP Client — thin wrapper over the Vercel proxy
+ *
+ * MCP tools return { content: [{ type: "text", text: "..." }, ...] }
+ * This client extracts the text/image content from MCP responses.
  */
 
 const PROXY_URL = '/api/stitch-mcp'
 
-interface McpResponse<T = unknown> {
+interface McpContentItem {
+  type: 'text' | 'image' | 'resource'
+  text?: string
+  data?: string
+  mimeType?: string
+}
+
+interface McpToolResult {
+  content: McpContentItem[]
+  isError?: boolean
+}
+
+interface McpResponse {
   jsonrpc: string
   id: number
-  result?: T
+  result?: McpToolResult
   error?: { code: number; message: string }
 }
 
-interface StitchTool {
-  name: string
-  description: string
-  inputSchema: Record<string, unknown>
-}
+// Cached default project ID — auto-created on first use
+let defaultProjectId: string | null = null
 
-let toolsCache: StitchTool[] | null = null
-
-async function mcpCall<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
+async function mcpCall(method: string, params?: Record<string, unknown>): Promise<McpToolResult> {
   const res = await fetch(PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -33,80 +43,117 @@ async function mcpCall<T = unknown>(method: string, params?: Record<string, unkn
     throw new Error(detail ? `${msg}: ${detail}` : msg)
   }
 
-  const data = (await res.json()) as McpResponse<T>
+  const data = (await res.json()) as McpResponse
   if (data.error) {
     throw new Error(data.error.message || `MCP error ${data.error.code}`)
   }
-  return data.result as T
+  if (!data.result) {
+    throw new Error('Empty MCP response')
+  }
+  if (data.result.isError) {
+    const errText = data.result.content?.map(c => c.text).filter(Boolean).join(' ') || 'Unknown Stitch error'
+    throw new Error(errText)
+  }
+  return data.result
 }
 
-async function callTool<T = unknown>(toolName: string, args: Record<string, unknown> = {}): Promise<T> {
-  return mcpCall<T>('tools/call', { name: toolName, arguments: args })
+/** Extract all text content from an MCP tool result */
+function extractText(result: McpToolResult): string {
+  return result.content
+    .filter(c => c.type === 'text' && c.text)
+    .map(c => c.text!)
+    .join('\n')
 }
 
-export async function discoverTools(): Promise<StitchTool[]> {
-  if (toolsCache) return toolsCache
-  const result = await mcpCall<{ tools: StitchTool[] }>('tools/list')
-  toolsCache = result.tools
-  return toolsCache
+/** Extract image data from an MCP tool result */
+function extractImage(result: McpToolResult): { data: string; mimeType: string } | null {
+  const img = result.content.find(c => c.type === 'image' && c.data)
+  return img ? { data: img.data!, mimeType: img.mimeType || 'image/png' } : null
 }
 
-export interface StitchProject {
-  id: string
-  name: string
-  screenCount?: number
+/** Try to parse JSON from text content */
+function parseJsonContent<T>(result: McpToolResult): T | null {
+  const text = extractText(result)
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    return null
+  }
 }
 
-export interface StitchScreen {
-  id: string
-  name: string
-  projectId: string
+async function callTool(toolName: string, args: Record<string, unknown> = {}): Promise<McpToolResult> {
+  return mcpCall('tools/call', { name: toolName, arguments: args })
 }
 
-export interface ScreenCode {
-  html: string
-  css?: string
-}
+/** Ensure we have a default project to generate screens in */
+async function ensureProject(): Promise<string> {
+  if (defaultProjectId) return defaultProjectId
 
-export interface ScreenImage {
-  imageUrl?: string
-  base64?: string
-  mimeType?: string
+  // Try to find existing projects first
+  const listResult = await callTool('list_projects')
+  const parsed = parseJsonContent<{ projects?: Array<{ name: string }> }>(listResult)
+  if (parsed?.projects?.length) {
+    // Extract project ID from resource name "projects/123"
+    const name = parsed.projects[0].name
+    defaultProjectId = name.includes('/') ? name.split('/').pop()! : name
+    return defaultProjectId
+  }
+
+  // Create a new project
+  const createResult = await callTool('create_project', { title: 'Lutris AI Designs' })
+  const created = parseJsonContent<{ name?: string }>(createResult)
+  if (created?.name) {
+    defaultProjectId = created.name.includes('/') ? created.name.split('/').pop()! : created.name
+    return defaultProjectId
+  }
+
+  throw new Error('Failed to create Stitch project')
 }
 
 export interface GenerateResult {
-  html: string
-  screenId?: string
-  imageUrl?: string
-  base64?: string
-  mimeType?: string
-}
-
-export async function listProjects(): Promise<StitchProject[]> {
-  const result = await callTool<{ projects: StitchProject[] }>('list_projects')
-  return result.projects ?? []
-}
-
-export async function listScreens(projectId: string): Promise<StitchScreen[]> {
-  const result = await callTool<{ screens: StitchScreen[] }>('list_screens', { project_id: projectId })
-  return result.screens ?? []
-}
-
-export async function getScreenCode(screenId: string): Promise<ScreenCode> {
-  return callTool<ScreenCode>('fetch_screen_code', { screen_id: screenId })
-}
-
-export async function getScreenImage(screenId: string): Promise<ScreenImage> {
-  return callTool<ScreenImage>('fetch_screen_image', { screen_id: screenId })
+  text: string
+  image: { data: string; mimeType: string } | null
+  screenName?: string
 }
 
 export async function generateScreen(prompt: string, opts?: { projectId?: string }): Promise<GenerateResult> {
-  return callTool<GenerateResult>('generate_screen_from_text', {
+  const projectId = opts?.projectId || await ensureProject()
+
+  console.log('[stitch-client] generateScreen:', { projectId, prompt: prompt.slice(0, 50) })
+
+  const result = await callTool('generate_screen_from_text', {
     prompt,
-    ...(opts?.projectId ? { project_id: opts.projectId } : {}),
+    projectId,
   })
+
+  console.log('[stitch-client] raw result:', JSON.stringify(result).slice(0, 500))
+
+  return {
+    text: extractText(result),
+    image: extractImage(result),
+  }
 }
 
-export async function extractDesignContext(screenId: string): Promise<Record<string, unknown>> {
-  return callTool<Record<string, unknown>>('extract_design_context', { screen_id: screenId })
+export async function getScreen(projectId: string, screenId: string): Promise<GenerateResult> {
+  const result = await callTool('get_screen', {
+    name: `projects/${projectId}/screens/${screenId}`,
+    projectId,
+    screenId,
+  })
+  return {
+    text: extractText(result),
+    image: extractImage(result),
+  }
+}
+
+export async function listProjects(): Promise<Array<{ name: string; title?: string }>> {
+  const result = await callTool('list_projects')
+  const parsed = parseJsonContent<{ projects?: Array<{ name: string; title?: string }> }>(result)
+  return parsed?.projects ?? []
+}
+
+export async function listScreens(projectId: string): Promise<Array<{ name: string }>> {
+  const result = await callTool('list_screens', { projectId })
+  const parsed = parseJsonContent<{ screens?: Array<{ name: string }> }>(result)
+  return parsed?.screens ?? []
 }
