@@ -1,17 +1,17 @@
 /**
  * Vercel Serverless MCP Proxy for Google Stitch
  *
- * Directly calls stitch.googleapis.com/mcp using the same auth headers
- * as @google/stitch-sdk (X-Goog-Api-Key), without the SDK dependency
- * that has issues in serverless environments.
+ * Stitch API does NOT support API keys — requires OAuth2 access token.
+ * Uses Service Account JWT assertion flow to get an access token.
  *
  * Env vars:
- *   STITCH_API_KEY — API key from Google AI Studio (recommended)
- *   STITCH_ACCESS_TOKEN — pre-generated OAuth2 token (alternative)
- *   GOOGLE_CLOUD_PROJECT_ID — optional, for quota/billing
+ *   GOOGLE_SERVICE_ACCOUNT_JSON — Service Account key JSON (required)
+ *   GOOGLE_CLOUD_PROJECT_ID — GCP project ID for X-Goog-User-Project
  */
 
 const STITCH_ENDPOINT = 'https://stitch.googleapis.com/mcp'
+const TOKEN_URL = 'https://oauth2.googleapis.com/token'
+const SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
 
 const ALLOWED_ORIGINS = [
   'https://lutris.ai',
@@ -22,30 +22,51 @@ const ALLOWED_ORIGINS = [
 
 const ALLOWED_METHODS = ['tools/list', 'tools/call']
 
+let cachedToken = null
+let tokenExpiresAt = 0
 let mcpSessionId = null
 
 export const config = { maxDuration: 30 }
 
-function buildAuthHeaders() {
-  const apiKey = process.env.STITCH_API_KEY
-  const accessToken = process.env.STITCH_ACCESS_TOKEN
-  const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID
+function base64url(data) {
+  return Buffer.from(data).toString('base64url')
+}
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json, text/event-stream',
+async function signJWT(header, payload, privateKeyPem) {
+  const { createSign } = await import('node:crypto')
+  const input = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(payload))}`
+  const sign = createSign('RSA-SHA256')
+  sign.update(input)
+  return `${input}.${sign.sign(privateKeyPem, 'base64url')}`
+}
+
+async function getAccessToken() {
+  const now = Math.floor(Date.now() / 1000)
+  if (cachedToken && tokenExpiresAt > now + 60) return cachedToken
+
+  const saJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+  if (!saJson) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON not configured')
+
+  const sa = JSON.parse(saJson)
+  const jwt = await signJWT(
+    { alg: 'RS256', typ: 'JWT' },
+    { iss: sa.client_email, scope: SCOPE, aud: TOKEN_URL, iat: now, exp: now + 3600 },
+    sa.private_key,
+  )
+
+  const res = await fetch(TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
+  })
+  if (!res.ok) {
+    const err = await res.text().catch(() => 'Unknown token error')
+    throw new Error(`OAuth2 token failed (${res.status}): ${err}`)
   }
-
-  if (apiKey) {
-    headers['X-Goog-Api-Key'] = apiKey
-  } else if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`
-    if (projectId) headers['X-Goog-User-Project'] = projectId
-  } else {
-    throw new Error('No Stitch credentials. Set STITCH_API_KEY or STITCH_ACCESS_TOKEN.')
-  }
-
-  return headers
+  const data = await res.json()
+  cachedToken = data.access_token
+  tokenExpiresAt = now + (data.expires_in || 3600)
+  return cachedToken
 }
 
 export default async function handler(req, res) {
@@ -64,7 +85,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const authHeaders = buildAuthHeaders()
+    const accessToken = await getAccessToken()
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID
+
+    const authHeaders = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json, text/event-stream',
+      'Authorization': `Bearer ${accessToken}`,
+    }
+    if (projectId) authHeaders['X-Goog-User-Project'] = projectId
 
     // Initialize MCP session if needed
     if (!mcpSessionId) {
@@ -81,7 +110,6 @@ export default async function handler(req, res) {
       })
       if (initRes.ok) {
         mcpSessionId = initRes.headers.get('mcp-session-id')
-        console.log('[stitch-mcp] Session initialized:', mcpSessionId)
       } else {
         const errText = await initRes.text().catch(() => '')
         console.error('[stitch-mcp] Init failed:', initRes.status, errText)
@@ -89,7 +117,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Forward the actual MCP call
     const mcpPayload = { jsonrpc: '2.0', id: Date.now(), method, ...(params ? { params } : {}) }
     const headers = { ...authHeaders }
     if (mcpSessionId) headers['Mcp-Session-Id'] = mcpSessionId
