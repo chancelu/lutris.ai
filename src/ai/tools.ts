@@ -212,10 +212,11 @@ export function createAITools(store: EditorStore) {
     // @ts-expect-error -- valibotSchema doesn't properly infer execute param types for tool()
     // eslint-disable-next-line typescript/no-explicit-any -- valibotSchema doesn't infer execute params
     execute: async (args: any) => {
+      console.log('[stitch_generate] received args:', JSON.stringify(args))
       const prompt: string | undefined = args?.prompt
       const projectId: string | undefined = args?.projectId
       if (!prompt || typeof prompt !== 'string') {
-        return { success: false, error: 'Missing required parameter: prompt' }
+        return { success: false, error: `Missing required parameter: prompt. Received keys: ${Object.keys(args ?? {}).join(', ')}` }
       }
 
       if (!batchActive) {

@@ -28,7 +28,9 @@ async function mcpCall<T = unknown>(method: string, params?: Record<string, unkn
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Network error' }))
-    throw new Error((err as { error?: string }).error || `Stitch proxy error (${res.status})`)
+    const detail = (err as { detail?: string }).detail
+    const msg = (err as { error?: string }).error || `Stitch proxy error (${res.status})`
+    throw new Error(detail ? `${msg}: ${detail}` : msg)
   }
 
   const data = (await res.json()) as McpResponse<T>
