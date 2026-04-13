@@ -257,14 +257,19 @@ export function importNodeChanges(
     const nc = changeMap.get(ncId)
     if (!nc) return
 
-    const { nodeType, ...props } = nodeChangeToProps(nc, blobs)
-    if (nodeType === 'DOCUMENT' || nodeType === 'VARIABLE' || nc.type === 'VARIABLE_SET') return
+    try {
+      const { nodeType, ...props } = nodeChangeToProps(nc, blobs)
+      if (nodeType === 'DOCUMENT' || nodeType === 'VARIABLE' || nc.type === 'VARIABLE_SET') return
 
-    const node = graph.createNode(nodeType, graphParentId, props)
-    guidToNodeId.set(ncId, node.id)
+      const node = graph.createNode(nodeType, graphParentId, props)
+      guidToNodeId.set(ncId, node.id)
 
-    for (const childId of getChildren(ncId)) {
-      createSceneNode(childId, node.id)
+      for (const childId of getChildren(ncId)) {
+        createSceneNode(childId, node.id)
+      }
+    } catch (e) {
+      // Skip nodes that fail to import rather than aborting the entire file
+      console.warn(`[fig-import] Skipped node ${ncId} (${nc.name ?? nc.type}):`, e)
     }
   }
 
@@ -275,12 +280,17 @@ export function importNodeChanges(
   importVariableBindings(changeMap, guidToNodeId, graph)
   remapComponentIds(graph, guidToNodeId)
 
-  populateAndApplyOverrides(
-    graph,
-    changeMap as unknown as Map<string, InstanceNodeChange>,
-    guidToNodeId,
-    blobs
-  )
+  try {
+    populateAndApplyOverrides(
+      graph,
+      changeMap as unknown as Map<string, InstanceNodeChange>,
+      guidToNodeId,
+      blobs
+    )
+  } catch (e) {
+    // Instance overrides are non-critical — import continues without them
+    console.warn('[fig-import] Instance override population failed:', e)
+  }
 
   if (graph.getPages(true).length === 0) {
     graph.addPage('Page 1')

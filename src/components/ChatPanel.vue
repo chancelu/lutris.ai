@@ -25,7 +25,7 @@ const hasCanvasContent = computed(() => {
   return (page?.childIds?.length ?? 0) > 0
 })
 
-const { isConfigured, ensureChat, resetChat, pendingMessage, pendingSystemPrefix, aiProgress, providerID, isServerConfigured, activeTab, aiMode, inlinePanel } = useAIChat()
+const { isConfigured, ensureChat, resetChat, pendingMessage, pendingSystemPrefix, aiProgress, providerID, isServerConfigured, activeTab, aiMode, inlinePanel, saveChatToProject } = useAIChat()
 const { hasContext, buildContextPrompt, clearAIContext } = useAISelect()
 
 const existing = ensureChat()
@@ -101,6 +101,8 @@ function handleSubmit(text: string, systemPrefix?: string) {
     console.error('[AI Chat] sendMessage failed:', err)
     chatError.value = err?.message || 'Failed to send message'
   })
+  // Persist chat after user sends a message so it survives refresh
+  requestAnimationFrame(() => saveChatToProject())
   if (hasContext.value) clearAIContext()
 }
 

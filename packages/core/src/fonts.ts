@@ -198,6 +198,16 @@ export async function loadFont(family: string, style = 'Regular'): Promise<Array
     }
   }
 
+  // Last resort: register the default font (Inter) under the missing family name
+  // so text nodes still render with correct content instead of being invisible.
+  const defaultData = loadedFamilies.get(`${DEFAULT_FONT_FAMILY}|Regular`)
+  if (defaultData && registerFontInCanvasKit(family, defaultData)) {
+    loadedFamilies.set(cacheKey, defaultData)
+    loadedFamilyNames.add(family)
+    registerFontInBrowser(family, style, defaultData)
+    return defaultData
+  }
+
   return null
 }
 

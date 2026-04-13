@@ -159,11 +159,9 @@ async function onDeleteProject(projectId: string) {
     const meta = await createProject('Untitled Project')
     await switchProject(meta.id, store)
     store.state.documentName = meta.name
-  } else if (activeProjectId.value && activeProjectId.value !== projectId) {
-    // already on a different project, just update name
-    store.state.documentName = activeProject.value?.name ?? 'Untitled'
-  } else {
-    // deleteProject already switched to first remaining project
+  } else if (activeProjectId.value) {
+    // Load the switched-to project's design into the editor
+    await switchProject(activeProjectId.value, store)
     store.state.documentName = activeProject.value?.name ?? 'Untitled'
   }
 }

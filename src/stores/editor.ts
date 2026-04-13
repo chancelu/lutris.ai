@@ -612,8 +612,8 @@ export function createEditorStore() {
       const families = [...new Set(failed.map(([family]) => family))]
       toast.show(
         families.length === 1
-          ? `Font "${families[0]}" could not be loaded`
-          : `${families.length} fonts could not be loaded: ${families.join(', ')}`,
+          ? `Font "${families[0]}" could not be loaded — install it locally for accurate rendering`
+          : `${families.length} fonts substituted with fallback: ${families.slice(0, 5).join(', ')}${families.length > 5 ? '...' : ''} — install them locally for accurate rendering`,
         'warning'
       )
     } else {
@@ -686,7 +686,11 @@ export function createEditorStore() {
           }
         } catch (e) {
           console.warn('[autosave] failed:', e)
-          toast.show('Autosave failed — save manually with Ctrl+S', 'error')
+          // Only show toast if user has a file handle (explicit save target).
+          // Project-based autosave in use-projects.ts handles IDB persistence separately.
+          if (fileHandle || filePath) {
+            toast.show('Autosave failed — save manually with Ctrl+S', 'error')
+          }
         }
       }, AUTOSAVE_DELAY)
     }
