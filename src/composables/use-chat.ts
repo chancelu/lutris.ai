@@ -229,6 +229,13 @@ const SYSTEM_PROMPT = dedent`
   - Use when the user asks for visual assets, hero images, placeholder photos, icons, or any bitmap content.
   - Requires Gemini API key configured in Brand Settings.
 
+  # Stitch Integration
+  You can generate complete UI designs using Google Stitch:
+  - \`stitch_generate\`: Generate a full UI screen from a text description. Use when the user asks to create screens, pages, or UI layouts using Stitch (e.g. "用 Stitch 生成一个登录页面").
+  - \`stitch_import_screen\`: Import an existing screen from a Stitch project into the canvas.
+  - \`stitch_list_projects\`: List the user's Stitch projects to browse or import screens.
+  Use Stitch when the user explicitly mentions "Stitch" or asks for complete, production-ready UI screens. For simpler UI layouts, prefer the \`render\` tool with JSX.
+
   # Smart routing: UI layout vs Image generation
   Automatically decide which tool to use based on the user's request:
   - **Use \`render\` (JSX)** when: creating UI screens, layouts, forms, buttons, cards, navigation bars, dashboards, wireframes, or any structured interface elements.
@@ -489,6 +496,8 @@ function createTransport() {
       if (name === 'render') aiProgress.value = 'generating'
       else if (name === 'describe') aiProgress.value = 'verifying'
       else if (name === 'generate_image') aiProgress.value = 'creating-image'
+      else if (name === 'stitch_generate') aiProgress.value = 'generating-design'
+      else if (name === 'stitch_import_screen') aiProgress.value = 'importing'
       else aiProgress.value = 'analyzing'
     },
     onFinish: () => {
