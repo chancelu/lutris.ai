@@ -25,11 +25,17 @@ const hasCanvasContent = computed(() => {
   return (page?.childIds?.length ?? 0) > 0
 })
 
-const { isConfigured, ensureChat, resetChat, pendingMessage, pendingSystemPrefix, aiProgress, providerID, isServerConfigured, activeTab, aiMode, inlinePanel, saveChatToProject } = useAIChat()
+const { isConfigured, ensureChat, resetChat, pendingMessage, pendingSystemPrefix, aiProgress, providerID, isServerConfigured, activeTab, aiMode, inlinePanel, saveChatToProject, chatInstanceVersion } = useAIChat()
 const { hasContext, buildContextPrompt, clearAIContext } = useAISelect()
 
 const existing = ensureChat()
 const chat = ref<Chat<UIMessage> | null>(existing ? markRaw(existing) : null)
+
+// When chat is re-created after IDB restore, pick up the new instance
+watch(chatInstanceVersion, () => {
+  const c = ensureChat()
+  if (c) chat.value = markRaw(c)
+})
 const messagesEnd = ref<HTMLDivElement>()
 const debugCopied = ref(false)
 const chatError = ref<string | null>(null)

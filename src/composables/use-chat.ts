@@ -304,6 +304,8 @@ const pendingSystemPrefix = ref<string | null>(null)
 const draftMessage = ref<string>('')
 const focusRequested = ref(0)
 const inlinePanel = ref<'spec' | 'export' | null>(null)
+// Bumped when chat instance is re-created (e.g. after IDB restore) so ChatPanel can react
+const chatInstanceVersion = ref(0)
 
 const providerDef = computed(
   () => AI_PROVIDERS.find((p) => p.id === providerID.value) ?? AI_PROVIDERS[0]
@@ -559,6 +561,24 @@ function initChatProjectWatch(): void {
       // and the chat is initialized with restored messages
     })
 
+    // When IDB finishes loading and activeChat gets populated after chat was
+    // already created with empty messages, re-create chat with restored messages.
+    watch(() => activeChat.value.messages.length, (newLen) => {
+      if (newLen > 0 && chat && chat.messages.length === 0) {
+        const restored = getRestoredMessages()
+        if (restored.length > 0) {
+          resetChat()
+          chat = new Chat<UIMessage>({
+            transport: createTransport(),
+            initialMessages: restored,
+            onError: () => { aiProgress.value = 'idle' },
+          })
+          // Notify ChatPanel to pick up the new chat instance
+          chatInstanceVersion.value++
+        }
+      }
+    })
+
     // Persist chat on page unload so messages survive refresh
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', () => {
@@ -704,6 +724,7 @@ export function useAIChat() {
     aiModeTone,
     isGenerating,
     focusRequested,
-    inlinePanel
+    inlinePanel,
+    chatInstanceVersion,
   }
 }
