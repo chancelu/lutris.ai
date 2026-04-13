@@ -7,6 +7,8 @@ import { ALL_TOOLS, computeAllLayouts, computeLayout, extractNodeIds, toolsToAI 
 import { useImageGen } from '@/composables/use-image-gen'
 import { useProductDoc } from '@/composables/use-product-doc'
 import { toast } from '@/composables/use-toast'
+import * as stitchClient from '@/lib/stitch-client'
+import { importStitchHtml } from '@/lib/stitch-html-import'
 
 import type { EditorStore } from '@/stores/editor'
 import type { SceneNode } from '@open-pencil/core'
@@ -199,6 +201,132 @@ export function createAITools(store: EditorStore) {
     },
   })
 
+  const stitchGenerate = tool({
+    description: 'Generate a UI screen from a text description using Google Stitch. Returns HTML that is automatically imported as design nodes on the canvas. Use when the user asks to create screens, pages, or UI from a description using Stitch.',
+    parameters: valibotSchema(
+      v.object({
+        prompt: v.pipe(v.string(), v.description('Description of the UI screen to generate')),
+        projectId: v.optional(v.pipe(v.string(), v.description('Optional Stitch project ID to associate with'))),
+      })
+    ),
+    // @ts-expect-error -- valibotSchema doesn't properly infer execute param types for tool()
+    // eslint-disable-next-line typescript/no-explicit-any -- valibotSchema doesn't infer execute params
+    execute: async ({ prompt, projectId }: any) => {
+      if (!batchActive) {
+        batchBeforeSnapshot = store.snapshotPage()
+        batchActive = true
+      }
+
+      const pageId = store.state.currentPageId
+      const placeholder = store.graph.createNode('FRAME', pageId, {
+        name: `⏳ Stitch: ${prompt.slice(0, 30)}...`,
+        x: 100, y: 100, width: 375, height: 200,
+        layoutMode: 'VERTICAL',
+        fills: [{ type: 'SOLID', color: { r: 0.12, g: 0.12, b: 0.18, a: 1 }, visible: true, opacity: 0.4 }],
+        cornerRadius: 12,
+      })
+      computeAllLayouts(store.graph, pageId)
+      store.requestRender()
+      store.flashNodes([placeholder.id])
+
+      let pulseFrame = 0
+      const pulseInterval = setInterval(() => {
+        pulseFrame++
+        const opacity = 0.25 + 0.15 * Math.sin(pulseFrame * 0.12)
+        store.graph.updateNode(placeholder.id, {
+          fills: [{ type: 'SOLID', color: { r: 0.12, g: 0.12, b: 0.18, a: 1 }, visible: true, opacity }],
+        })
+        store.requestRender()
+      }, 60)
+
+      toast.show(`🎨 Generating UI with Stitch: "${prompt.slice(0, 40)}"...`)
+
+      try {
+        const result = await stitchClient.generateScreen(prompt, { projectId })
+
+        clearInterval(pulseInterval)
+        // Remove placeholder
+        store.graph.deleteNode(placeholder.id)
+
+        if (!result.html) {
+          store.requestRender()
+          return { success: false, error: 'Stitch returned no HTML' }
+        }
+
+        const { rootId, nodeCount } = importStitchHtml(result.html, pageId, store.graph)
+        computeAllLayouts(store.graph, pageId)
+        store.requestRender()
+        store.select([rootId])
+        store.flashNodes([rootId])
+
+        toast.show(`✅ Stitch UI imported (${nodeCount} nodes)`)
+
+        return { success: true, nodeId: rootId, nodeCount, screenId: result.screenId }
+      } catch (err) {
+        clearInterval(pulseInterval)
+        store.graph.deleteNode(placeholder.id)
+        store.requestRender()
+        const msg = err instanceof Error ? err.message : 'Unknown error'
+        toast.show(`Stitch generation failed: ${msg}`, 'error')
+        return { success: false, error: msg }
+      }
+    },
+  })
+
+  const stitchImportScreen = tool({
+    description: 'Import an existing screen from a Google Stitch project into the canvas. Fetches the screen HTML and converts it to design nodes.',
+    parameters: valibotSchema(
+      v.object({
+        projectId: v.pipe(v.string(), v.description('Stitch project ID')),
+        screenId: v.pipe(v.string(), v.description('Stitch screen ID to import')),
+      })
+    ),
+    // @ts-expect-error -- valibotSchema doesn't properly infer execute param types for tool()
+    // eslint-disable-next-line typescript/no-explicit-any -- valibotSchema doesn't infer execute params
+    execute: async ({ projectId, screenId }: any) => {
+      void projectId // used for context, screenId is the key
+      if (!batchActive) {
+        batchBeforeSnapshot = store.snapshotPage()
+        batchActive = true
+      }
+
+      toast.show('📥 Importing Stitch screen...')
+
+      try {
+        const code = await stitchClient.getScreenCode(screenId)
+        if (!code.html) return { success: false, error: 'No HTML returned for screen' }
+
+        const pageId = store.state.currentPageId
+        const { rootId, nodeCount } = importStitchHtml(code.html, pageId, store.graph)
+        computeAllLayouts(store.graph, pageId)
+        store.requestRender()
+        store.select([rootId])
+        store.flashNodes([rootId])
+
+        toast.show(`✅ Screen imported (${nodeCount} nodes)`)
+        return { success: true, nodeId: rootId, nodeCount }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error'
+        toast.show(`Screen import failed: ${msg}`, 'error')
+        return { success: false, error: msg }
+      }
+    },
+  })
+
+  const stitchListProjects = tool({
+    description: 'List the user\'s Google Stitch projects. Returns project names and IDs for browsing or importing screens.',
+    parameters: valibotSchema(v.object({})),
+    execute: async () => {
+      try {
+        const projects = await stitchClient.listProjects()
+        return { success: true, projects }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error'
+        return { success: false, error: msg, projects: [] }
+      }
+    },
+  })
+
   function commitAIBatch() {
     if (batchActive && batchBeforeSnapshot) {
       const before = batchBeforeSnapshot
@@ -213,7 +341,13 @@ export function createAITools(store: EditorStore) {
     batchActive = false
   }
 
-  const tools = { ...coreTools, generate_image: generateImage }
+  const tools = {
+    ...coreTools,
+    generate_image: generateImage,
+    stitch_generate: stitchGenerate,
+    stitch_import_screen: stitchImportScreen,
+    stitch_list_projects: stitchListProjects,
+  }
   return { tools, commitAIBatch }
 }
 
