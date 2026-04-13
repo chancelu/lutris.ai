@@ -10,6 +10,7 @@
         "@ai-sdk/openai": "^3.0.37",
         "@ai-sdk/valibot": "^2.0.17",
         "@ai-sdk/vue": "^3.0.105",
+        "@google/stitch-sdk": "^0.1.0",
         "@open-pencil/cli": "workspace:*",
         "@open-pencil/core": "workspace:*",
         "@openrouter/ai-sdk-provider": "^2.2.3",
@@ -575,6 +576,8 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
     "@floating-ui/vue": ["@floating-ui/vue@1.1.10", "", { "dependencies": { "@floating-ui/dom": "^1.7.5", "@floating-ui/utils": "^0.2.10", "vue-demi": ">=0.13.0" } }, "sha512-vdf8f6rHnFPPLRsmL4p12wYl+Ux4mOJOkjzKEMYVnwdf7UFdvBtHlLvQyx8iKG5vhPRbDRgZxdtpmyigDPjzYg=="],
+
+    "@google/stitch-sdk": ["@google/stitch-sdk@0.1.0", "", { "dependencies": { "@modelcontextprotocol/sdk": "^1.23.0", "zod": "^4.3.5" } }, "sha512-IAiPV9YicN4FijJO+4FnUz8KrTkdn5RgsDyilrfHjDHrczdpfVtLx2QGUHkUV2necYVvvnCxJiXo4TyrULuwtw=="],
 
     "@grpc/grpc-js": ["@grpc/grpc-js@1.9.15", "", { "dependencies": { "@grpc/proto-loader": "^0.7.8", "@types/node": ">=12.12.47" } }, "sha512-nqE7Hc0AzI+euzUwDAy0aY5hCp10r734gMGRdU+qOPX0XSceI2ULrcXB5U2xSc5VkWwalCj4M7GzCAygZl2KoQ=="],
 
@@ -2695,6 +2698,8 @@
     "@babel/helper-create-regexp-features-plugin/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
 
     "@babel/preset-env/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
+
+    "@google/stitch-sdk/zod": ["zod@4.3.6", "", {}, "sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="],
 
     "@isaacs/cliui/string-width": ["string-width@5.1.2", "", { "dependencies": { "eastasianwidth": "^0.2.0", "emoji-regex": "^9.2.2", "strip-ansi": "^7.0.1" } }, "sha512-HnLOCR3vjcY8beoNLtcjZ5/nxn2afmME6lhrDrebokqMap+XbeW8n9TXpPDOqdGK5qcI3oT0GKTW6wC7EMiVqA=="],
 
