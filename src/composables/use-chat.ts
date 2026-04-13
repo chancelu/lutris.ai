@@ -549,6 +549,15 @@ function initChatProjectWatch(): void {
       // Restore messages will happen when ensureChat is called
       // and the chat is initialized with restored messages
     })
+
+    // Persist chat on page unload so messages survive refresh
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => {
+        syncChatToProject()
+        // Use saveActiveProjectData for a fire-and-forget IDB write
+        void saveActiveProjectData()
+      })
+    }
   } catch {
     // useProjects not available yet
   }
