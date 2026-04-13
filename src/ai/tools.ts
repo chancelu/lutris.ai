@@ -211,7 +211,13 @@ export function createAITools(store: EditorStore) {
     ),
     // @ts-expect-error -- valibotSchema doesn't properly infer execute param types for tool()
     // eslint-disable-next-line typescript/no-explicit-any -- valibotSchema doesn't infer execute params
-    execute: async ({ prompt, projectId }: any) => {
+    execute: async (args: any) => {
+      const prompt: string | undefined = args?.prompt
+      const projectId: string | undefined = args?.projectId
+      if (!prompt || typeof prompt !== 'string') {
+        return { success: false, error: 'Missing required parameter: prompt' }
+      }
+
       if (!batchActive) {
         batchBeforeSnapshot = store.snapshotPage()
         batchActive = true
@@ -283,8 +289,13 @@ export function createAITools(store: EditorStore) {
     ),
     // @ts-expect-error -- valibotSchema doesn't properly infer execute param types for tool()
     // eslint-disable-next-line typescript/no-explicit-any -- valibotSchema doesn't infer execute params
-    execute: async ({ projectId, screenId }: any) => {
+    execute: async (args: any) => {
+      const projectId: string | undefined = args?.projectId
+      const screenId: string | undefined = args?.screenId
       void projectId // used for context, screenId is the key
+      if (!screenId) {
+        return { success: false, error: 'Missing required parameter: screenId' }
+      }
       if (!batchActive) {
         batchBeforeSnapshot = store.snapshotPage()
         batchActive = true
