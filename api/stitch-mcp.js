@@ -26,7 +26,7 @@ const ALLOWED_METHODS = ['tools/list', 'tools/call']
 let cachedToken = null
 let tokenExpiresAt = 0
 
-export const config = { maxDuration: 60 }
+export const config = { maxDuration: 120 }
 
 function base64url(data) {
   return Buffer.from(data).toString('base64url')
@@ -123,7 +123,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers,
       body: JSON.stringify(mcpPayload),
-      signal: AbortSignal.timeout(50000),
+      signal: AbortSignal.timeout(110000),
     })
 
     if (!mcpRes.ok) {
