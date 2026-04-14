@@ -21,11 +21,13 @@ import TopBar from '@/components/TopBar.vue'
 import Toolbar from '@/components/Toolbar.vue'
 import WelcomeOverlay from '@/components/WelcomeOverlay.vue'
 import FigmaFileBrowser from '@/components/FigmaFileBrowser.vue'
+import FigmaAnalyzePanel from '@/components/FigmaAnalyzePanel.vue'
 import LeftSidebar from '@/components/LeftSidebar.vue'
 
 const designFileInput = ref<HTMLInputElement | null>(null)
 const aiPanelHighlight = ref(false)
 const showFigmaBrowser = ref(false)
+const showFigmaAnalyzer = ref(false)
 const route = useRoute()
 const router = useRouter()
 const firstTab = createTab()
@@ -177,6 +179,7 @@ function onWelcomeAction(type: string) {
   }
   if (type === 'import' || type === 'import-fig') { designFileInput.value?.click(); return }
   if (type === 'import-figma-cloud') { showFigmaBrowser.value = true; return }
+  if (type === 'analyze-figma') { showFigmaAnalyzer.value = true; return }
   if (type === 'import-prd') {
     const input = document.createElement('input')
     input.type = 'file'
@@ -237,6 +240,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
   <div data-test-id="editor-root" class="flex h-screen w-screen flex-col overflow-hidden">
     <input ref="designFileInput" type="file" accept=".fig" class="hidden" @change="handleDesignFileChange" />
     <FigmaFileBrowser v-if="showFigmaBrowser" @import="handleFigmaImport" @close="showFigmaBrowser = false" />
+    <FigmaAnalyzePanel v-if="showFigmaAnalyzer" @close="showFigmaAnalyzer = false" @synced="inlinePanel = 'spec'" />
 
     <TopBar
       v-if="showChrome && store.state.showUI"
