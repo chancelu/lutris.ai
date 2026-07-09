@@ -13,10 +13,13 @@ import {
   loadChatFromIDB,
   saveSnapshotsToIDB,
   loadSnapshotsFromIDB,
+  savePipelineToIDB,
+  loadPipelineFromIDB,
   deleteProjectFromIDB,
   migrateLegacySession,
   DEFAULT_PROJECT_ID,
 } from '@/stores/autosave-idb'
+import { createEmptyPipelineState } from '@/types/pipeline'
 import {
   type ProjectBrand,
   type ProjectChat,
@@ -28,6 +31,7 @@ import {
   createProjectData,
 } from '@/types/project'
 
+import type { PipelineState } from '@/types/pipeline'
 import type { EditorStore } from '@/stores/editor'
 
 // ── State ──
@@ -44,6 +48,7 @@ const activeBrand = ref<ProjectBrand>({ ...DEFAULT_BRAND })
 const activePRD = ref<ProjectPRD>(createEmptyPRD())
 const activeChat = ref<ProjectChat>({ messages: [] })
 const activeSnapshots = ref<ProjectSnapshot[]>([])
+const activePipeline = ref<PipelineState>(createEmptyPipelineState())
 
 let autosaveTimer: number | null = null
 const AUTOSAVE_INTERVAL = 30000
@@ -73,6 +78,7 @@ async function saveActiveProjectData(): Promise<void> {
       savePRDToIDB(pid, structuredClone(toRaw(activePRD.value))),
       saveChatToIDB(pid, structuredClone(toRaw(activeChat.value))),
       saveSnapshotsToIDB(pid, structuredClone(toRaw(activeSnapshots.value))),
+      savePipelineToIDB(pid, structuredClone(toRaw(activePipeline.value))),
     ])
     lastSavedAt.value = Date.now()
     // Update meta timestamp
@@ -90,17 +96,20 @@ async function saveActiveProjectData(): Promise<void> {
 async function loadProjectData(projectId: string): Promise<void> {
   isLoading.value = true
   try {
-    const [brand, prd, chat, snapshots] = await Promise.all([
+    const [brand, prd, chat, snapshots, pipeline] = await Promise.all([
       loadBrandFromIDB(projectId),
       loadPRDFromIDB(projectId),
       loadChatFromIDB(projectId),
       loadSnapshotsFromIDB(projectId),
+      loadPipelineFromIDB(projectId),
     ])
     activeBrand.value = brand ?? { ...DEFAULT_BRAND }
     // 旧数据可能没有 pages/designSystem/targetPlatform 字段（迁移前存的），补齐默认值
     activePRD.value = prd ? { ...createEmptyPRD(), ...prd } : createEmptyPRD()
     activeChat.value = chat ?? { messages: [] }
     activeSnapshots.value = snapshots ?? []
+    // 旧项目没存过 pipeline（Phase 2 之前创建的），补默认空状态
+    activePipeline.value = pipeline ?? createEmptyPipelineState()
     snapshotCounter = activeSnapshots.value.reduce((max, s) => Math.max(max, s.id), 0)
   } finally {
     isLoading.value = false
@@ -123,6 +132,7 @@ async function createProject(
     savePRDToIDB(meta.id, data.prd),
     saveChatToIDB(meta.id, data.chat),
     saveSnapshotsToIDB(meta.id, data.snapshots),
+    savePipelineToIDB(meta.id, data.pipeline),
   ])
   return meta
 }
@@ -384,6 +394,7 @@ export function useProjects() {
     activePRD,
     activeChat,
     activeSnapshots: readonly(activeSnapshots),
+    activePipeline,
 
     // Project CRUD
     createProject,
