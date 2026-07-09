@@ -13,8 +13,28 @@ export interface ImportResult {
   nodeCount: number
 }
 
-const VIEWPORT_WIDTH = 375
-const VIEWPORT_HEIGHT = 812
+// Store original HTML for Stitch nodes so stitch_refine can read it back
+const stitchHtmlStore = new Map<string, string>()
+
+export function getStitchHtml(nodeId: string): string | undefined {
+  return stitchHtmlStore.get(nodeId)
+}
+
+export function setStitchHtml(nodeId: string, html: string) {
+  stitchHtmlStore.set(nodeId, html)
+}
+
+export function deleteStitchHtml(nodeId: string) {
+  stitchHtmlStore.delete(nodeId)
+}
+
+export type ViewportPreset = 'mobile' | 'tablet' | 'desktop'
+
+const VIEWPORTS: Record<ViewportPreset, { width: number; height: number }> = {
+  mobile: { width: 375, height: 812 },
+  tablet: { width: 768, height: 1024 },
+  desktop: { width: 1440, height: 900 },
+}
 
 /** Extract clean HTML from Stitch response (may be wrapped in markdown/JSON) */
 function extractHtml(raw: string): string {
@@ -113,9 +133,9 @@ img{max-width:100%;height:auto}
 /* PLACEHOLDER_RENDER */
 
 /** Render HTML to PNG via SVG foreignObject */
-async function renderHtmlToImage(html: string): Promise<{ bytes: Uint8Array; width: number; height: number }> {
-  const w = VIEWPORT_WIDTH
-  const h = VIEWPORT_HEIGHT
+async function renderHtmlToImage(html: string, vw: number, vh: number): Promise<{ bytes: Uint8Array; width: number; height: number }> {
+  const w = vw
+  const h = vh
 
   // Escape for XML embedding — encode entities that break SVG
   const escapedCss = TW_CSS.replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -179,9 +199,11 @@ export async function importStitchHtml(
   html: string,
   parentId: string,
   graph: SceneGraph,
+  viewport: ViewportPreset = 'desktop',
 ): Promise<ImportResult> {
   const cleaned = extractHtml(html)
-  const { bytes, width, height } = await renderHtmlToImage(cleaned)
+  const vp = VIEWPORTS[viewport]
+  const { bytes, width, height } = await renderHtmlToImage(cleaned, vp.width, vp.height)
 
   const hash = computeImageHash(bytes)
   graph.images.set(hash, bytes)
@@ -192,6 +214,7 @@ export async function importStitchHtml(
     width, height,
     fills: [createImageFill(hash)],
   })
+  stitchHtmlStore.set(node.id, cleaned)
 
   return { rootId: node.id, nodeCount: 1 }
 }
@@ -204,6 +227,8 @@ export function importStitchImage(
   mimeType: string,
   parentId: string,
   graph: SceneGraph,
+  viewport: ViewportPreset = 'desktop',
+  sourceHtml?: string,
 ): ImportResult {
   void mimeType
   const raw = atob(base64Data)
@@ -213,13 +238,17 @@ export function importStitchImage(
   const hash = computeImageHash(bytes)
   graph.images.set(hash, bytes)
 
+  const vp = VIEWPORTS[viewport]
   const node = graph.createNode('RECTANGLE', parentId, {
     name: 'Stitch Design',
     x: 100, y: 100,
-    width: VIEWPORT_WIDTH,
-    height: VIEWPORT_HEIGHT,
+    width: vp.width,
+    height: vp.height,
     fills: [createImageFill(hash)],
   })
+  if (sourceHtml) {
+    stitchHtmlStore.set(node.id, sourceHtml)
+  }
 
   return { rootId: node.id, nodeCount: 1 }
 }

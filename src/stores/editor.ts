@@ -548,8 +548,6 @@ export function createEditorStore() {
       const imported = await readFigFile(file)
       await yieldToUI()
       graph = imported
-      // Skip computeAllLayouts here — deserialized positions are already correct.
-      // Layout will be recomputed after fonts load in loadFontsForNodes().
       subscribeToGraph()
       undo.clear()
       pageViewports.clear()
@@ -566,13 +564,10 @@ export function createEditorStore() {
       state.zoom = 1
       state.pageColor = { ...CANVAS_BG_COLOR }
       requestRender()
-      // Auto-fit viewport to show imported content
       setTimeout(() => viewportOps.zoomToFit(), 100)
-      // Pass the target pageId and request re-fit after fonts load
       void loadFontsForNodes(graph.getChildren(pageId).map((n) => n.id), pageId, true)
       void startWatchingFile()
     } catch (e) {
-      console.error('Failed to open .fig file:', e)
       toast.show(`Failed to open file: ${e instanceof Error ? e.message : String(e)}`, 'error')
     } finally {
       state.loading = false

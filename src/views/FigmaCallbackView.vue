@@ -22,11 +22,19 @@ onMounted(async () => {
     return
   }
 
+  let timedOut = false
+  const timeout = setTimeout(() => {
+    timedOut = true
+    error.value = 'Connection timed out. Please try again.'
+  }, 15000)
+
   try {
     await handleCallback(code, state)
-    router.replace('/editor')
+    if (!timedOut) router.replace('/editor')
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'OAuth callback failed'
+    if (!timedOut) error.value = e instanceof Error ? e.message : 'OAuth callback failed'
+  } finally {
+    clearTimeout(timeout)
   }
 })
 </script>

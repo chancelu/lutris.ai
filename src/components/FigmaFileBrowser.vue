@@ -22,7 +22,7 @@ onMounted(() => {
 })
 
 async function loadFiles() {
-  const token = getToken()
+  const token = await getToken()
   if (!token) return
   loading.value = true
   error.value = ''
@@ -36,7 +36,7 @@ async function loadFiles() {
 }
 
 async function importFile(entry: FigmaFileEntry) {
-  const token = getToken()
+  const token = await getToken()
   if (!token) return
   importing.value = entry.key
   error.value = ''

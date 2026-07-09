@@ -1,9 +1,13 @@
 import { ref, computed } from 'vue'
 
 const STORAGE_KEY = 'figma_auth'
+const OAUTH_STATE_KEY = 'figma_oauth_state'
+const REFRESH_MARGIN_MS = 5 * 60 * 1000
+const STATE_TTL_MS = 5 * 60 * 1000
 
 interface StoredAuth {
   accessToken: string
+  refreshToken: string | null
   expiresAt: number
 }
 
@@ -12,7 +16,7 @@ function loadStored(): StoredAuth | null {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as StoredAuth
-    if (parsed.expiresAt <= Date.now()) {
+    if (parsed.expiresAt <= Date.now() && !parsed.refreshToken) {
       localStorage.removeItem(STORAGE_KEY)
       return null
     }
@@ -22,22 +26,64 @@ function loadStored(): StoredAuth | null {
   }
 }
 
+function saveAuth(stored: StoredAuth) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+  auth.value = stored
+}
+
 const auth = ref<StoredAuth | null>(loadStored())
+let refreshPromise: Promise<string | null> | null = null
 
 export function useFigmaAuth() {
   const isConnected = computed(() => {
     const a = auth.value
-    return !!a && a.expiresAt > Date.now()
+    return !!a && (a.expiresAt > Date.now() || !!a.refreshToken)
   })
 
-  function getToken(): string | null {
+  async function refreshAccessToken(): Promise<string | null> {
     const a = auth.value
-    if (!a || a.expiresAt <= Date.now()) {
-      auth.value = null
-      localStorage.removeItem(STORAGE_KEY)
+    if (!a?.refreshToken) return null
+    const originalRefreshToken = a.refreshToken
+
+    const res = await fetch('/api/figma-refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: a.refreshToken }),
+    })
+    if (!res.ok) {
+      if (auth.value?.refreshToken === originalRefreshToken) {
+        auth.value = null
+        localStorage.removeItem(STORAGE_KEY)
+      }
       return null
     }
-    return a.accessToken
+    const data = (await res.json()) as { access_token: string; refresh_token?: string; expires_in: number }
+    if (!data.access_token || !data.expires_in) return null
+    if (auth.value?.refreshToken !== originalRefreshToken) {
+      return auth.value?.accessToken ?? null
+    }
+    const stored: StoredAuth = {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? a.refreshToken,
+      expiresAt: Date.now() + data.expires_in * 1000,
+    }
+    saveAuth(stored)
+    return stored.accessToken
+  }
+
+  async function getToken(): Promise<string | null> {
+    const a = auth.value
+    if (!a) return null
+    if (a.expiresAt > Date.now() + REFRESH_MARGIN_MS) return a.accessToken
+    if (a.refreshToken) {
+      if (!refreshPromise) {
+        refreshPromise = refreshAccessToken().finally(() => { refreshPromise = null })
+      }
+      return refreshPromise
+    }
+    auth.value = null
+    localStorage.removeItem(STORAGE_KEY)
+    return null
   }
 
   function startOAuth() {
@@ -47,7 +93,8 @@ export function useFigmaAuth() {
       throw new Error('Figma OAuth not configured (VITE_FIGMA_CLIENT_ID / VITE_FIGMA_REDIRECT_URI)')
     }
     const state = crypto.randomUUID()
-    sessionStorage.setItem('figma_oauth_state', state)
+    const stateEntry = JSON.stringify({ state, createdAt: Date.now() })
+    localStorage.setItem(OAUTH_STATE_KEY, stateEntry)
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -59,10 +106,12 @@ export function useFigmaAuth() {
   }
 
   async function handleCallback(code: string, state: string): Promise<void> {
-    const expected = sessionStorage.getItem('figma_oauth_state')
-    sessionStorage.removeItem('figma_oauth_state')
-    if (!expected || state !== expected) {
-      throw new Error('Invalid OAuth state — possible CSRF')
+    const raw = localStorage.getItem(OAUTH_STATE_KEY)
+    localStorage.removeItem(OAUTH_STATE_KEY)
+    if (!raw) throw new Error('Invalid OAuth state — possible CSRF')
+    const entry = JSON.parse(raw) as { state: string; createdAt: number }
+    if (entry.state !== state || Date.now() - entry.createdAt > STATE_TTL_MS) {
+      throw new Error('Invalid or expired OAuth state')
     }
 
     const res = await fetch('/api/figma-oauth', {
@@ -74,13 +123,12 @@ export function useFigmaAuth() {
       const err = await res.json().catch(() => ({ error: 'Unknown error' }))
       throw new Error(err.error || 'Token exchange failed')
     }
-    const data = (await res.json()) as { access_token: string; expires_in: number }
-    const stored: StoredAuth = {
+    const data = (await res.json()) as { access_token: string; refresh_token?: string; expires_in: number }
+    saveAuth({
       accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? null,
       expiresAt: Date.now() + data.expires_in * 1000,
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
-    auth.value = stored
+    })
   }
 
   function disconnect() {

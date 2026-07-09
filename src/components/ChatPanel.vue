@@ -13,6 +13,7 @@ import { useAISelect } from '@/composables/use-ai-select'
 import { useSpec } from '@/composables/use-spec'
 import { toast } from '@/composables/use-toast'
 import { useEditorStore } from '@/stores/editor'
+import { AI_PROVIDERS } from '@open-pencil/core'
 
 import type { Chat } from '@ai-sdk/vue'
 import type { UIMessage } from 'ai'
@@ -65,6 +66,7 @@ const progressLabel = computed(() => {
     case 'generating-design': return 'Generating design on canvas...'
     case 'verifying': return 'Verifying...'
     case 'creating-image': return 'Creating image...'
+    case 'importing': return 'Importing...'
     default: return ''
   }
 })
@@ -90,11 +92,6 @@ watch(pendingMessage, (msg) => {
 
 function handleSubmit(text: string, systemPrefix?: string) {
   lastUserMessage.value = text
-  const requiresAction = hasContext.value || /(create|generate|build|design|edit|modify|update|redesign|make|layout|screen|page|component|render)/i.test(text)
-  if (requiresAction && aiMode.value === 'chat-only') {
-    chatError.value = 'Current provider is chat-only. Switch to an action-capable model/provider to generate or modify designs.'
-    return
-  }
 
   if (!chat.value) {
     const c = ensureChat()
@@ -279,10 +276,6 @@ function handleCreateSpecFromAll() {
           <icon-lucide-file-plus v-else class="size-3" />
           {{ specDraftCreated ? 'Spec created!' : 'Create spec draft' }}
         </button>
-      </div>
-
-      <div v-if="aiMode === 'chat-only'" class="border-t border-amber-500/20 bg-amber-500/8 px-3 py-2 text-[11px] text-amber-300">
-        This provider can chat, but tool-based design actions are disabled right now.
       </div>
 
       <AIContextCards />

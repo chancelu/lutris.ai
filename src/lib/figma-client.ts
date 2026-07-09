@@ -4,13 +4,21 @@ function headers(token: string): HeadersInit {
   return { Authorization: `Bearer ${token}` }
 }
 
-async function request<T>(token: string, path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { headers: headers(token) })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Figma API ${res.status}: ${text}`)
+async function request<T>(token: string, path: string, retries = 3): Promise<T> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const res = await fetch(`${BASE}${path}`, { headers: headers(token) })
+    if (res.status === 429 && attempt < retries - 1) {
+      const retryAfter = parseInt(res.headers.get('Retry-After') ?? '0', 10) || (2 ** attempt)
+      await new Promise(r => setTimeout(r, retryAfter * 1000))
+      continue
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`Figma API ${res.status}: ${text}`)
+    }
+    return res.json() as Promise<T>
   }
-  return res.json() as Promise<T>
+  throw new Error('Figma API: max retries exceeded')
 }
 
 export interface FigmaUser {
@@ -147,6 +155,6 @@ export interface FigmaEffect {
   blendMode?: string
 }
 
-export function getFile(token: string, fileKey: string): Promise<FigmaFileResponse> {
-  return request<FigmaFileResponse>(token, `/files/${fileKey}?geometry=paths`)
+export function getFile(token: string, fileKey: string, depth = 2): Promise<FigmaFileResponse> {
+  return request<FigmaFileResponse>(token, `/files/${fileKey}?geometry=paths&depth=${depth}`)
 }

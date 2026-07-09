@@ -232,12 +232,14 @@ const SYSTEM_PROMPT = dedent`
   # Stitch Integration (DEFAULT for UI generation)
   You MUST use Google Stitch as the primary tool for generating UI screens and pages:
   - \`stitch_generate\`: Generate a full UI screen from a text description. **Use this by default** whenever the user asks to create any screen, page, or UI layout.
+  - \`stitch_refine\`: Modify an existing Stitch design based on user feedback. Use when the user wants to change a specific part of a Stitch-generated design (e.g. "change the header to dark", "make the buttons bigger", "update the navigation"). Requires the nodeId of the Stitch design node.
   - \`stitch_import_screen\`: Import an existing screen from a Stitch project into the canvas.
   - \`stitch_list_projects\`: List the user's Stitch projects to browse or import screens.
 
   # Smart routing: Stitch vs render vs generate_image
   Automatically decide which tool to use based on the user's request:
   - **Use \`stitch_generate\`** (DEFAULT) when: creating UI screens, pages, app layouts, dashboards, forms, landing pages, or any complete interface design. This produces higher quality, production-ready results.
+  - **Use \`stitch_refine\`** when: the user wants to modify an existing Stitch-generated design. Look for a selected node named "Stitch Design" and use its ID. The user might say "change this", "update the header", "make it darker", etc.
   - **Use \`render\` (JSX)** when: making small modifications to existing elements, creating simple shapes, or when the user explicitly asks for JSX/manual layout.
   - **Use \`generate_image\`** when: creating photos, illustrations, artwork, realistic images, product shots, hero backgrounds, app icons, avatars, or any bitmap/raster content.
   - **Use stitch_generate + generate_image** when: the user wants a UI layout that includes generated images (e.g. "create a landing page with a hero photo"). First \`stitch_generate\` for the UI, then \`generate_image\` for visual assets.
@@ -434,7 +436,7 @@ function createModel(): LanguageModel {
   }
 }
 
-export type AIProgressState = 'idle' | 'analyzing' | 'generating' | 'verifying' | 'creating-image' | 'generating-design'
+export type AIProgressState = 'idle' | 'analyzing' | 'generating' | 'verifying' | 'creating-image' | 'generating-design' | 'importing'
 
 const aiProgress = shallowRef<AIProgressState>('idle')
 
@@ -499,6 +501,7 @@ function createTransport() {
       else if (name === 'describe') aiProgress.value = 'verifying'
       else if (name === 'generate_image') aiProgress.value = 'creating-image'
       else if (name === 'stitch_generate') aiProgress.value = 'generating-design'
+      else if (name === 'stitch_refine') aiProgress.value = 'generating-design'
       else if (name === 'stitch_import_screen') aiProgress.value = 'importing'
       else aiProgress.value = 'analyzing'
     },
@@ -690,20 +693,18 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
 
 const isGenerating = computed(() => aiProgress.value !== 'idle')
 
-const aiMode = computed<'action' | 'chat-only' | 'not-configured'>(() => {
+const aiMode = computed<'action' | 'not-configured'>(() => {
   if (!isConfigured.value) return 'not-configured'
   return 'action'
 })
 
 const aiModeLabel = computed(() => {
   if (aiMode.value === 'action') return 'AI ready'
-  if (aiMode.value === 'chat-only') return 'Chat only'
   return 'Not configured'
 })
 
 const aiModeTone = computed(() => {
   if (aiMode.value === 'action') return 'bg-green-500/15 text-green-400 border-green-500/30'
-  if (aiMode.value === 'chat-only') return 'bg-amber-500/15 text-amber-400 border-amber-500/30'
   return 'bg-red-500/15 text-red-400 border-red-500/30'
 })
 

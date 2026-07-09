@@ -84,24 +84,6 @@ export function closeTab(tabId: string) {
   }
 }
 
-export async function openFileInNewTab(
-  file: File,
-  handle?: FileSystemFileHandle,
-  path?: string
-): Promise<void> {
-  const current = activeTab.value
-  const isUntouched =
-    current?.store.state.documentName === 'Untitled' && !current.store.undo.canUndo
-
-  if (isUntouched) {
-    await current.store.openFigFile(file, handle, path)
-  } else {
-    const store = createEditorStore()
-    createTab(store)
-    await store.openFigFile(file, handle, path)
-  }
-}
-
 export function tabCount(): number {
   return tabsRef.value.length
 }
@@ -117,7 +99,6 @@ export function useTabsStore() {
     createTab,
     switchTab,
     closeTab,
-    openFileInNewTab,
     getActiveStore,
     tabCount,
     getTabByProjectId,

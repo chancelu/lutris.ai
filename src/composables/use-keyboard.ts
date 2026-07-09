@@ -6,8 +6,6 @@ import { useAIChat } from '@/composables/use-chat'
 import { TOOL_SHORTCUTS, useEditorStore } from '@/stores/editor'
 import { closeTab, createTab, activeTab as activeTabRef } from '@/stores/tabs'
 
-import { openFileDialog } from './use-menu'
-
 import type { ComputedRef } from 'vue'
 
 function isEditing(e: Event) {
@@ -177,7 +175,6 @@ export function useKeyboard() {
   whenever(mod('keyd'), () => store.duplicateSelected())
   whenever(mod('keya'), () => store.selectAll())
   whenever(mod('keys'), () => store.saveFigFile())
-  whenever(mod('keyo'), () => openFileDialog())
   whenever(mod('keyg'), () => store.groupSelected())
 
   // --- Shift (no mod) ---

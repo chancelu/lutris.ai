@@ -14,7 +14,6 @@ const emit = defineEmits<{
   switchProject: [projectId: string]
   createProject: []
   deleteProject: [projectId: string]
-  importClick: []
   exportClick: []
 }>()
 
@@ -64,14 +63,6 @@ function commitName() {
     </div>
     <div class="flex-1" />
     <div class="flex items-center gap-1">
-      <button
-        class="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] text-muted transition hover:bg-hover hover:text-surface"
-        title="Import .fig file"
-        @click="emit('importClick')"
-      >
-        <icon-lucide-upload class="size-3.5" />
-        <span>Import</span>
-      </button>
       <button
         class="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] text-muted transition hover:bg-hover hover:text-surface"
         title="Export"
