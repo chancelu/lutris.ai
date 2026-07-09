@@ -7,8 +7,11 @@ import { useAIChat } from '@/composables/use-chat'
 const store = useEditorStore()
 const { draftMessage, activeTab } = useAIChat()
 
+// 对话驱动优先（PRD Idea→Spec→Design 一条龙）：入口只保留 AI 对话 + 导入 PRD 文本两条路径，
+// 去掉"画布直入"（Start from template）和 Figma 导入选项 —— 这些绕开了 Idea 对话阶段，
+// 产出的是没有经过 Spec 结构化的设计稿，方向反了。
 const emit = defineEmits<{
-  action: [type: 'blank' | 'template' | 'ai' | 'import' | 'import-prd' | 'import-code' | 'import-figma-cloud' | 'analyze-figma']
+  action: [type: 'ai' | 'import-prd']
 }>()
 
 const dismissed = ref(false)
@@ -61,10 +64,7 @@ function handleAction(type: Parameters<typeof emit>[1]) {
         </button>
 
         <div class="mt-5 flex items-center justify-center gap-2 text-[12px]">
-          <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('import-figma-cloud')">Import from Figma</button>
-          <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('analyze-figma')">分析设计稿</button>
           <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('import-prd')">Import PRD</button>
-          <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('blank')">Start from template</button>
         </div>
       </div>
     </div>

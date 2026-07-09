@@ -24,6 +24,7 @@ import {
   type ProjectPRD,
   type ProjectSnapshot,
   DEFAULT_BRAND,
+  createEmptyPRD,
   createProjectData,
 } from '@/types/project'
 
@@ -40,7 +41,7 @@ const initialized = ref(false)
 
 // Per-project data (loaded for active project)
 const activeBrand = ref<ProjectBrand>({ ...DEFAULT_BRAND })
-const activePRD = ref<ProjectPRD>({ content: '', versions: [], versionCounter: 0 })
+const activePRD = ref<ProjectPRD>(createEmptyPRD())
 const activeChat = ref<ProjectChat>({ messages: [] })
 const activeSnapshots = ref<ProjectSnapshot[]>([])
 
@@ -96,7 +97,8 @@ async function loadProjectData(projectId: string): Promise<void> {
       loadSnapshotsFromIDB(projectId),
     ])
     activeBrand.value = brand ?? { ...DEFAULT_BRAND }
-    activePRD.value = prd ?? { content: '', versions: [], versionCounter: 0 }
+    // 旧数据可能没有 pages/designSystem/targetPlatform 字段（迁移前存的），补齐默认值
+    activePRD.value = prd ? { ...createEmptyPRD(), ...prd } : createEmptyPRD()
     activeChat.value = chat ?? { messages: [] }
     activeSnapshots.value = snapshots ?? []
     snapshotCounter = activeSnapshots.value.reduce((max, s) => Math.max(max, s.id), 0)
@@ -345,6 +347,7 @@ async function migrateLocalStorageProjects(): Promise<void> {
       try {
         const prdData = JSON.parse(prdRaw)
         const prd: ProjectPRD = {
+          ...createEmptyPRD(),
           content: prdData.content ?? '',
           versions: prdData.versions ?? [],
           versionCounter: prdData.versionCounter ?? 0,

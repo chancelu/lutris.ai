@@ -139,12 +139,9 @@ function handleSaveSummary(content: string) {
 }
 
 function handleSaveRequirements(content: string) {
-  const { saveRequirementsFromText, appendSummary } = useSpec()
-  const count = saveRequirementsFromText(content, 'ai', 'Saved requirements from AI')
-  if (count > 0) {
-    toast.show(`Saved ${count} requirements ✅`)
-    return
-  }
+  // 结构化 Page/Component 拆解交给 Spec 面板里的 AI 工具调用完成；
+  // 这里只做兜底：把 AI 产出的需求文本存进 freeform notes，用户可在 Spec 面板里手动拆解成 Page。
+  const { appendSummary } = useSpec()
   appendSummary(`## Requirements Draft\n\n${content}`, 'ai', 'Saved requirements draft from AI')
   toast.show('Saved as requirements draft ✅')
 }

@@ -1,5 +1,7 @@
-// ── Structured Requirements Model ──
-// PRD upgraded from free markdown to trackable requirements with coverage.
+// ── 兼容层：旧版自由文本 Requirement 模型 ──
+// PRD §11 已用 Page/Component 结构化模型（见 @/types/spec）替代本文件作为 Spec 的核心数据结构。
+// 保留此文件仅为向后兼容尚未迁移的少量引用点（如 AI 文本解析辅助函数）；
+// 新代码应优先使用 @/types/spec 中的 SpecPage / SpecComponent。
 
 export type RequirementPriority = 'P0' | 'P1' | 'P2'
 
@@ -40,24 +42,6 @@ export interface SuccessMetric {
   metric: string
   target: string
   timeframe: string
-}
-
-export interface RequirementsBoard {
-  problemStatement: string
-  personas: Persona[]
-  requirements: Requirement[]
-  outOfScope: string[]
-  successMetrics: SuccessMetric[]
-}
-
-export function createEmptyBoard(): RequirementsBoard {
-  return {
-    problemStatement: '',
-    personas: [],
-    requirements: [],
-    outOfScope: [],
-    successMetrics: [],
-  }
 }
 
 let _reqCounter = 0

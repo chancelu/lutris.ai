@@ -1,14 +1,12 @@
 import { ref, readonly } from 'vue'
 import { useFigmaAuth } from './use-figma-auth'
 import { useProductDoc } from './use-product-doc'
-import { useSpec } from './use-spec'
 import { getFile } from '@/lib/figma-client'
 import { analyzeFigmaFile, generateProductSpec, type AnalysisResult } from '@/lib/figma-analyzer'
 
 export function useFigmaAnalyze() {
   const { getToken } = useFigmaAuth()
   const productDoc = useProductDoc()
-  const spec = useSpec()
 
   const analyzing = ref(false)
   const progress = ref('')
@@ -60,18 +58,12 @@ export function useFigmaAnalyze() {
       return { success: true, requiresConfirm: true }
     }
 
-    // Also parse requirements from the spec
-    spec.saveRequirementsFromText(specMarkdown.value, 'design', 'Figma 设计稿分析')
-
     reset()
     return { success: true, requiresConfirm: false }
   }
 
   /** Called after user confirms overwrite via productDoc conflict UI */
   function afterSyncConfirmed() {
-    if (specMarkdown.value) {
-      spec.saveRequirementsFromText(specMarkdown.value, 'design', 'Figma 设计稿分析')
-    }
     reset()
   }
 
