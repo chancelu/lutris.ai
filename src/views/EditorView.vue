@@ -20,13 +20,9 @@ import PropertiesPanel from '@/components/PropertiesPanel.vue'
 import TopBar from '@/components/TopBar.vue'
 import Toolbar from '@/components/Toolbar.vue'
 import WelcomeOverlay from '@/components/WelcomeOverlay.vue'
-import FigmaFileBrowser from '@/components/FigmaFileBrowser.vue'
-import FigmaAnalyzePanel from '@/components/FigmaAnalyzePanel.vue'
 import LeftSidebar from '@/components/LeftSidebar.vue'
 
 const aiPanelHighlight = ref(false)
-const showFigmaBrowser = ref(false)
-const showFigmaAnalyzer = ref(false)
 const route = useRoute()
 const router = useRouter()
 const firstTab = createTab()
@@ -110,7 +106,6 @@ async function onDeleteProject(projectId: string) {
 }
 
 function onWelcomeAction(type: string) {
-  if (type === 'blank') return
   if (type === 'ai') {
     rightTab.value = 'create'
     focusRequested.value++
@@ -118,8 +113,6 @@ function onWelcomeAction(type: string) {
     setTimeout(() => { aiPanelHighlight.value = false }, 800)
     return
   }
-  if (type === 'import-figma-cloud') { showFigmaBrowser.value = true; return }
-  if (type === 'analyze-figma') { showFigmaAnalyzer.value = true; return }
   if (type === 'import-prd') {
     const input = document.createElement('input')
     input.type = 'file'
@@ -150,18 +143,6 @@ function onExportClick() {
   inlinePanel.value = inlinePanel.value === 'export' ? null : 'export'
 }
 
-async function handleFigmaImport(file: import('@/lib/figma-client').FigmaFileResponse, name: string) {
-  showFigmaBrowser.value = false
-  try {
-    const { figmaFileToSceneGraph } = await import('@open-pencil/core')
-    const graph = figmaFileToSceneGraph(file)
-    store.openFigmaGraph(graph, name)
-    toast.show(`Imported "${name}" from Figma`)
-  } catch (err) {
-    toast.show(`Failed to import from Figma: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
-  }
-}
-
 const disconnectAutomation = import.meta.env.DEV ? connectAutomation(getActiveStore).disconnect : undefined
 if (disconnectAutomation) onUnmounted(disconnectAutomation)
 
@@ -178,9 +159,6 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
 
 <template>
   <div data-test-id="editor-root" class="flex h-screen w-screen flex-col overflow-hidden">
-    <FigmaFileBrowser v-if="showFigmaBrowser" @import="handleFigmaImport" @close="showFigmaBrowser = false" />
-    <FigmaAnalyzePanel v-if="showFigmaAnalyzer" @close="showFigmaAnalyzer = false" @synced="inlinePanel = 'spec'" />
-
     <TopBar
       v-if="showChrome && store.state.showUI"
       :project-name="activeProject?.name || store.state.documentName"

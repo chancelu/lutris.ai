@@ -2,8 +2,18 @@
 // All project data flows through these types.
 // Every piece of state (PRD, brand, chat, design) is per-project.
 
-import type { DocVersion } from '@/composables/use-product-doc'
+import { createEmptyDesignSystem } from '@/types/spec'
+import type { SpecDesignSystem, SpecPage, SpecTargetPlatform } from '@/types/spec'
 import type { UIMessage } from 'ai'
+
+// DocVersion 定义在 use-product-doc.ts 里，这里只引用类型（避免运行时依赖 composable）
+export interface DocVersion {
+  id: number
+  content: string
+  timestamp: number
+  source: 'user' | 'design' | 'import' | 'ai'
+  label?: string
+}
 
 // ── Project Identity ──
 
@@ -41,11 +51,16 @@ export const DEFAULT_BRAND: Readonly<ProjectBrand> = Object.freeze({
 })
 
 // ── PRD Data ──
+// `content` / `freeformNotes` 保留自由文本备注（不再是唯一数据源）。
+// `pages` 是结构化 Spec 的核心（PRD §11: Page → SpecComponent[]）。
 
 export interface ProjectPRD {
   content: string
   versions: DocVersion[]
   versionCounter: number
+  pages: SpecPage[]
+  designSystem: SpecDesignSystem
+  targetPlatform: SpecTargetPlatform
 }
 
 // ── Chat Data ──
@@ -84,6 +99,17 @@ export function generateProjectId(): string {
   return `proj_${Date.now()}_${(++_counter).toString(36)}_${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`
 }
 
+export function createEmptyPRD(): ProjectPRD {
+  return {
+    content: '',
+    versions: [],
+    versionCounter: 0,
+    pages: [],
+    designSystem: createEmptyDesignSystem(),
+    targetPlatform: 'web',
+  }
+}
+
 export function createProjectData(
   name: string,
   startPath: 'enterprise' | 'blank' = 'blank',
@@ -93,7 +119,7 @@ export function createProjectData(
   return {
     meta: { id, name, startPath, createdAt: now, updatedAt: now },
     brand: { ...DEFAULT_BRAND },
-    prd: { content: '', versions: [], versionCounter: 0 },
+    prd: createEmptyPRD(),
     chat: { messages: [] },
     snapshots: [],
     collabRoomId: `room_${id}`,

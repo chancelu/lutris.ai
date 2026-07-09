@@ -1,14 +1,9 @@
 import { computed, readonly, ref } from 'vue'
 
 import { useSpec } from './use-spec'
+import type { DocVersion } from '@/types/project'
 
-export interface DocVersion {
-  id: number
-  content: string
-  timestamp: number
-  source: 'user' | 'design' | 'import' | 'ai'
-  label?: string
-}
+export type { DocVersion } from '@/types/project'
 
 export interface SyncConflict {
   docContent: string
@@ -229,7 +224,7 @@ export function useProductDoc() {
     currentContent,
     versions: readonly(computed(() => versions.value.map((version) => ({
       id: version.id,
-      content: version.summarySnapshot,
+      content: version.snapshot.freeformNotes,
       timestamp: version.timestamp,
       source: version.source,
       label: version.label,

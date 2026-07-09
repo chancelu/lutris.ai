@@ -229,21 +229,11 @@ const SYSTEM_PROMPT = dedent`
   - Use when the user asks for visual assets, hero images, placeholder photos, icons, or any bitmap content.
   - Requires Gemini API key configured in Brand Settings.
 
-  # Stitch Integration (DEFAULT for UI generation)
-  You MUST use Google Stitch as the primary tool for generating UI screens and pages:
-  - \`stitch_generate\`: Generate a full UI screen from a text description. **Use this by default** whenever the user asks to create any screen, page, or UI layout.
-  - \`stitch_refine\`: Modify an existing Stitch design based on user feedback. Use when the user wants to change a specific part of a Stitch-generated design (e.g. "change the header to dark", "make the buttons bigger", "update the navigation"). Requires the nodeId of the Stitch design node.
-  - \`stitch_import_screen\`: Import an existing screen from a Stitch project into the canvas.
-  - \`stitch_list_projects\`: List the user's Stitch projects to browse or import screens.
-
-  # Smart routing: Stitch vs render vs generate_image
+  # Smart routing: render vs generate_image
   Automatically decide which tool to use based on the user's request:
-  - **Use \`stitch_generate\`** (DEFAULT) when: creating UI screens, pages, app layouts, dashboards, forms, landing pages, or any complete interface design. This produces higher quality, production-ready results.
-  - **Use \`stitch_refine\`** when: the user wants to modify an existing Stitch-generated design. Look for a selected node named "Stitch Design" and use its ID. The user might say "change this", "update the header", "make it darker", etc.
-  - **Use \`render\` (JSX)** when: making small modifications to existing elements, creating simple shapes, or when the user explicitly asks for JSX/manual layout.
+  - **Use \`render\` (JSX)** when: creating or modifying UI screens, pages, app layouts, dashboards, forms, landing pages, or any complete interface design, as well as small modifications to existing elements, simple shapes, or manual layout.
   - **Use \`generate_image\`** when: creating photos, illustrations, artwork, realistic images, product shots, hero backgrounds, app icons, avatars, or any bitmap/raster content.
-  - **Use stitch_generate + generate_image** when: the user wants a UI layout that includes generated images (e.g. "create a landing page with a hero photo"). First \`stitch_generate\` for the UI, then \`generate_image\` for visual assets.
-  - When in doubt, prefer \`stitch_generate\` for anything that looks like UI.
+  - **Use render + generate_image** when: the user wants a UI layout that includes generated images (e.g. "create a landing page with a hero photo"). First \`render\` for the UI, then \`generate_image\` for visual assets.
 
   # Targeted modifications
   When the user's message includes "--- Selected elements for modification ---", they have selected specific elements on the canvas for editing.
@@ -500,9 +490,6 @@ function createTransport() {
       if (name === 'render') aiProgress.value = 'generating'
       else if (name === 'describe') aiProgress.value = 'verifying'
       else if (name === 'generate_image') aiProgress.value = 'creating-image'
-      else if (name === 'stitch_generate') aiProgress.value = 'generating-design'
-      else if (name === 'stitch_refine') aiProgress.value = 'generating-design'
-      else if (name === 'stitch_import_screen') aiProgress.value = 'importing'
       else aiProgress.value = 'analyzing'
     },
     onFinish: () => {
