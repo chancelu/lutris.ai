@@ -24,7 +24,6 @@ import FigmaFileBrowser from '@/components/FigmaFileBrowser.vue'
 import FigmaAnalyzePanel from '@/components/FigmaAnalyzePanel.vue'
 import LeftSidebar from '@/components/LeftSidebar.vue'
 
-const designFileInput = ref<HTMLInputElement | null>(null)
 const aiPanelHighlight = ref(false)
 const showFigmaBrowser = ref(false)
 const showFigmaAnalyzer = ref(false)
@@ -84,64 +83,6 @@ function onSyncPRD() {
 }
 onMounted(() => window.addEventListener('sync-prd-from-design', onSyncPRD))
 onUnmounted(() => window.removeEventListener('sync-prd-from-design', onSyncPRD))
-async function handleDesignFileChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-  if (file.size > 2 * 1024 * 1024 * 1024) {
-    toast.show('File too large. Maximum 2GB for .fig import.', 'error')
-    input.value = ''
-    return
-  }
-  try {
-    if (file.size > 50 * 1024 * 1024) {
-      toast.show('Importing large file, this may take a moment...')
-    }
-    const { useAssetLibrary } = await import('@/composables/use-asset-library')
-    const { loadLibrary } = useAssetLibrary()
-    const library = await loadLibrary(file)
-    // Recursively copy a node and all its children from source graph to dest graph
-    function deepImportNode(
-      srcGraph: typeof library.graph,
-      srcNodeId: string,
-      destParentId: string,
-    ) {
-      const src = srcGraph.getNode(srcNodeId)
-      if (!src) return
-      const { id: _id, parentId: _pid, childIds: _cids, ...props } = src
-      const created = store.graph.createNode(src.type, destParentId, props)
-      for (const childId of src.childIds) {
-        deepImportNode(srcGraph, childId, created.id)
-      }
-    }
-    // Place imported top-level nodes onto the current canvas page
-    const importedGraph = library.graph
-    const pages = importedGraph.getPages()
-    if (pages.length > 0) {
-      const topNodes = importedGraph.getChildren(pages[0].id)
-      for (const srcNode of topNodes) {
-        deepImportNode(importedGraph, srcNode.id, store.state.currentPageId)
-      }
-      // Copy images from imported graph
-      for (const [hash, data] of importedGraph.images) {
-        if (!store.graph.images.has(hash)) store.graph.images.set(hash, data)
-      }
-      store.requestRender()
-      setTimeout(() => store.zoomToFit(), 100)
-      // Load fonts for all imported nodes (reuses collectFontKeys which scans descendants)
-      const pageChildren = store.graph.getChildren(store.state.currentPageId)
-      if (pageChildren.length > 0) {
-        store.loadFontsForNodes(pageChildren.map(n => n.id), store.state.currentPageId, true)
-      }
-      // Suggest analysis in chat
-      nextTick(() => {
-        pendingMessage.value = 'I just imported a .fig design file. Please analyze it using design_overview first, then describe each major screen, and create a structured product spec.'
-      })
-    }
-  } catch (err) {
-    toast.show(`Failed to import .fig: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
-  } finally { input.value = '' }
-}
 
 async function onSwitchProject(projectId: string) {
   if (projectId === activeProjectId.value) return
@@ -177,7 +118,6 @@ function onWelcomeAction(type: string) {
     setTimeout(() => { aiPanelHighlight.value = false }, 800)
     return
   }
-  if (type === 'import' || type === 'import-fig') { designFileInput.value?.click(); return }
   if (type === 'import-figma-cloud') { showFigmaBrowser.value = true; return }
   if (type === 'analyze-figma') { showFigmaAnalyzer.value = true; return }
   if (type === 'import-prd') {
@@ -238,7 +178,6 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
 
 <template>
   <div data-test-id="editor-root" class="flex h-screen w-screen flex-col overflow-hidden">
-    <input ref="designFileInput" type="file" accept=".fig" class="hidden" @change="handleDesignFileChange" />
     <FigmaFileBrowser v-if="showFigmaBrowser" @import="handleFigmaImport" @close="showFigmaBrowser = false" />
     <FigmaAnalyzePanel v-if="showFigmaAnalyzer" @close="showFigmaAnalyzer = false" @synced="inlinePanel = 'spec'" />
 
@@ -250,7 +189,6 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       @switch-project="onSwitchProject"
       @create-project="onCreateProject"
       @delete-project="onDeleteProject"
-      @import-click="designFileInput?.click()"
       @export-click="onExportClick"
     />
 

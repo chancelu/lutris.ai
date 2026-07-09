@@ -113,40 +113,6 @@ describe('Bug Fix Validation', () => {
     })
   })
 
-  // ── Bug 5: .fig large file OOM protection ──
-  describe('Bug 5: .fig file size guard (50MB)', () => {
-    const editorView = read('views', 'EditorView.vue')
-
-    it('checks file size in EditorView handleDesignFileChange', () => {
-      expect(editorView).toMatch(/file\.size|50\s*\*\s*1024\s*\*\s*1024|52428800/)
-    })
-
-    it('shows error toast for large files', () => {
-      expect(editorView).toMatch(/too large|50\s*MB/i)
-    })
-  })
-
-  describe('Bug 5b: .fig file size guard in canvas drop', () => {
-    const dropCode = read('composables', 'use-canvas-drop.ts')
-
-    it('checks file size in drag-and-drop handler', () => {
-      expect(dropCode).toMatch(/file\.size|50\s*\*\s*1024\s*\*\s*1024|52428800/)
-    })
-  })
-
-  // ── Bug 6: .fig import places nodes on canvas ──
-  describe('Bug 6: .fig import adds nodes to canvas', () => {
-    // Check either EditorView or use-canvas-drop for post-import node placement
-    const editorView = read('views', 'EditorView.vue')
-    const dropCode = read('composables', 'use-canvas-drop.ts')
-    const combined = editorView + dropCode
-
-    it('has logic to add imported nodes to canvas after loadLibrary', () => {
-      // Should reference createNode, addNode, or similar after loadLibrary
-      expect(combined).toMatch(/createNode|addNode|insertNode|graph\./)
-    })
-  })
-
   // ── Bug 7: Spec Save exits edit mode ──
   describe('Bug 7: Spec Save exits edit mode', () => {
     const code = read('components', 'ProductDocPanel.vue')

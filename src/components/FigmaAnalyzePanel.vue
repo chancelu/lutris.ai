@@ -20,7 +20,7 @@ onMounted(() => {
 })
 
 async function loadFiles() {
-  const token = getToken()
+  const token = await getToken()
   if (!token) return
   loadingFiles.value = true
   try {
@@ -40,6 +40,7 @@ function handleSync() {
   if (requiresConfirm) {
     toast.show('已有 PRD 内容，请在文档面板确认是否覆盖')
     afterSyncConfirmed()
+    toast.show('产品规格已同步到 PRD（已覆盖）')
   } else {
     toast.show('产品规格已同步到 PRD')
   }

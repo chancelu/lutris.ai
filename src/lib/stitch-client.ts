@@ -28,6 +28,7 @@ interface McpResponse {
 
 // Cached default project ID — auto-created on first use
 let defaultProjectId: string | null = null
+let discoveredTools: string[] | null = null
 
 async function mcpCall(method: string, params?: Record<string, unknown>): Promise<McpToolResult> {
   const res = await fetch(PROXY_URL, {
@@ -82,6 +83,24 @@ function parseJsonContent<T>(result: McpToolResult): T | null {
 }
 
 async function callTool(toolName: string, args: Record<string, unknown> = {}): Promise<McpToolResult> {
+  if (!discoveredTools) {
+    const listResult = await mcpCall('tools/list')
+    const text = extractText(listResult)
+    try {
+      const parsed = JSON.parse(text) as { tools?: Array<{ name: string }> }
+      discoveredTools = parsed?.tools?.map(t => t.name) ?? []
+    } catch {
+      discoveredTools = listResult.content
+        .filter(c => c.type === 'text' && c.text)
+        .flatMap(c => {
+          try { return (JSON.parse(c.text!) as { name: string }).name ? [JSON.parse(c.text!).name] : [] }
+          catch { return [] }
+        })
+    }
+  }
+  if (discoveredTools.length > 0 && !discoveredTools.includes(toolName)) {
+    throw new Error(`Stitch tool "${toolName}" not found. Available: ${discoveredTools.join(', ')}`)
+  }
   return mcpCall('tools/call', { name: toolName, arguments: args })
 }
 
@@ -119,14 +138,10 @@ export interface GenerateResult {
 export async function generateScreen(prompt: string, opts?: { projectId?: string }): Promise<GenerateResult> {
   const projectId = opts?.projectId || await ensureProject()
 
-  console.log('[stitch-client] generateScreen:', { projectId, prompt: prompt.slice(0, 50) })
-
   const result = await callTool('generate_screen_from_text', {
     prompt,
     projectId,
   })
-
-  console.log('[stitch-client] raw result:', JSON.stringify(result).slice(0, 500))
 
   return {
     text: extractText(result),
@@ -156,4 +171,15 @@ export async function listScreens(projectId: string): Promise<Array<{ name: stri
   const result = await callTool('list_screens', { projectId })
   const parsed = parseJsonContent<{ screens?: Array<{ name: string }> }>(result)
   return parsed?.screens ?? []
+}
+
+export async function refineScreen(
+  originalHtml: string,
+  feedback: string,
+  region?: string,
+  opts?: { projectId?: string },
+): Promise<GenerateResult> {
+  const regionClause = region ? `\nRegion to modify: ${region}` : ''
+  const prompt = `Based on this existing UI:\n\`\`\`html\n${originalHtml}\n\`\`\`\n\nUser feedback: ${feedback}${regionClause}\n\nRegenerate the complete screen incorporating the requested changes. Keep all unchanged parts intact.`
+  return generateScreen(prompt, opts)
 }

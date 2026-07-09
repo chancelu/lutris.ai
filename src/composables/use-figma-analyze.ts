@@ -17,7 +17,7 @@ export function useFigmaAnalyze() {
   const specMarkdown = ref('')
 
   async function analyzeFile(fileKey: string): Promise<void> {
-    const token = getToken()
+    const token = await getToken()
     if (!token) {
       error.value = 'Figma 未连接，请先授权'
       return

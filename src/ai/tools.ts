@@ -8,7 +8,7 @@ import { useImageGen } from '@/composables/use-image-gen'
 import { useProductDoc } from '@/composables/use-product-doc'
 import { toast } from '@/composables/use-toast'
 import * as stitchClient from '@/lib/stitch-client'
-import { importStitchHtml, importStitchImage } from '@/lib/stitch-html-import'
+import { importStitchHtml, importStitchImage, getStitchHtml, setStitchHtml, deleteStitchHtml } from '@/lib/stitch-html-import'
 
 import type { EditorStore } from '@/stores/editor'
 import type { SceneNode } from '@open-pencil/core'
@@ -206,7 +206,6 @@ export function createAITools(store: EditorStore) {
     ),
     // @ts-expect-error -- valibotSchema doesn't properly infer execute param types for tool()
     execute: async ({ prompt, projectId }: any) => {
-      console.log('[stitch_generate] received prompt:', prompt?.slice?.(0, 50))
       if (!prompt || typeof prompt !== 'string') {
         return { success: false, error: 'Missing required parameter: prompt' }
       }
@@ -246,8 +245,6 @@ export function createAITools(store: EditorStore) {
         clearInterval(pulseInterval)
         // Remove placeholder
         store.graph.deleteNode(placeholder.id)
-
-        console.log('[stitch_generate] result text length:', result.text?.length, 'has image:', !!result.image)
 
         // Priority 1: Use Stitch image directly if available
         if (result.image) {
@@ -356,6 +353,76 @@ export function createAITools(store: EditorStore) {
     },
   })
 
+  const stitchRefine = tool({
+    description: 'Refine an existing Stitch design node based on user feedback. Reads the original HTML from the node, sends it with the feedback to Stitch for regeneration, and replaces the image in-place. Use when the user wants to modify a specific part of an existing Stitch-generated design.',
+    parameters: valibotSchema(
+      v.object({
+        nodeId: v.pipe(v.string(), v.description('ID of the Stitch design node to refine')),
+        feedback: v.pipe(v.string(), v.description('User feedback describing what to change')),
+        region: v.optional(v.pipe(v.string(), v.description('Region to modify, e.g. "header", "navigation", "footer", "sidebar"'))),
+      })
+    ),
+    // @ts-expect-error -- valibotSchema doesn't properly infer execute param types for tool()
+    execute: async ({ nodeId, feedback, region }: any) => {
+      const node = store.graph.getNode(nodeId)
+      if (!node) return { success: false, error: `Node ${nodeId} not found` }
+
+      const originalHtml = getStitchHtml(nodeId)
+      if (!originalHtml) {
+        return { success: false, error: 'No original HTML found for this node. It may not be a Stitch-generated design, or the HTML was lost. Try generating a new design instead.' }
+      }
+
+      if (!batchActive) {
+        batchBeforeSnapshot = store.snapshotPage()
+        batchActive = true
+      }
+
+      toast.show(`Refining design: "${feedback.slice(0, 40)}"...`)
+
+      try {
+        const result = await stitchClient.refineScreen(originalHtml, feedback, region)
+        const pageId = store.state.currentPageId
+
+        if (result.image) {
+          const { rootId } = importStitchImage(result.image.data, result.image.mimeType, pageId, store.graph, 'desktop', originalHtml)
+          const newNode = store.graph.getNode(rootId)
+          if (newNode) {
+            store.graph.updateNode(rootId, { x: node.x, y: node.y, width: node.width, height: node.height })
+          }
+          deleteStitchHtml(nodeId)
+          store.graph.deleteNode(nodeId)
+          store.requestRender()
+          store.select([rootId])
+          store.flashNodes([rootId])
+          toast.show('Design refined')
+          return { success: true, nodeId: rootId }
+        }
+
+        const html = result.text
+        if (html && html.includes('<') && html.includes('>')) {
+          const { rootId } = await importStitchHtml(html, pageId, store.graph)
+          const newNode = store.graph.getNode(rootId)
+          if (newNode) {
+            store.graph.updateNode(rootId, { x: node.x, y: node.y, width: node.width, height: node.height })
+          }
+          deleteStitchHtml(nodeId)
+          store.graph.deleteNode(nodeId)
+          store.requestRender()
+          store.select([rootId])
+          store.flashNodes([rootId])
+          toast.show('Design refined')
+          return { success: true, nodeId: rootId }
+        }
+
+        return { success: false, error: 'Stitch returned no visual content for refinement' }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error'
+        toast.show(`Refinement failed: ${msg}`, 'error')
+        return { success: false, error: msg }
+      }
+    },
+  })
+
   function commitAIBatch() {
     if (batchActive && batchBeforeSnapshot) {
       const before = batchBeforeSnapshot
@@ -388,6 +455,7 @@ export function createAITools(store: EditorStore) {
     stitch_generate: stitchGenerate,
     stitch_import_screen: stitchImportScreen,
     stitch_list_projects: stitchListProjects,
+    stitch_refine: stitchRefine,
   }
   return { tools, commitAIBatch }
 }

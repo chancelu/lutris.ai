@@ -11,7 +11,6 @@ import {
 
 import { menuContent, menuItem, menuSeparator } from '@/components/ui/menu'
 import { IS_TAURI } from '@/constants'
-import { openFileDialog } from '@/composables/use-menu'
 import { useEditorStore } from '@/stores/editor'
 import { useProjects } from '@/composables/use-projects'
 
@@ -35,7 +34,6 @@ function handleExport() {
 
 const fileItems = [
   { label: 'New Project', action: handleNewProject },
-  { label: 'Open .fig File', shortcut: `${mod}O`, action: () => openFileDialog() },
   { separator: true },
   { label: 'Export Selection', shortcut: `${mod}⇧E`, action: handleExport },
   { separator: true },
