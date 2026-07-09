@@ -1,3 +1,4 @@
+import type { PipelineState } from '@/types/pipeline'
 import type { ProjectBrand, ProjectChat, ProjectMeta, ProjectPRD, ProjectSnapshot } from '@/types/project'
 
 // ── Multi-Project IndexedDB Storage ──
@@ -5,7 +6,7 @@ import type { ProjectBrand, ProjectChat, ProjectMeta, ProjectPRD, ProjectSnapsho
 // Migrates legacy single-key `last-session` data on first open.
 
 const DB_NAME = 'designflow-autosave'
-const DB_VERSION = 2 // bumped from 1 to add project stores
+const DB_VERSION = 3 // bumped from 2 to add pipeline store
 
 // Object store names
 const DOCUMENTS_STORE = 'documents'     // key: projectId, value: ArrayBuffer (.fig binary)
@@ -14,6 +15,7 @@ const BRAND_STORE = 'project-brand'     // key: projectId, value: ProjectBrand
 const PRD_STORE = 'project-prd'         // key: projectId, value: ProjectPRD
 const CHAT_STORE = 'project-chat'       // key: projectId, value: ProjectChat
 const SNAPSHOTS_STORE = 'project-snapshots' // key: projectId, value: ProjectSnapshot[]
+const PIPELINE_STORE = 'project-pipeline'   // key: projectId, value: PipelineState
 
 const LEGACY_KEY = 'last-session'
 const DEFAULT_PROJECT_ID = 'proj_default'
@@ -38,6 +40,9 @@ function openDB(): Promise<IDBDatabase> {
         db.createObjectStore(PRD_STORE)
         db.createObjectStore(CHAT_STORE)
         db.createObjectStore(SNAPSHOTS_STORE)
+      }
+      if (oldVersion < 3) {
+        db.createObjectStore(PIPELINE_STORE)
       }
     }
     req.onsuccess = () => resolve(req.result)
@@ -186,6 +191,16 @@ export async function loadSnapshotsFromIDB(projectId: string): Promise<ProjectSn
   return idbGet<ProjectSnapshot[]>(SNAPSHOTS_STORE, projectId)
 }
 
+// ── Pipeline ──
+
+export async function savePipelineToIDB(projectId: string, pipeline: PipelineState): Promise<void> {
+  return idbPut(PIPELINE_STORE, projectId, pipeline)
+}
+
+export async function loadPipelineFromIDB(projectId: string): Promise<PipelineState | null> {
+  return idbGet<PipelineState>(PIPELINE_STORE, projectId)
+}
+
 // ── Delete all data for a project ──
 
 export async function deleteProjectFromIDB(projectId: string): Promise<void> {
@@ -196,6 +211,7 @@ export async function deleteProjectFromIDB(projectId: string): Promise<void> {
     idbDelete(PRD_STORE, projectId),
     idbDelete(CHAT_STORE, projectId),
     idbDelete(SNAPSHOTS_STORE, projectId),
+    idbDelete(PIPELINE_STORE, projectId),
   ])
 }
 

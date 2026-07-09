@@ -2,7 +2,9 @@
 // All project data flows through these types.
 // Every piece of state (PRD, brand, chat, design) is per-project.
 
+import { createEmptyPipelineState } from '@/types/pipeline'
 import { createEmptyDesignSystem } from '@/types/spec'
+import type { PipelineState } from '@/types/pipeline'
 import type { SpecDesignSystem, SpecPage, SpecTargetPlatform } from '@/types/spec'
 import type { UIMessage } from 'ai'
 
@@ -89,6 +91,8 @@ export interface ProjectData {
   snapshots: ProjectSnapshot[]
   /** Collaboration room ID — derived from project ID */
   collabRoomId: string
+  /** Idea→Spec→Design→Dev 阶段路由状态（PRD 多 agent orchestrator） */
+  pipeline: PipelineState
 }
 
 // ── Factory ──
@@ -123,5 +127,6 @@ export function createProjectData(
     chat: { messages: [] },
     snapshots: [],
     collabRoomId: `room_${id}`,
+    pipeline: createEmptyPipelineState(),
   }
 }
