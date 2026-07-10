@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import ProjectSwitcher from './ProjectSwitcher.vue'
 import UserMenu from './UserMenu.vue'
+import PipelinePhaseStepper from './PipelinePhaseStepper.vue'
 
 const { projectName, projects, activeProjectId } = defineProps<{
   projectName: string
@@ -61,7 +62,9 @@ function commitName() {
         @keydown.escape="isEditingName = false"
       />
     </div>
-    <div class="flex-1" />
+    <div class="flex flex-1 items-center justify-center">
+      <PipelinePhaseStepper />
+    </div>
     <div class="flex items-center gap-1">
       <button
         class="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] text-muted transition hover:bg-hover hover:text-surface"
