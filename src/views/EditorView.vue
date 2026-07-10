@@ -7,6 +7,7 @@ import { useHead } from '@unhead/vue'
 import { useKeyboard } from '@/composables/use-keyboard'
 import { useAIChat } from '@/composables/use-chat'
 import { useMenu } from '@/composables/use-menu'
+import { usePipeline } from '@/composables/use-pipeline'
 import { useProductDoc } from '@/composables/use-product-doc'
 import { useProjects } from '@/composables/use-projects'
 import { toast } from '@/composables/use-toast'
@@ -145,6 +146,18 @@ function onExportClick() {
 
 const disconnectAutomation = import.meta.env.DEV ? connectAutomation(getActiveStore).disconnect : undefined
 if (disconnectAutomation) onUnmounted(disconnectAutomation)
+
+if (import.meta.env.DEV) {
+  const pipeline = usePipeline()
+  window.__OPEN_PENCIL_PIPELINE__ = {
+    advancePhase: pipeline.advancePhase,
+    jumpToPhase: pipeline.jumpToPhase,
+    canJumpTo: pipeline.canJumpTo,
+    revertPhase: pipeline.revertPhase,
+    get currentPhase() { return pipeline.currentPhase.value },
+    get phases() { return pipeline.phases.value },
+  }
+}
 
 useEventListener(document, 'wheel', (e: WheelEvent) => {
   if (e.ctrlKey || e.metaKey) e.preventDefault()

@@ -33,4 +33,8 @@ interface Window {
   // The assignment in EditorView.vue is type-safe; test code uses `!` assertion.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   __OPEN_PENCIL_STORE__?: any
+  // DEV-only pipeline test hook, wired from usePipeline() in EditorView.vue.
+  // Typed as `any` for the same reason as __OPEN_PENCIL_STORE__ above.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  __OPEN_PENCIL_PIPELINE__?: any
 }
