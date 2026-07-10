@@ -92,6 +92,7 @@ declare module 'vue' {
     NextStepCard: typeof import('./src/components/NextStepCard.vue')['default']
     NodeContextMenuContent: typeof import('./src/components/NodeContextMenuContent.vue')['default']
     PageSection: typeof import('./src/components/properties/PageSection.vue')['default']
+    PipelinePhaseStepper: typeof import('./src/components/PipelinePhaseStepper.vue')['default']
     PositionSection: typeof import('./src/components/properties/PositionSection.vue')['default']
     ProductDocPanel: typeof import('./src/components/ProductDocPanel.vue')['default']
     ProjectManager: typeof import('./src/components/ProjectManager.vue')['default']
