@@ -1,4 +1,4 @@
-import { computed, readonly, ref, watch } from 'vue'
+import { computed, readonly, ref, toRaw, watch } from 'vue'
 
 import { useProjects } from './use-projects'
 import {
@@ -33,8 +33,8 @@ function currentSnapshot(): SpecSnapshot {
     projectName: '',
     createdFromIdeaBriefId: '',
     targetPlatform: targetPlatform.value,
-    pages: structuredClone(pages.value),
-    designSystem: structuredClone(designSystem.value),
+    pages: structuredClone(toRaw(pages.value)),
+    designSystem: structuredClone(toRaw(designSystem.value)),
     freeformNotes: freeformNotes.value,
   }
 }
@@ -42,8 +42,8 @@ function currentSnapshot(): SpecSnapshot {
 function syncFromProject() {
   const { activePRD } = useProjects()
   const prd = activePRD.value
-  pages.value = structuredClone(prd.pages ?? [])
-  designSystem.value = structuredClone(prd.designSystem ?? createEmptyDesignSystem())
+  pages.value = structuredClone(toRaw(prd.pages) ?? [])
+  designSystem.value = structuredClone(toRaw(prd.designSystem) ?? createEmptyDesignSystem())
   targetPlatform.value = prd.targetPlatform ?? 'web'
   freeformNotes.value = prd.content || ''
   versions.value = prd.versions.map((version) => ({
@@ -69,8 +69,8 @@ function syncToProject() {
   activePRD.value = {
     ...activePRD.value,
     content: freeformNotes.value,
-    pages: structuredClone(pages.value),
-    designSystem: structuredClone(designSystem.value),
+    pages: structuredClone(toRaw(pages.value)),
+    designSystem: structuredClone(toRaw(designSystem.value)),
     targetPlatform: targetPlatform.value,
     versions: versions.value.map((version) => ({
       id: version.id,
@@ -168,8 +168,8 @@ function createSpecDraftFromAI(text: string) {
 function restoreVersion(versionId: number) {
   const version = versions.value.find((item) => item.id === versionId)
   if (!version) return false
-  pages.value = structuredClone(version.snapshot.pages)
-  designSystem.value = structuredClone(version.snapshot.designSystem)
+  pages.value = structuredClone(toRaw(version.snapshot.pages))
+  designSystem.value = structuredClone(toRaw(version.snapshot.designSystem))
   targetPlatform.value = version.snapshot.targetPlatform
   freeformNotes.value = version.snapshot.freeformNotes
   createVersion('user', `Restored from v${versionId}`)

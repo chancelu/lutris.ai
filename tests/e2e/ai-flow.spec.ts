@@ -33,7 +33,8 @@ test('chat input field exists', async () => {
 
 test('Spec button in bottom bar toggles SpecPanel', async () => {
   // Look for the Spec button in the properties panel bottom area
-  const specButton = page.locator('button:has-text("Spec")')
+  // (scoped to properties-panel to avoid colliding with the TopBar pipeline stepper's "Spec" phase button)
+  const specButton = page.locator('[data-test-id="properties-panel"] button:has-text("Spec")')
   if (await specButton.isVisible()) {
     await specButton.click()
     await canvas.waitForRender()
