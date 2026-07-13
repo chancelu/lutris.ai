@@ -22,7 +22,7 @@ import {
   setTextMeasurer,
   TextEditor,
   UndoManager
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
 import { createClipboardOps } from './editor-clipboard'
 import { createExportOps } from './editor-export'
@@ -44,7 +44,7 @@ import type {
   VectorSegment,
   Vector,
   VectorVertex
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 import type { CanvasKit } from 'canvaskit-wasm'
 import type { EditorContext } from './editor-types'
 

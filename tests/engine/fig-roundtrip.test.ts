@@ -11,7 +11,7 @@ import {
   type SceneNode,
   type NodeType,
   type Fill,
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 import { heavy } from '../helpers/test-utils'
 
 setDefaultTimeout(60_000)
@@ -909,7 +909,7 @@ describe('text node export', () => {
     const { decodeBinarySchema, compileSchema, ByteBuffer } = await import(
       '../../packages/core/src/kiwi/kiwi-schema'
     )
-    const { parseFigKiwiChunks } = await import('@open-pencil/core')
+    const { parseFigKiwiChunks } = await import('@llc3233149/core')
 
     const graph = new SceneGraph()
     const page = graph.getPages()[0]
@@ -967,7 +967,7 @@ describe('text node export', () => {
     const { decodeBinarySchema, compileSchema, ByteBuffer } = await import(
       '../../packages/core/src/kiwi/kiwi-schema'
     )
-    const { parseFigKiwiChunks } = await import('@open-pencil/core')
+    const { parseFigKiwiChunks } = await import('@llc3233149/core')
 
     const graph = new SceneGraph()
     const page = graph.getPages()[0]

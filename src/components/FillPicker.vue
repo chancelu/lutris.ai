@@ -3,8 +3,8 @@ import { computed, ref } from 'vue'
 import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'reka-ui'
 import HsvColorArea from './HsvColorArea.vue'
 import ScrubInput from './ScrubInput.vue'
-import { colorToCSS, colorToHexRaw, parseColor } from '@open-pencil/core'
-import type { Color, Fill } from '@open-pencil/core'
+import { colorToCSS, colorToHexRaw, parseColor } from '@llc3233149/core'
+import type { Color, Fill } from '@llc3233149/core'
 
 const { fill } = defineProps<{ fill: Fill }>()
 const emit = defineEmits<{ update: [fill: Fill] }>()

@@ -11,7 +11,7 @@ import {
   toggleItalicInRange,
   toggleDecorationInRange,
   type StyleRun,
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
 describe('getStyleAt', () => {
   test('returns style within run', () => {

@@ -9,7 +9,7 @@ import {
   loadFont,
   renderNodesToImage,
   renderThumbnail
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
 let ck: CanvasKit | null = null
 

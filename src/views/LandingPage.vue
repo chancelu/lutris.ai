@@ -230,7 +230,7 @@ const workflow = [
             Open Editor →
           </button>
           <a
-            href="https://github.com/nicepkg/open-pencil"
+            href="https://github.com/chancelu/lutris.ai"
             target="_blank"
             rel="noopener"
             class="rounded-full border border-[#D4CFC6] px-6 py-3 text-sm text-[#5C5549] transition hover:bg-[#F0EBE3]"

@@ -55,7 +55,7 @@ export const SPEC_PROMPT = dedent`
   page list to advance to the Design phase.
 `
 
-// eslint-disable-next-line open-pencil/no-hand-rolled-color -- hex examples in AI prompt, not runtime color values
+// eslint-disable-next-line lutris/no-hand-rolled-color -- hex examples in AI prompt, not runtime color values
 export const DESIGN_PROMPT = dedent`
   ${COMMON_PREFIX}
 

@@ -13,10 +13,10 @@ import {
   useFilter
 } from 'reka-ui'
 
-import { colorToCSS } from '@open-pencil/core'
+import { colorToCSS } from '@llc3233149/core'
 import { useEditorStore } from '@/stores/editor'
 
-import type { Variable, VariableType } from '@open-pencil/core'
+import type { Variable, VariableType } from '@llc3233149/core'
 
 const { variableType, boundVariableId } = defineProps<{
   /** Variable type to filter: COLOR, FLOAT, STRING, BOOLEAN */

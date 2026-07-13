@@ -3,13 +3,13 @@ import { tool } from 'ai'
 import * as v from 'valibot'
 
 import { makeFigmaFromStore } from '@/automation/figma-factory'
-import { ALL_TOOLS, computeAllLayouts, computeLayout, extractNodeIds, toolsToAI } from '@open-pencil/core'
+import { ALL_TOOLS, computeAllLayouts, computeLayout, extractNodeIds, toolsToAI } from '@llc3233149/core'
 import { useImageGen } from '@/composables/use-image-gen'
 import { useProductDoc } from '@/composables/use-product-doc'
 import { toast } from '@/composables/use-toast'
 
 import type { EditorStore } from '@/stores/editor'
-import type { SceneNode } from '@open-pencil/core'
+import type { SceneNode } from '@llc3233149/core'
 
 /** Walk up the tree to find the nearest auto-layout ancestor frame */
 function findAutoLayoutAncestor(store: EditorStore, nodeId: string): string | null {

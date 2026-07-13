@@ -1,11 +1,11 @@
 {
-  "name": "@open-pencil/acp",
+  "name": "@llc3233149/acp",
   "version": "0.8.0",
   "license": "MIT",
   "type": "module",
   "main": "./src/agent.ts",
   "bin": {
-    "openpencil-acp": "./dist/index.js"
+    "lutris-acp": "./dist/index.js"
   },
   "files": [
     "src",
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/open-pencil/open-pencil.git",
+    "url": "git+https://github.com/chancelu/lutris.ai.git",
     "directory": "packages/acp"
   },
   "publishConfig": {
@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.14.1",
-    "@open-pencil/core": "workspace:*",
+    "@llc3233149/core": "workspace:*",
     "canvaskit-wasm": "^0.40.0"
   },
   "devDependencies": {

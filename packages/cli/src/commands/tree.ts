@@ -3,9 +3,9 @@ import { defineCommand } from 'citty'
 import { loadDocument } from '../headless'
 import { isAppMode, requireFile, rpc } from '../app-client'
 import { fmtTree, printError, entity, formatType } from '../format'
-import { executeRpcCommand } from '@open-pencil/core'
+import { executeRpcCommand } from '@llc3233149/core'
 
-import type { TreeResult, TreeNodeResult } from '@open-pencil/core'
+import type { TreeResult, TreeNodeResult } from '@llc3233149/core'
 import type { TreeNode } from 'agentfmt'
 
 function toAgentfmtTree(node: TreeNodeResult, maxDepth: number, depth = 0): TreeNode {

@@ -13,7 +13,7 @@ import { useAISelect } from '@/composables/use-ai-select'
 import { useSpec } from '@/composables/use-spec'
 import { toast } from '@/composables/use-toast'
 import { useEditorStore } from '@/stores/editor'
-import { AI_PROVIDERS } from '@open-pencil/core'
+import { AI_PROVIDERS } from '@llc3233149/core'
 
 import type { Chat } from '@ai-sdk/vue'
 import type { UIMessage } from 'ai'

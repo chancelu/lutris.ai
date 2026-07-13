@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test'
 
-import { SceneGraph, FigmaAPI, sceneNodeToKiwi, type Stroke } from '@open-pencil/core'
+import { SceneGraph, FigmaAPI, sceneNodeToKiwi, type Stroke } from '@llc3233149/core'
 
 function pageId(graph: SceneGraph) {
   return graph.getPages()[0].id

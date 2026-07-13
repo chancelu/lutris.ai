@@ -1,12 +1,12 @@
 {
-  "name": "@open-pencil/mcp",
-  "version": "0.8.0",
+  "name": "@llc3233149/mcp",
+  "version": "0.8.1",
   "license": "MIT",
   "type": "module",
   "main": "./src/server.ts",
   "bin": {
-    "openpencil-mcp": "./dist/index.js",
-    "openpencil-mcp-http": "./dist/http.js"
+    "lutris-mcp": "./dist/index.js",
+    "lutris-mcp-http": "./dist/http.js"
   },
   "files": [
     "src",
@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/open-pencil/open-pencil.git",
+    "url": "git+https://github.com/chancelu/lutris.ai.git",
     "directory": "packages/mcp"
   },
   "publishConfig": {
@@ -28,7 +28,7 @@
   "dependencies": {
     "@hono/node-server": "^1.19.9",
     "@modelcontextprotocol/sdk": "^1.25.2",
-    "@open-pencil/core": "workspace:*",
+    "@llc3233149/core": "^0.9.0",
     "canvaskit-wasm": "^0.40.0",
     "hono": "^4.11.4",
     "zod": "^3.25.0"

@@ -3,9 +3,9 @@ import { isAbsolute, relative, resolve } from 'node:path'
 
 import type * as acp from '@agentclientprotocol/sdk'
 
-import { ALL_TOOLS, FigmaAPI, parseFigFile, computeAllLayouts, SceneGraph, exportFigFile } from '@open-pencil/core'
+import { ALL_TOOLS, FigmaAPI, parseFigFile, computeAllLayouts, SceneGraph, exportFigFile } from '@llc3233149/core'
 
-import type { ToolDef } from '@open-pencil/core'
+import type { ToolDef } from '@llc3233149/core'
 
 export interface CreateAgentOptions {
   enableEval?: boolean
@@ -178,8 +178,8 @@ export function createAgent(
           }
         },
         agentInfo: {
-          name: 'open-pencil',
-          title: 'OpenPencil',
+          name: 'lutris',
+          title: 'Lutris',
           version
         },
         authMethods: []
@@ -366,7 +366,7 @@ export function createAgent(
 
 function formatHelp(builtins: BuiltinTool[], coreTools: ToolDef[]): string {
   const lines = [
-    '# OpenPencil ACP Agent',
+    '# Lutris ACP Agent',
     '',
     'Send commands as `/tool_name {"arg": "value"}` or JSON `{"tool": "tool_name", "args": {...}}`.',
     '',

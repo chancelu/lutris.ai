@@ -8,7 +8,7 @@ import {
   compressFigDataSync,
   initCodec,
   SceneGraph
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 import { heavy } from '../helpers/test-utils'
 
 setDefaultTimeout(30_000)

@@ -11,17 +11,17 @@ import { createSubmitTools, filterToolsByPhase } from '@/ai/phase-tools'
 import { DESIGN_PROMPT, DEV_PROMPT, IDEA_PROMPT, SPEC_PROMPT } from '@/ai/prompts'
 import { createAITools } from '@/ai/tools'
 import { useEditorStore } from '@/stores/editor'
-import { AI_PROVIDERS, DEFAULT_AI_MODEL, DEFAULT_AI_PROVIDER } from '@open-pencil/core'
+import { AI_PROVIDERS, DEFAULT_AI_MODEL, DEFAULT_AI_PROVIDER } from '@llc3233149/core'
 import { useBrand } from './use-brand'
 import { usePipeline } from './use-pipeline'
 import { useProductDoc } from './use-product-doc'
 import { useProjects } from './use-projects'
 
 import type { PipelinePhase } from '@/types/pipeline'
-import type { AIProviderID } from '@open-pencil/core'
+import type { AIProviderID } from '@llc3233149/core'
 import type { LanguageModel, UIMessage } from 'ai'
 
-const STORAGE_PREFIX = 'open-pencil:'
+const STORAGE_PREFIX = 'lutris:'
 const LEGACY_KEY_STORAGE = `${STORAGE_PREFIX}openrouter-api-key`
 
 function keyStorageKey(id: string) {
@@ -166,7 +166,7 @@ function createModel(): LanguageModel {
         apiKey: key,
         headers: {
           'X-OpenRouter-Title': 'Lutris.ai',
-          'HTTP-Referer': 'https://github.com/open-pencil/open-pencil'
+          'HTTP-Referer': 'https://github.com/chancelu/lutris.ai'
         }
       })
       return openrouter(effectiveModelID)

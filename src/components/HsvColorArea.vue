@@ -14,8 +14,8 @@ import {
   type Color as RekaColor
 } from 'reka-ui'
 
-import type { Color } from '@open-pencil/core'
-import { colorToHex8, rgba255ToColor } from '@open-pencil/core'
+import type { Color } from '@llc3233149/core'
+import { colorToHex8, rgba255ToColor } from '@llc3233149/core'
 
 const { color } = defineProps<{
   color: Color

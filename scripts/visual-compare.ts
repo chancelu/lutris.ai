@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Visual comparison pipeline: Figma vs OpenPencil renderer.
+ * Visual comparison pipeline: Figma vs Lutris renderer.
  *
  * Copy an element in Figma, then run:
  *   bun scripts/visual-compare.ts [--scale 2] [--output /tmp/visual-compare]
@@ -10,7 +10,7 @@
  *
  * Outputs:
  *   figma.png  — exported from real Figma
- *   ours.png   — rendered by OpenPencil headless SkiaRenderer
+ *   ours.png   — rendered by Lutris headless SkiaRenderer
  *   diff.png   — visual diff (red = changed pixels)
  */
 
@@ -26,7 +26,7 @@ import {
   loadFont,
   SkiaRenderer,
   renderNodesToImage
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 import { initCanvasKit } from '../packages/cli/src/headless'
 
 const { values: opts } = parseArgs({
@@ -62,7 +62,7 @@ async function runWithClipboard() {
   if (!parsed) bail('Clipboard has no Figma data. Copy an element in Figma first.')
   console.log(`   ${parsed.nodes.length} node changes, ${parsed.blobs.length} blobs`)
 
-  console.log('🖼️  Rendering with OpenPencil…')
+  console.log('🖼️  Rendering with Lutris…')
   await renderOurs(html)
 
   console.log('🎨 Pasting into Figma & exporting…')
@@ -95,7 +95,7 @@ async function runWithNodeId(nodeId: string) {
   const parsed = await parseFigmaClipboard(html)
   if (!parsed) bail('Clipboard has no Figma data after copy')
 
-  console.log('🖼️  Rendering with OpenPencil…')
+  console.log('🖼️  Rendering with Lutris…')
   await renderOurs(html)
 
   await diff()

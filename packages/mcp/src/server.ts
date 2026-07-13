@@ -12,9 +12,9 @@ import {
   SceneGraph,
   renderNodesToImage,
   SkiaRenderer
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
-import type { ToolDef, ParamDef, ParamType, ExportFormat } from '@open-pencil/core'
+import type { ToolDef, ParamDef, ParamType, ExportFormat } from '@llc3233149/core'
 import type { CanvasKit } from 'canvaskit-wasm'
 
 type McpContent = { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }
@@ -66,7 +66,7 @@ async function getCanvasKit(): Promise<CanvasKit> {
 }
 
 export function createServer(version: string, options: CreateServerOptions = {}): McpServer {
-  const server = new McpServer({ name: 'open-pencil', version })
+  const server = new McpServer({ name: 'lutris', version })
   const enableEval = options.enableEval ?? false
   const fileRoot = options.fileRoot === null || options.fileRoot === undefined
     ? resolve(process.cwd())
@@ -159,7 +159,7 @@ export function createServer(version: string, options: CreateServerOptions = {})
     async ({ path: filePath }: { path: string }) => {
       try {
         if (!graph) throw new Error('No document loaded')
-        const { exportFigFile } = await import('@open-pencil/core')
+        const { exportFigFile } = await import('@llc3233149/core')
         const path = resolveAndCheckPath(filePath)
         const data = await exportFigFile(graph)
         await writeFile(path, new Uint8Array(data))

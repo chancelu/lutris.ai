@@ -2,12 +2,12 @@ import {
   computeAllLayouts,
   importClipboardNodes,
   parseFigmaClipboard,
-  parseOpenPencilClipboard,
+  parseLutrisClipboard,
   buildFigmaClipboardHTML,
-  buildOpenPencilClipboardHTML
-} from '@open-pencil/core'
+  buildLutrisClipboardHTML
+} from '@llc3233149/core'
 
-import type { SceneNode, Vector } from '@open-pencil/core'
+import type { SceneNode, Vector } from '@llc3233149/core'
 import type { EditorContext } from './editor-types'
 
 function centerNodesAt(ctx: EditorContext, nodeIds: string[], cx: number, cy: number) {
@@ -64,7 +64,7 @@ export function createClipboardOps(ctx: EditorContext) {
     const textPicBuilder = renderer
       ? (node: SceneNode) => renderer.buildTextPicture(node)
       : undefined
-    const internalHtml = buildOpenPencilClipboardHTML(nodes, ctx.graph(), textPicBuilder)
+    const internalHtml = buildLutrisClipboardHTML(nodes, ctx.graph(), textPicBuilder)
     const figmaHtml = buildFigmaClipboardHTML(nodes, ctx.graph())
 
     const html = figmaHtml ? figmaHtml + internalHtml : internalHtml
@@ -72,7 +72,7 @@ export function createClipboardOps(ctx: EditorContext) {
     clipboardData.setData('text/plain', names)
   }
 
-  function pasteOpenPencilNodes(
+  function pasteLutrisNodes(
     nodes: Array<SceneNode & { children?: SceneNode[] }>,
     parentId?: string,
     cursorPos?: Vector
@@ -137,10 +137,10 @@ export function createClipboardOps(ctx: EditorContext) {
   }
 
   function pasteFromHTML(html: string, cursorPos?: Vector) {
-    const own = parseOpenPencilClipboard(html)
+    const own = parseLutrisClipboard(html)
     if (own) {
       for (const [hash, data] of own.images) ctx.graph().images.set(hash, data)
-      pasteOpenPencilNodes(own.nodes, undefined, cursorPos)
+      pasteLutrisNodes(own.nodes, undefined, cursorPos)
       return
     }
 

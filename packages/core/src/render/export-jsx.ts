@@ -20,7 +20,7 @@ import type {
   GridTrack
 } from '../scene-graph'
 
-export type JSXFormat = 'openpencil' | 'tailwind'
+export type JSXFormat = 'lutris' | 'tailwind'
 
 const NODE_TYPE_TO_TAG: Partial<Record<NodeType, string>> = {
   FRAME: 'Frame',
@@ -182,7 +182,7 @@ function formatTracks(tracks: GridTrack[]): string {
   return tracks.map(formatTrack).join(' ')
 }
 
-// --- OpenPencil format helpers ---
+// --- Lutris format helpers ---
 
 function collectGridSizingProps(node: SceneNode, props: [string, unknown][]): void {
   props.push(['grid', true])
@@ -614,7 +614,7 @@ function nodeToJSX(node: SceneNode, graph: SceneGraph, indent: number, format: J
 export function sceneNodeToJSX(
   nodeId: string,
   graph: SceneGraph,
-  format: JSXFormat = 'openpencil'
+  format: JSXFormat = 'lutris'
 ): string {
   const node = graph.getNode(nodeId)
   if (!node) return ''
@@ -624,7 +624,7 @@ export function sceneNodeToJSX(
 export function selectionToJSX(
   nodeIds: string[],
   graph: SceneGraph,
-  format: JSXFormat = 'openpencil'
+  format: JSXFormat = 'lutris'
 ): string {
   return nodeIds
     .map((id) => sceneNodeToJSX(id, graph, format))

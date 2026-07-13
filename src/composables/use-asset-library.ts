@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
-import { parseFigFile } from '@open-pencil/core'
+import { parseFigFile } from '@llc3233149/core'
 
-import type { SceneGraph, SceneNode } from '@open-pencil/core'
+import type { SceneGraph, SceneNode } from '@llc3233149/core'
 
 // ── Types ──
 

@@ -51,7 +51,7 @@ const noInlineNamedTypes = {
         if (namedType) {
           context.report({
             node,
-            message: `Use '${namedType}' instead of inline type literal. Import from '@open-pencil/core'.`,
+            message: `Use '${namedType}' instead of inline type literal. Import from '@llc3233149/core'.`,
           })
         }
       },
@@ -86,7 +86,7 @@ const noStructuredCloneSceneArrays = {
           if (props.has(arg.property.name)) {
             context.report({
               node,
-              message: `Use the typed copy helper instead of structuredClone for '${arg.property.name}'. Import from '@open-pencil/core'.`,
+              message: `Use the typed copy helper instead of structuredClone for '${arg.property.name}'. Import from '@llc3233149/core'.`,
             })
           }
         }
@@ -188,7 +188,7 @@ const noRawConsoleFormat = {
 }
 
 const plugin = {
-  meta: { name: 'open-pencil' },
+  meta: { name: 'lutris' },
   rules: {
     'no-inline-named-types': noInlineNamedTypes,
     'no-structuredclone-scene-arrays': noStructuredCloneSceneArrays,

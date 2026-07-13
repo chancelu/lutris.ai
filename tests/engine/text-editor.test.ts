@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test'
 
-import { TextEditor, type SceneNode } from '@open-pencil/core'
+import { TextEditor, type SceneNode } from '@llc3233149/core'
 
 const mockCk = {} as any
 

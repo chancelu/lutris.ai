@@ -7,7 +7,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 
 import { createServer } from '../../packages/mcp/src/server'
-import { SceneGraph, exportFigFile } from '@open-pencil/core'
+import { SceneGraph, exportFigFile } from '@llc3233149/core'
 
 function parseResult(result: { content: { type: string; text: string }[] }): unknown {
   return JSON.parse(result.content[0].text)
@@ -291,7 +291,7 @@ describe('MCP server', () => {
   })
 
   test('createServer option fileRoot restricts open_file and save_file paths', async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), 'openpencil-mcp-root-'))
+    const rootDir = await mkdtemp(join(tmpdir(), 'lutris-mcp-root-'))
     const insidePath = join(rootDir, 'inside.fig')
     const outsidePath = join(tmpdir(), `outside-${Date.now()}.fig`)
 

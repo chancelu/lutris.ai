@@ -38,7 +38,7 @@ const fileItems = [
   { label: 'Export Selection', shortcut: `${mod}⇧E`, action: handleExport },
   { separator: true },
   { label: 'Theme Toggle', action: () => document.documentElement.classList.toggle('dark') },
-  { label: 'Keyboard Shortcuts', shortcut: '?', action: () => window.open('https://github.com/nicepkg/open-pencil#shortcuts', '_blank') },
+  { label: 'Keyboard Shortcuts', shortcut: '?', action: () => window.open('https://github.com/chancelu/lutris.ai#shortcuts', '_blank') },
 ]
 </script>
 

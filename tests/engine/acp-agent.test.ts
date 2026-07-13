@@ -13,7 +13,7 @@ import {
 import type * as acp from '@agentclientprotocol/sdk'
 
 import { createAgent, type CreateAgentOptions } from '../../packages/acp/src/agent'
-import { SceneGraph, exportFigFile } from '@open-pencil/core'
+import { SceneGraph, exportFigFile } from '@llc3233149/core'
 
 interface CollectedUpdates {
   messages: string[]
@@ -117,8 +117,8 @@ describe('ACP agent', () => {
 
   test('initialize returns correct protocol version and agent info', () => {
     expect(pair.initResult.protocolVersion).toBe(PROTOCOL_VERSION)
-    expect(pair.initResult.agentInfo?.name).toBe('open-pencil')
-    expect(pair.initResult.agentInfo?.title).toBe('OpenPencil')
+    expect(pair.initResult.agentInfo?.name).toBe('lutris')
+    expect(pair.initResult.agentInfo?.title).toBe('Lutris')
     expect(pair.initResult.agentCapabilities?.promptCapabilities?.embeddedContext).toBe(true)
   })
 
@@ -140,7 +140,7 @@ describe('ACP agent', () => {
     const result = await prompt(pair, 'hello world')
     expect(result.stopReason).toBe('end_turn')
     expect(pair.updates.messages.length).toBe(1)
-    expect(pair.updates.messages[0]).toContain('OpenPencil ACP Agent')
+    expect(pair.updates.messages[0]).toContain('Lutris ACP Agent')
     expect(pair.updates.messages[0]).toContain('/new_document')
   })
 
@@ -417,7 +417,7 @@ describe('ACP agent options', () => {
   })
 
   test('fileRoot restricts open_file and save_file paths', async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), 'openpencil-acp-root-'))
+    const rootDir = await mkdtemp(join(tmpdir(), 'lutris-acp-root-'))
     const insidePath = join(rootDir, 'inside.fig')
     const outsidePath = join(tmpdir(), `outside-${Date.now()}.fig`)
 

@@ -25,7 +25,7 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'openpencil',
+      name: 'lutris',
       testDir: './tests/e2e',
       fullyParallel: false
     },

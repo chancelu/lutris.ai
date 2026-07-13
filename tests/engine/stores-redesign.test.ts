@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import { TOOLS, TOOL_SHORTCUTS, type Tool } from '@/stores/tools'
 import { createSelectionOps } from '@/stores/selection'
 import { createViewportOps } from '@/stores/canvas'
-import { SceneGraph } from '@open-pencil/core'
+import { SceneGraph } from '@llc3233149/core'
 
 /* ------------------------------------------------------------------ */
 /*  tools.ts                                                          */

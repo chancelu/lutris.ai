@@ -48,7 +48,7 @@ export class PhaseTimer {
         devtools: {
           dataType: 'track-entry',
           track: 'Renderer',
-          trackGroup: 'OpenPencil',
+          trackGroup: 'Lutris',
           color: colorForPhase(name)
         }
       }

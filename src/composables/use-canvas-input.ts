@@ -11,10 +11,10 @@ import {
   DEFAULT_TEXT_WIDTH,
   DEFAULT_TEXT_HEIGHT
 } from '@/constants'
-import { computeSelectionBounds, computeSnap } from '@open-pencil/core'
+import { computeSelectionBounds, computeSnap } from '@llc3233149/core'
 
 import type { EditorStore, Tool } from '@/stores/editor'
-import type { NodeType, Rect, SceneNode, Vector } from '@open-pencil/core'
+import type { NodeType, Rect, SceneNode, Vector } from '@llc3233149/core'
 import { useAISelect } from '@/composables/use-ai-select'
 
 type HandlePosition = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
