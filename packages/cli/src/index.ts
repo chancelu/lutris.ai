@@ -16,8 +16,8 @@ const { version } = await import('../package.json')
 
 const main = defineCommand({
   meta: {
-    name: 'open-pencil',
-    description: 'OpenPencil CLI — inspect, export, and lint .fig design files',
+    name: 'lutris',
+    description: 'Lutris CLI — inspect, export, and lint .fig design files',
     version
   },
   subCommands: {

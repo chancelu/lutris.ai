@@ -2,7 +2,7 @@
 import ColorInput from '@/components/ColorInput.vue'
 import { useEditorStore } from '@/stores/editor'
 
-import type { Color } from '@open-pencil/core'
+import type { Color } from '@llc3233149/core'
 
 const store = useEditorStore()
 

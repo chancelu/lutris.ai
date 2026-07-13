@@ -7,7 +7,7 @@ import {
   vectorNetworkToSVGPaths,
   svg,
   renderSVGNode
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
 function makeGraph() {
   const graph = new SceneGraph()

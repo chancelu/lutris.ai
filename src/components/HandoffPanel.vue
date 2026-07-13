@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { ScrollAreaRoot, ScrollAreaViewport } from 'reka-ui'
-import { colorToCSS } from '@open-pencil/core'
+import { colorToCSS } from '@llc3233149/core'
 import { useEditorStore } from '@/stores/editor'
-import type { SceneNode } from '@open-pencil/core'
+import type { SceneNode } from '@llc3233149/core'
 
 const store = useEditorStore()
 const copiedKey = ref('')

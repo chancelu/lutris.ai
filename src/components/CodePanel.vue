@@ -6,11 +6,11 @@ import 'prismjs/components/prism-css'
 import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewport } from 'reka-ui'
 import { computed, ref, watch } from 'vue'
 
-import { selectionToJSX, selectionToCode } from '@open-pencil/core'
+import { selectionToJSX, selectionToCode } from '@llc3233149/core'
 import { useEditorStore } from '@/stores/editor'
 import { useBrand } from '@/composables/use-brand'
 
-import type { JSXFormat } from '@open-pencil/core'
+import type { JSXFormat } from '@llc3233149/core'
 
 const store = useEditorStore()
 const { config: brandConfig, exportBrandCSS } = useBrand()
@@ -34,7 +34,7 @@ function cycleOutputFormat() {
 }
 
 function toggleFormat() {
-  jsxFormat.value = jsxFormat.value === 'openpencil' ? 'tailwind' : 'openpencil'
+  jsxFormat.value = jsxFormat.value === 'lutris' ? 'tailwind' : 'lutris'
 }
 
 const rawJSX = computed(() => {
@@ -224,7 +224,7 @@ watch(jsxCode, () => {
           class="rounded px-1.5 py-0.5 text-[11px] text-muted hover:bg-hover hover:text-surface"
           @click="toggleFormat"
         >
-          {{ jsxFormat === 'openpencil' ? 'JSX' : 'Tailwind' }}
+          {{ jsxFormat === 'lutris' ? 'JSX' : 'Tailwind' }}
         </button>
         <button
           class="rounded px-1.5 py-0.5 text-[11px]"

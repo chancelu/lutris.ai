@@ -56,11 +56,11 @@ export {
   COMPONENT_LABEL_ICON_GAP,
   RULER_TARGET_PIXEL_SPACING,
   RULER_MAJOR_TOLERANCE
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
-import type { Color, Fill, Stroke } from '@open-pencil/core'
+import type { Color, Fill, Stroke } from '@llc3233149/core'
 
-export const TRYSTERO_APP_ID = 'openpencil'
+export const TRYSTERO_APP_ID = 'lutris'
 export const ROOM_ID_LENGTH = 8
 export const ROOM_ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789'
 

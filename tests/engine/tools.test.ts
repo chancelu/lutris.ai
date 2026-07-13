@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { ALL_TOOLS, FigmaAPI, SceneGraph } from '@open-pencil/core'
+import { ALL_TOOLS, FigmaAPI, SceneGraph } from '@llc3233149/core'
 
 function setup() {
   const graph = new SceneGraph()

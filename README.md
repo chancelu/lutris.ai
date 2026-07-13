@@ -31,7 +31,7 @@ Or download from the [releases page](https://github.com/chancelu/lutris.ai/relea
 ## CLI
 
 ```sh
-bun add -g @lutris/cli
+bun add -g @llc3233149/cli
 ```
 
 ### Inspect .fig files
@@ -141,14 +141,14 @@ Connect Claude Code, Cursor, Windsurf, or any MCP client to read and write `.fig
 **Stdio** (Claude Code, Cursor, Windsurf):
 
 ```sh
-bun add -g @lutris/mcp
+bun add -g @llc3233149/mcp
 ```
 
 ```json
 {
   "mcpServers": {
     "lutris": {
-      "command": "Lutris.ai-mcp"
+      "command": "lutris-mcp"
     }
   }
 }
@@ -157,7 +157,7 @@ bun add -g @lutris/mcp
 **HTTP** (scripts, CI):
 
 ```sh
-Lutris.ai-mcp-http   # http://localhost:3100/mcp
+lutris-mcp-http   # http://localhost:3100/mcp
 ```
 
 ### AI agent skill
@@ -220,9 +220,9 @@ bun run tauri dev  # Desktop app (requires Rust)
 
 ```
 packages/
-  core/           @lutris/core — engine (scene graph, renderer, layout, codec)
-  cli/            @lutris/cli — headless CLI
-  mcp/            @lutris/mcp — MCP server (stdio + HTTP)
+  core/           @llc3233149/core — engine (scene graph, renderer, layout, codec)
+  cli/            @llc3233149/cli — headless CLI
+  mcp/            @llc3233149/mcp — MCP server (stdio + HTTP)
   docs/           Documentation site (lutris.ai)
 src/              Vue app (components, composables, stores)
 desktop/          Tauri v2 (Rust + config)

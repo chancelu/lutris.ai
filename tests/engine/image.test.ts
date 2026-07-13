@@ -3,15 +3,15 @@ import { unzipSync } from 'fflate'
 
 import {
   ALL_TOOLS,
-  buildOpenPencilClipboardHTML,
+  buildLutrisClipboardHTML,
   exportFigFile,
   FigmaAPI,
   initCodec,
-  parseOpenPencilClipboard,
+  parseLutrisClipboard,
   parseFigFile,
   SceneGraph,
   type SceneNode,
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
 const PNG_MAGIC = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 const JPEG_MAGIC = new Uint8Array([0xff, 0xd8, 0xff, 0xe0])
@@ -147,8 +147,8 @@ describe('clipboard roundtrip with images', () => {
   test('round-trips image bytes through clipboard', () => {
     const { graph, node, imageHash, imageBytes } = graphWithImageNode()
 
-    const html = buildOpenPencilClipboardHTML([node], graph)
-    const parsed = parseOpenPencilClipboard(html)
+    const html = buildLutrisClipboardHTML([node], graph)
+    const parsed = parseLutrisClipboard(html)
 
     expect(parsed).not.toBeNull()
     expect(parsed!.images.size).toBe(1)
@@ -158,8 +158,8 @@ describe('clipboard roundtrip with images', () => {
   test('preserves imageHash on the fill', () => {
     const { graph, node, imageHash } = graphWithImageNode()
 
-    const html = buildOpenPencilClipboardHTML([node], graph)
-    const parsed = parseOpenPencilClipboard(html)
+    const html = buildLutrisClipboardHTML([node], graph)
+    const parsed = parseLutrisClipboard(html)
 
     const fill = parsed!.nodes[0].fills[0]
     expect(fill.type).toBe('IMAGE')
@@ -187,8 +187,8 @@ describe('clipboard roundtrip with images', () => {
       fills: [{ type: 'IMAGE', color: { r: 0, g: 0, b: 0, a: 1 }, opacity: 1, visible: true, imageHash: hash2, imageScaleMode: 'FIT' }],
     })
 
-    const html = buildOpenPencilClipboardHTML([node1, node2], graph)
-    const parsed = parseOpenPencilClipboard(html)
+    const html = buildLutrisClipboardHTML([node1, node2], graph)
+    const parsed = parseLutrisClipboard(html)
 
     expect(parsed!.images.size).toBe(2)
     expect(parsed!.images.get(hash1)).toEqual(bytes1)
@@ -204,8 +204,8 @@ describe('clipboard roundtrip with images', () => {
       fills: [{ type: 'SOLID', color: { r: 1, g: 0, b: 0, a: 1 }, opacity: 1, visible: true }],
     })
 
-    const html = buildOpenPencilClipboardHTML([node], graph)
-    const parsed = parseOpenPencilClipboard(html)
+    const html = buildLutrisClipboardHTML([node], graph)
+    const parsed = parseLutrisClipboard(html)
 
     expect(parsed!.images.size).toBe(0)
   })
@@ -225,8 +225,8 @@ describe('clipboard roundtrip with images', () => {
       fills: [{ type: 'IMAGE', color: { r: 0, g: 0, b: 0, a: 1 }, opacity: 1, visible: true, imageHash: hash, imageScaleMode: 'TILE' }],
     })
 
-    const html = buildOpenPencilClipboardHTML([frame], graph)
-    const parsed = parseOpenPencilClipboard(html)
+    const html = buildLutrisClipboardHTML([frame], graph)
+    const parsed = parseLutrisClipboard(html)
 
     expect(parsed!.images.size).toBe(1)
     expect(parsed!.images.get(hash)).toEqual(bytes)

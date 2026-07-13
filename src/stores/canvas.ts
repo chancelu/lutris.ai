@@ -4,7 +4,7 @@ import {
   ZOOM_SCALE_MAX
 } from '@/constants'
 
-import type { Color } from '@open-pencil/core'
+import type { Color } from '@llc3233149/core'
 import type { EditorContext } from './editor-types'
 
 export interface PageViewport {

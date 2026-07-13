@@ -3,9 +3,9 @@ import {
   exportFigFile,
   renderNodesToImage,
   renderNodesToSVG
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
-import type { ExportFormat } from '@open-pencil/core'
+import type { ExportFormat } from '@llc3233149/core'
 import type { EditorContext } from './editor-types'
 
 function downloadBlob(data: Uint8Array, filename: string, mime: string) {

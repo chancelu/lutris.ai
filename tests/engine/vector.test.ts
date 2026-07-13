@@ -5,7 +5,7 @@ import {
   decodeVectorNetworkBlob,
   computeVectorBounds,
   type VectorNetwork,
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
 describe('vectorNetworkBlob round-trip', () => {
   test('empty network', () => {

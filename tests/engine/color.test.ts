@@ -12,7 +12,7 @@ import {
   rgba255ToColor,
   colorToFill,
   colorDistance
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
 describe('parseColor', () => {
   test('hex 6-digit', () => {

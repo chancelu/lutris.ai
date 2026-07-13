@@ -1,4 +1,4 @@
-import type { Rect, SnapGuide } from '@open-pencil/core'
+import type { Rect, SnapGuide } from '@llc3233149/core'
 import type { EditorContext, EditorState } from './editor-types'
 
 export function createSelectionOps(ctx: EditorContext) {

@@ -191,12 +191,12 @@ export {
   parseFigmaClipboard,
   importClipboardNodes,
   figmaNodesBounds,
-  parseOpenPencilClipboard,
+  parseLutrisClipboard,
   buildFigmaClipboardHTML,
-  buildOpenPencilClipboardHTML,
+  buildLutrisClipboardHTML,
   prefetchFigmaSchema,
   type TextPictureBuilder,
-  type OpenPencilClipboardData
+  type LutrisClipboardData
 } from './clipboard'
 
 export { readFigFile, parseFigFile } from './kiwi/fig-file'

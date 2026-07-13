@@ -314,7 +314,7 @@ export function buildFigmaClipboardHTML(nodes: SceneNode[], graph: SceneGraph): 
     sessionID: 0,
     ackID: 0,
     pasteID: crypto.getRandomValues(new Int32Array(1))[0],
-    pasteFileKey: 'openpencil',
+    pasteFileKey: 'lutris',
     nodeChanges
   }
 
@@ -327,7 +327,7 @@ export function buildFigmaClipboardHTML(nodes: SceneNode[], graph: SceneGraph): 
   const bufferB64 = figKiwiBinary.toBase64()
 
   const meta: FigmaClipboardMeta = {
-    fileKey: 'openpencil',
+    fileKey: 'lutris',
     pasteID: msg.pasteID as number,
     dataType: 'scene'
   }
@@ -340,22 +340,22 @@ export function buildFigmaClipboardHTML(nodes: SceneNode[], graph: SceneGraph): 
   )
 }
 
-// --- Internal copy/paste (OpenPencil ↔ OpenPencil) ---
+// --- Internal copy/paste (Lutris ↔ Lutris) ---
 
-export interface OpenPencilClipboardData {
+export interface LutrisClipboardData {
   nodes: Array<SceneNode & { children?: SceneNode[] }>
   images: Map<string, Uint8Array>
 }
 
-export function parseOpenPencilClipboard(
+export function parseLutrisClipboard(
   html: string
-): OpenPencilClipboardData | null {
-  const match = html.match(/<!--\(openpencil\)(.*?)\(\/openpencil\)-->/s)
+): LutrisClipboardData | null {
+  const match = html.match(/<!--\(lutris\)(.*?)\(\/lutris\)-->/s)
   if (!match) return null
 
   try {
     const decoded = JSON.parse(new TextDecoder().decode(Uint8Array.fromBase64(match[1])))
-    if (decoded.format === 'openpencil/v1' && Array.isArray(decoded.nodes)) {
+    if (decoded.format === 'lutris/v1' && Array.isArray(decoded.nodes)) {
       restoreTextPictures(decoded.nodes)
       const images = new Map<string, Uint8Array>()
       if (decoded.images && typeof decoded.images === 'object') {
@@ -400,7 +400,7 @@ function collectImageHashes(nodes: SceneNode[], graph: SceneGraph): Set<string> 
   return hashes
 }
 
-export function buildOpenPencilClipboardHTML(
+export function buildLutrisClipboardHTML(
   nodes: SceneNode[],
   graph: SceneGraph,
   textPictureBuilder?: TextPictureBuilder
@@ -413,11 +413,11 @@ export function buildOpenPencilClipboardHTML(
     if (bytes) images[hash] = bytes.toBase64()
   }
   const data = {
-    format: 'openpencil/v1',
+    format: 'lutris/v1',
     nodes: nodeTree,
     images
   }
-  return `<!--(openpencil)${new TextEncoder().encode(JSON.stringify(data)).toBase64()}(/openpencil)-->`
+  return `<!--(lutris)${new TextEncoder().encode(JSON.stringify(data)).toBase64()}(/lutris)-->`
 }
 
 function collectNodeTree(

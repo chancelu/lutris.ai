@@ -89,7 +89,7 @@ if (isBun) {
   serve({ fetch: app.fetch, port, hostname: host })
 }
 
-console.log(`OpenPencil MCP server v${pkg.version}`)
+console.log(`Lutris MCP server v${pkg.version}`)
 console.log(`  Health:  http://${host}:${port}/health`)
 console.log(`  MCP:     http://${host}:${port}/mcp`)
 console.log(`  Auth:    ${authToken ? 'required (OPENPENCIL_MCP_AUTH_TOKEN)' : 'disabled'}`)

@@ -7,7 +7,7 @@ import {
   styleToWeight,
   weightToStyle,
   SceneGraph,
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
 function pageId(graph: SceneGraph) {
   return graph.getPages()[0].id

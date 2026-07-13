@@ -3,9 +3,9 @@ import { defineCommand } from 'citty'
 import { loadDocument } from '../headless'
 import { isAppMode, requireFile, rpc } from '../app-client'
 import { fmtNode, printError, formatType } from '../format'
-import { executeRpcCommand, colorToHex } from '@open-pencil/core'
+import { executeRpcCommand, colorToHex } from '@llc3233149/core'
 
-import type { Color, NodeResult } from '@open-pencil/core'
+import type { Color, NodeResult } from '@llc3233149/core'
 
 async function getData(file: string | undefined, id: string): Promise<NodeResult | { error: string }> {
   if (isAppMode(file)) return rpc<NodeResult>('node', { id })

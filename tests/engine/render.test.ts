@@ -17,7 +17,7 @@ import {
   Section,
   isTreeNode,
   node
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
 function createGraph(): SceneGraph {
   const g = new SceneGraph()

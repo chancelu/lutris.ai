@@ -1,15 +1,15 @@
 {
-  "name": "@open-pencil/cli",
-  "version": "0.9.0",
+  "name": "@llc3233149/cli",
+  "version": "0.9.1",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "openpencil": "./src/index.ts"
+    "lutris": "./src/index.ts"
   },
   "files": ["src"],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/open-pencil/open-pencil.git",
+    "url": "git+https://github.com/chancelu/lutris.ai.git",
     "directory": "packages/cli"
   },
   "publishConfig": {
@@ -17,7 +17,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@open-pencil/core": "workspace:*",
+    "@llc3233149/core": "^0.9.0",
     "agentfmt": "^0.1.3",
     "canvaskit-wasm": "^0.40.0",
     "citty": "^0.1.6"

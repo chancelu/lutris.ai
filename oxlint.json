@@ -11,11 +11,11 @@
     "no-console": "off",
     "no-restricted-imports": ["error", {
       "paths": [
-        { "name": "@/types", "message": "Import types directly from @open-pencil/core." }
+        { "name": "@/types", "message": "Import types directly from @llc3233149/core." }
       ],
       "patterns": [{
         "group": ["@/engine/*"],
-        "message": "Import from @open-pencil/core unless the module adds platform-specific logic.",
+        "message": "Import from @llc3233149/core unless the module adds platform-specific logic.",
         "allowImportNames": ["loadFont", "listFamilies", "preloadFonts"]
       }]
     }],
@@ -68,17 +68,17 @@
     "vue/define-props-destructuring": "error",
     "vue/require-typed-ref": "error",
 
-    "open-pencil/no-inline-named-types": ["error", {
+    "lutris/no-inline-named-types": ["error", {
       "Vector": "x:number,y:number",
       "Color": "a:number,b:number,g:number,r:number",
       "GUID": "localID:number,sessionID:number",
       "Rect": "height:number,width:number,x:number,y:number",
       "Matrix": "m00:number,m01:number,m02:number,m10:number,m11:number,m12:number"
     }],
-    "open-pencil/no-structuredclone-scene-arrays": "error",
-    "open-pencil/no-math-random": "error",
-    "open-pencil/no-hand-rolled-color": "error",
-    "open-pencil/no-raw-console-format": "off"
+    "lutris/no-structuredclone-scene-arrays": "error",
+    "lutris/no-math-random": "error",
+    "lutris/no-hand-rolled-color": "error",
+    "lutris/no-raw-console-format": "off"
   },
   "overrides": [
     {
@@ -152,7 +152,7 @@
     {
       "files": ["packages/cli/src/commands/**"],
       "rules": {
-        "open-pencil/no-raw-console-format": "error"
+        "lutris/no-raw-console-format": "error"
       }
     }
   ],

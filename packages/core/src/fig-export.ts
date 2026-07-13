@@ -224,7 +224,7 @@ export async function exportFigFile(
 
   const metaJson = JSON.stringify({
     version: 1,
-    app: 'OpenPencil',
+    app: 'Lutris',
     createdAt: new Date().toISOString()
   })
 

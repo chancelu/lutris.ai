@@ -1,16 +1,16 @@
 import { defineCommand } from 'citty'
 import { basename, extname, resolve } from 'node:path'
 
-import { renderNodesToSVG, sceneNodeToJSX, selectionToJSX } from '@open-pencil/core'
+import { renderNodesToSVG, sceneNodeToJSX, selectionToJSX } from '@llc3233149/core'
 
 import { loadDocument, loadFonts, exportNodes, exportThumbnail } from '../headless'
 import { isAppMode, requireFile, rpc } from '../app-client'
 import { ok, printError } from '../format'
-import type { ExportFormat, JSXFormat } from '@open-pencil/core'
+import type { ExportFormat, JSXFormat } from '@llc3233149/core'
 
 const RASTER_FORMATS = ['PNG', 'JPG', 'WEBP']
 const ALL_FORMATS = [...RASTER_FORMATS, 'SVG', 'JSX']
-const JSX_STYLES = ['openpencil', 'tailwind']
+const JSX_STYLES = ['lutris', 'tailwind']
 
 interface ExportArgs {
   file?: string
@@ -115,7 +115,7 @@ export default defineCommand({
     quality: { type: 'string', alias: 'q', description: 'Quality 0-100 for JPG/WEBP (default: 90)', required: false },
     page: { type: 'string', description: 'Page name (default: first page)', required: false },
     node: { type: 'string', description: 'Node ID to export (default: all top-level nodes)', required: false },
-    style: { type: 'string', description: 'JSX style: openpencil, tailwind (default: openpencil)', default: 'openpencil' },
+    style: { type: 'string', description: 'JSX style: lutris, tailwind (default: lutris)', default: 'lutris' },
     thumbnail: { type: 'boolean', description: 'Export page thumbnail instead of full render' },
     width: { type: 'string', description: 'Thumbnail width (default: 1920)', default: '1920' },
     height: { type: 'string', description: 'Thumbnail height (default: 1080)', default: '1080' }
@@ -128,7 +128,7 @@ export default defineCommand({
     }
 
     if (format === 'JSX' && !JSX_STYLES.includes(args.style)) {
-      printError(`Invalid JSX style "${args.style}". Use openpencil or tailwind.`)
+      printError(`Invalid JSX style "${args.style}". Use lutris or tailwind.`)
       process.exit(1)
     }
 

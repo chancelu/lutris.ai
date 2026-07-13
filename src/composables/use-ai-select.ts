@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import type { Rect } from '@open-pencil/core'
+import type { Rect } from '@llc3233149/core'
 import { useEditorStore } from '@/stores/editor'
 
 export interface AISelectionContext {

@@ -1,4 +1,4 @@
-import type { Color, Rect, SceneGraph, SceneNode, SkiaRenderer, SnapGuide, UndoManager } from '@open-pencil/core'
+import type { Color, Rect, SceneGraph, SceneNode, SkiaRenderer, SnapGuide, UndoManager } from '@llc3233149/core'
 import type { CanvasKit } from 'canvaskit-wasm'
 import type { Tool } from './tools'
 

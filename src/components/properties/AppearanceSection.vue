@@ -6,7 +6,7 @@ import TokenBindButton from '@/components/properties/TokenBindButton.vue'
 import { useNodeProps } from '@/composables/use-node-props'
 import { MIXED, useMultiProps } from '@/composables/use-multi-props'
 
-import type { SceneNode } from '@open-pencil/core'
+import type { SceneNode } from '@llc3233149/core'
 
 const { store, updateProp, commitProp } = useNodeProps()
 const { node, nodes, isMulti, active, merged, updateAllWithUndo } = useMultiProps()

@@ -15,7 +15,7 @@ test.beforeAll(async ({ browser }) => {
   page = await context.newPage()
   // Clear all AI-related localStorage keys before loading the app
   await page.addInitScript(() => {
-    const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('open-pencil:ai-') || k.startsWith('open-pencil:openrouter'))
+    const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('lutris:ai-') || k.startsWith('lutris:openrouter'))
     for (const key of keysToRemove) localStorage.removeItem(key)
   })
   await page.goto('/editor')

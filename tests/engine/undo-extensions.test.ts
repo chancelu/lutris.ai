@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test'
-import { UndoManager } from '@open-pencil/core'
+import { UndoManager } from '@llc3233149/core'
 
 describe('UndoManager - P3 Extensions', () => {
   test('undoEntries returns readonly list of labels', () => {

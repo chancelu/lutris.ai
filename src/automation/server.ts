@@ -13,10 +13,10 @@ import {
   computeAllLayouts,
   selectionToJSX,
   sceneNodeToJSX
-} from '@open-pencil/core'
+} from '@llc3233149/core'
 
 import type { EditorStore } from '@/stores/editor'
-import type { ExportFormat } from '@open-pencil/core'
+import type { ExportFormat } from '@llc3233149/core'
 
 const TOKEN_LENGTH = 32
 
@@ -112,7 +112,7 @@ export function connectAutomation(getStore: () => EditorStore) {
 
   async function handleExportJsx(store: EditorStore, args: unknown): Promise<unknown> {
     const jsxArgs = args as { nodeIds?: string[]; style?: string } | undefined
-    const style = (jsxArgs?.style ?? 'openpencil') as 'openpencil' | 'tailwind'
+    const style = (jsxArgs?.style ?? 'lutris') as 'lutris' | 'tailwind'
     const currentPage = store.graph.getNode(store.state.currentPageId)
     const nodeIds = jsxArgs?.nodeIds ?? currentPage?.childIds ?? []
     const jsx =

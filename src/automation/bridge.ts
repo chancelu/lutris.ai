@@ -16,7 +16,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { WebSocketServer, type WebSocket } from 'ws'
 
-// Can't import from @open-pencil/core here — this file is bundled by esbuild
+// Can't import from @llc3233149/core here — this file is bundled by esbuild
 // as part of the Vite config, and workspace packages are externalized then
 // loaded by Node's ESM resolver which can't handle .ts source imports.
 const AUTOMATION_HTTP_PORT = 7600
@@ -116,7 +116,7 @@ export function startAutomationBridge(server: ViteServer) {
   })
 
   async function jsxToTree(jsx: string): Promise<unknown> {
-    const core = await server.ssrLoadModule('@open-pencil/core')
+    const core = await server.ssrLoadModule('@llc3233149/core')
     const buildComponent = core.buildComponent as (jsx: string) => () => unknown
     const resolveToTree = core.resolveToTree as (el: unknown) => unknown
     const createElement = core.createElement as (type: unknown, props: unknown) => unknown

@@ -15,7 +15,7 @@
     "order": "asc",
     "ignoreCase": true,
     "newlinesBetween": true,
-    "internalPattern": ["@open-pencil/", "@/"],
+    "internalPattern": ["@llc3233149/", "@/"],
     "groups": [
       "builtin",
       "external",
