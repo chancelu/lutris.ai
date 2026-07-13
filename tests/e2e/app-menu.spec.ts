@@ -25,9 +25,8 @@ test('top bar is visible with logo', async () => {
   canvas.assertNoErrors()
 })
 
-test('top bar has Import and Export buttons', async () => {
+test('top bar has Export button', async () => {
   const header = page.locator('header').first()
-  await expect(header.locator('button', { hasText: 'Import' })).toBeVisible()
   await expect(header.locator('button', { hasText: 'Export' })).toBeVisible()
   canvas.assertNoErrors()
 })
