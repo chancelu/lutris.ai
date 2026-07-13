@@ -4,7 +4,7 @@ Open-source design editor. Opens Figma files, built-in AI, fully programmable.
 
 > **Status:** Active development. Not ready for production use.
 
-**[Try it online →](https://app.lutris.ai/demo)** · [Download](https://github.com/open-pencil/open-pencil/releases/latest) · [Documentation](https://lutris.ai)
+**[Try it online →](https://app.lutris.ai/demo)** · [Download](https://github.com/chancelu/lutris.ai/releases/latest) · [Documentation](https://lutris.ai)
 
 ![Lutris.ai](packages/docs/public/screenshot.png)
 
@@ -13,10 +13,10 @@ Open-source design editor. Opens Figma files, built-in AI, fully programmable.
 **macOS (Homebrew):**
 
 ```sh
-brew install open-pencil/tap/lutris
+brew install lutris-ai/tap/lutris
 ```
 
-Or download from the [releases page](https://github.com/open-pencil/open-pencil/releases/latest), or [use the web app](https://app.lutris.ai) — no install needed.
+Or download from the [releases page](https://github.com/chancelu/lutris.ai/releases/latest), or [use the web app](https://app.lutris.ai) — no install needed.
 
 ## What it does
 
@@ -31,7 +31,7 @@ Or download from the [releases page](https://github.com/open-pencil/open-pencil/
 ## CLI
 
 ```sh
-bun add -g @open-pencil/cli
+bun add -g @lutris/cli
 ```
 
 ### Inspect .fig files
@@ -141,7 +141,7 @@ Connect Claude Code, Cursor, Windsurf, or any MCP client to read and write `.fig
 **Stdio** (Claude Code, Cursor, Windsurf):
 
 ```sh
-bun add -g @open-pencil/mcp
+bun add -g @lutris/mcp
 ```
 
 ```json
@@ -165,7 +165,7 @@ Lutris.ai-mcp-http   # http://localhost:3100/mcp
 Teach your AI coding agent to use Lutris.ai — inspect designs, export assets, analyze tokens, modify .fig files:
 
 ```sh
-npx skills add open-pencil/skills@open-pencil
+npx skills add lutris-ai/skills@lutris
 ```
 
 Works with Claude Code, Cursor, Windsurf, Codex, and any agent that supports [skills](https://skills.sh).
@@ -220,9 +220,9 @@ bun run tauri dev  # Desktop app (requires Rust)
 
 ```
 packages/
-  core/           @open-pencil/core — engine (scene graph, renderer, layout, codec)
-  cli/            @open-pencil/cli — headless CLI
-  mcp/            @open-pencil/mcp — MCP server (stdio + HTTP)
+  core/           @lutris/core — engine (scene graph, renderer, layout, codec)
+  cli/            @lutris/cli — headless CLI
+  mcp/            @lutris/mcp — MCP server (stdio + HTTP)
   docs/           Documentation site (lutris.ai)
 src/              Vue app (components, composables, stores)
 desktop/          Tauri v2 (Rust + config)
@@ -234,7 +234,7 @@ tests/            E2E (188 tests) + unit (764 tests)
 | Layer | Tech |
 |-------|------|
 | Rendering | Skia (CanvasKit WASM) |
-| Layout | Yoga WASM (flex + grid via [fork](https://github.com/open-pencil/yoga/tree/grid)) |
+| Layout | Yoga WASM (flex + grid via [fork](https://github.com/lutris-ai/yoga/tree/grid)) |
 | UI | Vue 3, Reka UI, Tailwind CSS 4 |
 | File format | Kiwi binary + Zstd + ZIP |
 | Collaboration | Trystero (WebRTC P2P) + Yjs (CRDT) |
