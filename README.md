@@ -251,6 +251,8 @@ bun run tauri build
 
 ## Acknowledgments
 
+Lutris.ai started as a fork of [Open Pencil](https://github.com/open-pencil/open-pencil) — huge thanks to the original project and its contributors for the foundation this builds on.
+
 Thanks to [@sld0Ant](https://github.com/sld0Ant) (Anton Soldatov) for creating and maintaining the [documentation site](https://lutris.ai).
 
 ## License
