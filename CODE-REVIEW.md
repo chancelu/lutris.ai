@@ -33,9 +33,9 @@
 Both `.env.production` and `.env.local` contain live credentials committed in the initial commit:
 
 ```
-VITE_AI_API_KEY=<REDACTED-VITE_GEMINI_API_KEY>
-VITE_GEMINI_API_KEY=<REDACTED-VITE_GEMINI_API_KEY>
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIs...
+VITE_AI_API_KEY=<redacted>
+VITE_GEMINI_API_KEY=<redacted>
+VITE_SUPABASE_ANON_KEY=<redacted>
 ```
 
 Because these are `VITE_`-prefixed, Vite bundles them into client-side JavaScript. Anyone who downloads the production build can extract them. Git history also contains a now-removed OpenAI-compatible key (`sk-RSjw...`).
@@ -63,7 +63,7 @@ The `render` AI tool accepts JSX from the LLM, compiles it with sucrase, then ex
 **File:** `packages/core/src/constants.ts:251`
 
 ```ts
-export const GOOGLE_FONTS_API_KEY = '<REDACTED-KEY>'
+export const GOOGLE_FONTS_API_KEY = '<redacted>'
 ```
 
 Committed to source, bundled into client JS, visible in DevTools. Can be abused for quota exhaustion or billing charges.
