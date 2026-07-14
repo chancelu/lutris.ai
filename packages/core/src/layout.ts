@@ -301,11 +301,19 @@ function configureChildAsAutoLayout(
   const widthSizing = isChildRow ? child.primaryAxisSizing : child.counterAxisSizing
   const heightSizing = isChildRow ? child.counterAxisSizing : child.primaryAxisSizing
 
+  // layoutAlignSelf=STRETCH (set from w/h="fill" on the cross axis) must win over
+  // an explicit FIXED width/height, otherwise Yoga's explicit size overrides the
+  // stretch and the child never grows to fill its parent's cross axis.
+  const selfOverride = child.layoutAlignSelf !== 'AUTO'
+  const stretchCross = selfOverride
+    ? child.layoutAlignSelf === 'STRETCH'
+    : parent.counterAxisAlign === 'STRETCH'
+
   if (isParentRow) {
     setSizing(yogaChild, 'width', widthSizing, child.width, child.layoutGrow)
-    setSizing(yogaChild, 'height', heightSizing, child.height, 0)
+    if (!stretchCross) setSizing(yogaChild, 'height', heightSizing, child.height, 0)
   } else {
-    setSizing(yogaChild, 'width', widthSizing, child.width, 0)
+    if (!stretchCross) setSizing(yogaChild, 'width', widthSizing, child.width, 0)
     setSizing(yogaChild, 'height', heightSizing, child.height, child.layoutGrow)
   }
 
