@@ -314,7 +314,7 @@ function ensureChat(): Chat<UIMessage> | null {
     const restored = getRestoredMessages()
     chat = new Chat<UIMessage>({
       transport: createTransport(),
-      ...(restored.length > 0 ? { initialMessages: restored } : {}),
+      ...(restored.length > 0 ? { messages: restored } : {}),
       onError: () => {
         aiProgress.value = 'idle'
       },
@@ -368,7 +368,7 @@ function initChatProjectWatch(): void {
             resetChat()
             chat = new Chat<UIMessage>({
               transport: createTransport(),
-              initialMessages: restored,
+              messages: restored,
               onError: () => { aiProgress.value = 'idle' },
             })
             chatInstanceVersion.value++
