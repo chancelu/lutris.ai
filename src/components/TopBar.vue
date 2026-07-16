@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
+import { useProjects } from '@/composables/use-projects'
 import ProjectSwitcher from './ProjectSwitcher.vue'
 import UserMenu from './UserMenu.vue'
 import PipelinePhaseStepper from './PipelinePhaseStepper.vue'
@@ -19,6 +20,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useEditorStore()
+const { renameProject } = useProjects()
 const isEditingName = ref(false)
 const editName = ref('')
 
@@ -29,7 +31,13 @@ function startEditName() {
 
 function commitName() {
   const trimmed = editName.value.trim()
-  if (trimmed) store.state.documentName = trimmed
+  if (trimmed) {
+    store.state.documentName = trimmed
+    // Persist to project metadata — without this the rename only lives in
+    // in-memory editor state and reverts to the stored project name (e.g.
+    // "Untitled Project") on next switchProject/reload.
+    if (activeProjectId) void renameProject(activeProjectId, trimmed)
+  }
   isEditingName.value = false
 }
 </script>

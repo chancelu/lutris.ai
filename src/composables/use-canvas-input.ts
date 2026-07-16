@@ -1413,16 +1413,25 @@ export function useCanvasInput(
     { passive: false }
   )
 
-  // Space key pan support
+  // Space key pan support — must not steal Space from text inputs (e.g. the
+  // AI chat box) since this listener is attached to `window` and fires
+  // regardless of which element currently has focus.
+  function isTypingTarget(target: EventTarget | null): boolean {
+    const el = target as HTMLElement | null
+    if (!el) return false
+    const tag = el.tagName
+    return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable
+  }
+
   function handleKeyDown(e: KeyboardEvent) {
-    if (e.code === 'Space' && !store.state.editingTextId) {
+    if (e.code === 'Space' && !store.state.editingTextId && !isTypingTarget(e.target)) {
       e.preventDefault()
       isSpaceDown.value = true
       cursorOverride.value = 'grab'
     }
   }
   function handleKeyUp(e: KeyboardEvent) {
-    if (e.code === 'Space') {
+    if (e.code === 'Space' && !isTypingTarget(e.target)) {
       isSpaceDown.value = false
       if (drag.value?.type !== 'pan') {
         cursorOverride.value = null
