@@ -49,7 +49,7 @@ function toggleInline(panel: 'spec' | 'export') {
       <ExportPanel class="flex-1" />
     </div>
 
-    <!-- Bottom bar: Spec + Export -->
+    <!-- Bottom bar: Spec (Export lives in the top bar, no need to duplicate it here) -->
     <div class="flex shrink-0 items-center justify-end gap-1 border-t border-border/10 px-3 py-1.5">
       <button
         class="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] transition"
@@ -59,15 +59,6 @@ function toggleInline(panel: 'spec' | 'export') {
       >
         <icon-lucide-file-text class="size-3.5" />
         <span>Spec</span>
-      </button>
-      <button
-        class="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] transition"
-        :class="inlinePanel === 'export' ? 'bg-accent/15 text-accent' : 'text-muted hover:bg-hover hover:text-surface'"
-        title="Export"
-        @click="toggleInline('export')"
-      >
-        <icon-lucide-download class="size-3.5" />
-        <span>Export</span>
       </button>
     </div>
   </aside>
