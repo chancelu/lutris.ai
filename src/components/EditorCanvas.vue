@@ -29,7 +29,7 @@ const { cursorOverride } = useCanvasInput(
 useTextEdit(canvasRef, store)
 const { isDraggingOver } = useCanvasDrop(canvasRef, store)
 const { aiSelectMode, addNodeToAIContext } = useAISelect()
-const { activeTab, isGenerating } = useAIChat()
+const { isGenerating } = useAIChat()
 
 // AI Select confirmation popup
 const showAISelectPopup = ref(false)
@@ -74,7 +74,6 @@ function confirmAISelect() {
   if (aiSelectNodeIds.value.length) {
     for (const id of aiSelectNodeIds.value) addNodeToAIContext(id)
   }
-  activeTab.value = 'create'
   showAISelectPopup.value = false
 }
 
