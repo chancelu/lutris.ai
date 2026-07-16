@@ -96,20 +96,19 @@ describe('Bug Fix Validation', () => {
     })
   })
 
-  // ── Bug 4: Generate Design from Spec forces render tool ──
-  describe('Bug 4: Generate Design from Spec forces render()', () => {
+  // ── Bug 4 (superseded 2026-07-15): hard-coded "Generate Design from Spec" button removed.
+  // Root cause was two competing phase-advancement mechanisms (button-injected prompts vs.
+  // conversation-driven submit_xxx_output tool calls). User chose Option C: kill the button,
+  // let the AI judge phase advancement purely through conversation. Assert it stays gone.
+  describe('Bug 4: SpecPanel no longer injects a forced render() prompt', () => {
     const code = read('components', 'SpecPanel.vue')
 
-    it('uses CRITICAL INSTRUCTION in prompt', () => {
-      expect(code).toContain('CRITICAL INSTRUCTION')
+    it('does not contain a hard-coded CRITICAL INSTRUCTION prompt injection', () => {
+      expect(code).not.toContain('CRITICAL INSTRUCTION')
     })
 
-    it('mentions render() tool explicitly', () => {
-      expect(code).toContain('render()')
-    })
-
-    it('forbids text-only response', () => {
-      expect(code).toMatch(/FAILURE|Do NOT write ANY text/)
+    it('does not call pendingSystemPrefix to force render()', () => {
+      expect(code).not.toContain('pendingSystemPrefix')
     })
   })
 

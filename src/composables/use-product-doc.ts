@@ -5,17 +5,10 @@ import type { DocVersion } from '@/types/project'
 
 export type { DocVersion } from '@/types/project'
 
-export interface SyncConflict {
-  docContent: string
-  designContent: string
-  timestamp: number
-}
-
 type SyncSource = 'user' | 'design' | 'doc' | null
 
 const isEditing = ref(false)
 const showMarkdown = ref(true)
-const pendingConflict = ref<SyncConflict | null>(null)
 const pendingSyncConfirm = ref<{ content: string; source: SyncSource } | null>(null)
 const isImporting = ref(false)
 const isParsing = ref(false)
@@ -72,47 +65,6 @@ Rules:
 - Break acceptance criteria into testable statements
 - Flag assumptions in descriptions with [assumption]
 - Output ONLY the JSON, no markdown fences, no explanation`
-
-const PM_DESIGN_SYNC_PROMPT = `You are a senior product manager analyzing a design to extract product requirements.
-
-Given a design description (layout, components, interactions):
-1. Reverse-engineer the product requirements:
-   - What user problem does this design solve?
-   - What are the key user flows?
-   - What features are implemented?
-   - What design decisions were made and why?
-
-2. Structure as a living product document:
-   - Overview & Problem Statement
-   - User Flows (step by step)
-   - Feature Inventory (what exists on canvas)
-   - Design Decisions & Rationale
-   - Open Questions
-
-3. Mark any inferred requirements with [inferred from design].
-4. Keep it concise — this syncs bidirectionally with the design canvas.
-
-Output: Clean Markdown product spec.`
-
-const PM_DOC_TO_DESIGN_PROMPT = `You are a senior product manager translating requirements into design specifications.
-
-Given a product document:
-1. Extract actionable design requirements:
-   - Page/screen list with hierarchy
-   - Component inventory (buttons, forms, cards, etc.)
-   - Layout specifications (grid, spacing, alignment)
-   - Content requirements (text, images, data)
-   - Interaction patterns (clicks, hovers, transitions)
-
-2. For each screen/page, provide:
-   - Layout description (natural language, suitable for AI design generation)
-   - Component list with properties
-   - Content placeholders
-
-3. Prioritize by P0 → P1 → P2.
-4. Flag any requirements that are ambiguous or need PM clarification.
-
-Output: Structured design brief that can be fed to an AI design generator.`
 
 async function parseWordFile(file: File): Promise<string> {
   try {
