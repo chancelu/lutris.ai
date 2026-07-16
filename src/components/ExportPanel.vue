@@ -2,10 +2,8 @@
 import { ref, computed, watchEffect } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 import NextStepCard from './NextStepCard.vue'
-import { useAIChat } from '@/composables/use-chat'
 
 const store = useEditorStore()
-const { activeTab } = useAIChat()
 const format = ref<'PNG' | 'JPG' | 'SVG' | 'WEBP' | 'PDF'>('PNG')
 const scale = ref(2)
 const isExporting = ref(false)
@@ -42,17 +40,13 @@ const nextStepActions = [
 
 function handleNextStep(value: string) {
   if (value === 'handoff') {
-    activeTab.value = 'ship'
     store.state.measurementMode = true
   }
   if (value === 'code') {
-    activeTab.value = 'ship'
     store.state.measurementMode = false
   }
   if (value === 'again') {
-    activeTab.value = 'ship'
     exportSuccess.value = null
-    return
   }
 }
 

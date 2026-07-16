@@ -13,6 +13,7 @@ import { createAITools } from '@/ai/tools'
 import { useEditorStore } from '@/stores/editor'
 import { AI_PROVIDERS, DEFAULT_AI_MODEL, DEFAULT_AI_PROVIDER } from '@llc3233149/core'
 import { useBrand } from './use-brand'
+import { useFocusRegion } from './use-focus-region'
 import { usePipeline } from './use-pipeline'
 import { useProductDoc } from './use-product-doc'
 import { useProjects } from './use-projects'
@@ -86,7 +87,6 @@ if (ENV_BASE_URL !== '') customBaseURL.value = ENV_BASE_URL
 if (ENV_MODEL !== '') customModelID.value = ENV_MODEL
 if (ENV_API_TYPE !== '' as string) customAPIType.value = ENV_API_TYPE
 
-const activeTab = ref<'create' | 'spec' | 'ship'>('create')
 const pendingMessage = ref<string | null>(null)
 const pendingSystemPrefix = ref<string | null>(null)
 const draftMessage = ref<string>('')
@@ -99,9 +99,14 @@ const providerDef = computed(
   () => AI_PROVIDERS.find((p) => p.id === providerID.value) ?? AI_PROVIDERS[0]
 )
 
-// Server-configured: env vars provide everything, skip user setup entirely
+// Server-configured: env vars provide everything, skip user setup entirely.
+// 'google' is special-cased: the real Gemini key lives server-side only
+// (GEMINI_API_KEY, no VITE_ prefix) behind /api/gemini-proxy, so no client
+// -exposed API key is required to consider it configured.
 const isServerConfigured = computed(() => {
-  if (!ENV_API_KEY || !ENV_PROVIDER) return false
+  if (!ENV_PROVIDER) return false
+  if (ENV_PROVIDER === 'google') return true
+  if (!ENV_API_KEY) return false
   const needsBaseURL = ENV_PROVIDER === 'openai-compatible' || ENV_PROVIDER === 'anthropic-compatible'
   if (needsBaseURL && !ENV_BASE_URL) return false
   return true
@@ -137,7 +142,9 @@ function setAPIKey(key: string) {
 }
 
 function getModelConfig() {
-  const isEnv = !!(ENV_PROVIDER && ENV_API_KEY)
+  // 'google' can be server-configured via the proxy with no client-exposed
+  // key at all (VITE_AI_API_KEY may be empty) — see isServerConfigured.
+  const isEnv = !!ENV_PROVIDER && (ENV_PROVIDER === 'google' ? isServerConfigured.value : !!ENV_API_KEY)
   const key = isEnv ? ENV_API_KEY : apiKey.value
   const activeProvider = isEnv ? ENV_PROVIDER : providerID.value
   const needsCustomModel =
@@ -180,7 +187,14 @@ function createModel(): LanguageModel {
       return openai(effectiveModelID)
     }
     case 'google': {
-      const google = createGoogleGenerativeAI({ apiKey: key })
+      // Server-configured google (env provider, no client key needed) routes
+      // through the serverless proxy so GEMINI_API_KEY never reaches the browser.
+      const usingServerProxy = ENV_PROVIDER === 'google' && isServerConfigured.value && !key
+      const google = createGoogleGenerativeAI(
+        usingServerProxy
+          ? { apiKey: 'proxied', baseURL: `${window.location.origin}/api/gemini-proxy` }
+          : { apiKey: key }
+      )
       return google(effectiveModelID)
     }
     case 'zai': {
@@ -253,6 +267,22 @@ function buildDynamicPrompt(): string {
     }
   } catch { /* product doc composable not available */ }
 
+  // Which region the user was last interacting with (left layers/properties,
+  // center canvas, or this chat panel) — helps the model disambiguate
+  // "change this" / "make it bigger" type requests.
+  try {
+    const { currentRegion } = useFocusRegion()
+    const labels: Record<'left' | 'canvas' | 'right', string> = {
+      left: 'the left sidebar (layers / design properties)',
+      canvas: 'the center canvas (design)',
+      right: 'the AI chat panel',
+    }
+    const label = currentRegion.value ? labels[currentRegion.value] : undefined
+    if (label) {
+      fullPrompt += `\n\n## User Focus\nThe user was last interacting with ${label}.`
+    }
+  } catch { /* focus region composable not available */ }
+
   // Canvas context: what's already on the page
   try {
     const store = useEditorStore()
@@ -276,20 +306,29 @@ function createTransport() {
 
   const { currentPhase } = usePipeline()
   const { tools: allTools, commitAIBatch } = createAITools(useEditorStore())
-  const tools = {
-    ...filterToolsByPhase(allTools, currentPhase.value),
-    ...createSubmitTools(currentPhase.value),
+
+  // Re-derived on every prepareCall (i.e. every step within a tool loop, not
+  // just once at transport creation) — a submit_xxx tool can advance
+  // currentPhase mid-loop, and the agent's tool set must follow immediately,
+  // otherwise the model gets a Design-phase system prompt telling it to call
+  // `render` while it's still stuck holding the Idea/Spec-phase tool set.
+  function currentPhaseTools() {
+    return {
+      ...filterToolsByPhase(allTools, currentPhase.value),
+      ...createSubmitTools(currentPhase.value),
+    }
   }
 
   const agent = new ToolLoopAgent({
     model: createModel(),
     instructions: buildDynamicPrompt(),
-    tools,
+    tools: currentPhaseTools(),
     maxOutputTokens: maxOutputTokens.value,
     prepareCall: (options) => ({
       ...options,
       maxOutputTokens: maxOutputTokens.value,
       instructions: buildDynamicPrompt(),
+      tools: currentPhaseTools(),
     }),
     experimental_onToolCallStart: (event) => {
       const name = event.toolCall.toolName
@@ -515,7 +554,6 @@ export function useAIChat() {
     customModelID,
     customAPIType,
     maxOutputTokens,
-    activeTab,
     pendingMessage,
     pendingSystemPrefix,
     draftMessage,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useEventListener, useUrlSearchParams } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
@@ -8,7 +8,6 @@ import { useKeyboard } from '@/composables/use-keyboard'
 import { useAIChat } from '@/composables/use-chat'
 import { useMenu } from '@/composables/use-menu'
 import { usePipeline } from '@/composables/use-pipeline'
-import { useProductDoc } from '@/composables/use-product-doc'
 import { useProjects } from '@/composables/use-projects'
 import { toast } from '@/composables/use-toast'
 import { connectAutomation } from '@/automation/server'
@@ -30,8 +29,11 @@ const firstTab = createTab()
 const store = useEditorStore()
 useKeyboard()
 useMenu()
-const { activeTab: rightTab, focusRequested, inlinePanel, pendingMessage, syncChatToProject } = useAIChat()
-const { updateFromDesign } = useProductDoc()
+const { currentPhase } = usePipeline()
+// Idea/Spec 阶段 AI 没有 canvas 工具权限（见 phase-tools.ts filterToolsByPhase），
+// 画布上的工具箱/图层面板此时点了也没用——收起来，把注意力留在对话上。
+const showCanvasChrome = computed(() => currentPhase.value === 'design' || currentPhase.value === 'dev')
+const { focusRequested, inlinePanel, pendingMessage, syncChatToProject } = useAIChat()
 const {
   init: initProjects, switchProject, activeProjectId,
   activeProject, projects: projectsList, createProject,
@@ -65,22 +67,6 @@ useEventListener(window, 'beforeunload', () => {
   void saveCurrentDesign(store)
 })
 
-function onSyncPRD() {
-  const pageId = store.state.currentPageId
-  if (!pageId) return
-  const page = store.graph.nodes.get(pageId)
-  const childIds = page?.childIds || []
-  if (!childIds.length) return
-  const desc = childIds.map(id => {
-    const n = store.graph.nodes.get(id)
-    return n ? `- ${n.name || n.type} (${n.type}, ${Math.round(n.width || 0)}×${Math.round(n.height || 0)})` : null
-  }).filter(Boolean).join('\n')
-  updateFromDesign(`# Design State (AI Updated)\n\n${desc}`)
-  inlinePanel.value = 'spec'
-}
-onMounted(() => window.addEventListener('sync-prd-from-design', onSyncPRD))
-onUnmounted(() => window.removeEventListener('sync-prd-from-design', onSyncPRD))
-
 async function onSwitchProject(projectId: string) {
   if (projectId === activeProjectId.value) return
   await switchProject(projectId, store)
@@ -108,7 +94,7 @@ async function onDeleteProject(projectId: string) {
 
 function onWelcomeAction(type: string) {
   if (type === 'ai') {
-    rightTab.value = 'create'
+    inlinePanel.value = null
     focusRequested.value++
     aiPanelHighlight.value = true
     setTimeout(() => { aiPanelHighlight.value = false }, 800)
@@ -184,16 +170,24 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
     />
 
     <div class="relative flex flex-1 overflow-hidden">
-      <!-- Left: Layers + Design Properties -->
-      <LeftSidebar v-if="showChrome && store.state.showUI" />
+      <!-- Left: Layers + Design Properties — only relevant once AI can touch the canvas (Design/Dev) -->
+      <LeftSidebar v-if="showChrome && store.state.showUI && showCanvasChrome" data-region="left" />
 
       <!-- Center: Canvas + Toolbar + WelcomeOverlay -->
-      <div class="relative flex flex-1 flex-col overflow-hidden">
+      <div class="relative flex flex-1 flex-col overflow-hidden" data-region="canvas">
         <EditorCanvas class="min-h-0 flex-1" />
         <WelcomeOverlay v-if="showChrome" @action="onWelcomeAction" />
-        <div v-if="showChrome && store.state.showUI" class="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center">
+        <div v-if="showChrome && store.state.showUI && showCanvasChrome" class="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center">
           <div class="pointer-events-auto">
             <Toolbar />
+          </div>
+        </div>
+        <div
+          v-if="showChrome && store.state.showUI && !showCanvasChrome"
+          class="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center"
+        >
+          <div class="pointer-events-auto rounded-full border border-border/10 bg-panel/90 px-3 py-1.5 text-[11px] text-muted shadow-lg shadow-black/15 backdrop-blur-md">
+            画布工具会在 Design 阶段解锁 — 先在右侧和 AI 聊清楚需求
           </div>
         </div>
       </div>
@@ -201,6 +195,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
       <!-- Right: AI Chat Panel -->
       <div
         v-if="showChrome && store.state.showUI"
+        data-region="right"
         class="flex w-[360px] shrink-0 flex-col border-l border-border/10 bg-panel transition-shadow duration-300"
         :class="aiPanelHighlight && 'animate-[ai-panel-highlight_0.8s_ease-in-out]'"
       >

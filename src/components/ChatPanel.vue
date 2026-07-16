@@ -3,15 +3,12 @@ import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewpor
 import { computed, markRaw, nextTick, ref, watch } from 'vue'
 
 import { copyChatLog } from '@/ai/chat-debug'
-import { isTextUIPart } from 'ai'
 import ChatInput from '@/components/chat/ChatInput.vue'
 import ChatMessage from '@/components/chat/ChatMessage.vue'
 import ProviderSetup from '@/components/chat/ProviderSetup.vue'
 import AIContextCards from '@/components/AIContextCards.vue'
 import { useAIChat } from '@/composables/use-chat'
 import { useAISelect } from '@/composables/use-ai-select'
-import { useSpec } from '@/composables/use-spec'
-import { toast } from '@/composables/use-toast'
 import { useEditorStore } from '@/stores/editor'
 import { AI_PROVIDERS } from '@llc3233149/core'
 
@@ -26,7 +23,7 @@ const hasCanvasContent = computed(() => {
   return (page?.childIds?.length ?? 0) > 0
 })
 
-const { isConfigured, ensureChat, resetChat, pendingMessage, pendingSystemPrefix, aiProgress, providerID, isServerConfigured, activeTab, aiMode, inlinePanel, saveChatToProject, chatInstanceVersion } = useAIChat()
+const { isConfigured, ensureChat, resetChat, pendingMessage, pendingSystemPrefix, aiProgress, providerID, isServerConfigured, saveChatToProject, chatInstanceVersion } = useAIChat()
 const { hasContext, buildContextPrompt, clearAIContext } = useAISelect()
 
 const existing = ensureChat()
@@ -125,58 +122,6 @@ function handleClearChat() {
   chat.value = null
   resetChat()
 }
-
-function prefillPrompt(prompt: string) {
-  const { draftMessage } = useAIChat()
-  draftMessage.value = prompt
-  activeTab.value = 'create'
-}
-
-function handleSaveSummary(content: string) {
-  const { appendSummary } = useSpec()
-  appendSummary(`## Summary\n\n${content}`, 'ai', 'Saved to spec summary')
-  toast.show('Saved to spec summary ✅')
-}
-
-function handleSaveRequirements(content: string) {
-  // 结构化 Page/Component 拆解交给 Spec 面板里的 AI 工具调用完成；
-  // 这里只做兜底：把 AI 产出的需求文本存进 freeform notes，用户可在 Spec 面板里手动拆解成 Page。
-  const { appendSummary } = useSpec()
-  appendSummary(`## Requirements Draft\n\n${content}`, 'ai', 'Saved requirements draft from AI')
-  toast.show('Saved as requirements draft ✅')
-}
-
-function handleCreateSpecDraft(content: string) {
-  const { createSpecDraftFromAI } = useSpec()
-  createSpecDraftFromAI(content)
-  toast.show('Spec created! Edit it in the Spec panel, or ask me to generate designs from it.')
-  nextTick(() => {
-    inlinePanel.value = 'spec'
-  })
-}
-
-const specDraftCreated = ref(false)
-
-function handleCreateSpecFromAll() {
-  if (specDraftCreated.value) return
-  const { createSpecDraftFromAI } = useSpec()
-  const assistantTexts = messages.value
-    .filter(m => m.role === 'assistant')
-    .map(m => m.parts.filter(isTextUIPart).map(p => p.text).join(''))
-    .filter(Boolean)
-    .join('\n\n---\n\n')
-  if (!assistantTexts) {
-    toast.show('No text content from AI to create spec draft', 'warning')
-    return
-  }
-  createSpecDraftFromAI(assistantTexts)
-  specDraftCreated.value = true
-  toast.show('Spec draft created! Switching to Spec panel...')
-  setTimeout(() => {
-    inlinePanel.value = 'spec'
-  }, 600)
-  setTimeout(() => { specDraftCreated.value = false }, 3000)
-}
 </script>
 
 <template>
@@ -209,9 +154,6 @@ function handleCreateSpecFromAll() {
               v-for="msg in messages"
               :key="msg.id"
               :message="msg"
-              @save-summary="handleSaveSummary"
-              @save-requirements="handleSaveRequirements"
-              @create-spec-draft="handleCreateSpecDraft"
             />
 
             <div
@@ -262,16 +204,6 @@ function handleCreateSpecFromAll() {
         >
           <icon-lucide-trash-2 class="size-3" />
           Clear
-        </button>
-        <button
-          class="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] transition-all duration-300"
-          :class="specDraftCreated ? 'bg-green-500/15 text-green-400 scale-105' : 'text-accent hover:bg-accent/10'"
-          title="Create a structured spec draft from all AI responses"
-          @click="handleCreateSpecFromAll"
-        >
-          <icon-lucide-check v-if="specDraftCreated" class="size-3" />
-          <icon-lucide-file-plus v-else class="size-3" />
-          {{ specDraftCreated ? 'Spec created!' : 'Create spec draft' }}
         </button>
       </div>
 

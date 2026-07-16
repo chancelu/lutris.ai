@@ -1,13 +1,14 @@
 import { ref } from 'vue'
 
 const GEMINI_MODEL = 'gemini-2.5-flash-image'
-const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
 
-const apiKey = ref(
-  localStorage.getItem('designflow-gemini-key') ||
-  (import.meta.env.VITE_GEMINI_API_KEY as string) ||
-  ''
-)
+// Server-configured: GEMINI_API_KEY lives server-side only (no VITE_ prefix,
+// never bundled into client JS) behind /api/gemini-proxy. If the user has
+// set their own key in Brand Settings, that takes priority and calls Gemini
+// directly with their own key/quota.
+const SERVER_PROXIED = (import.meta.env.VITE_GEMINI_SERVER_PROXY as string) === 'true'
+
+const apiKey = ref(localStorage.getItem('designflow-gemini-key') || '')
 
 export function useImageGen() {
   const generating = ref(false)
@@ -22,8 +23,43 @@ export function useImageGen() {
     return apiKey.value
   }
 
+  function buildGenerateRequest(useServerKey: boolean): { url: string; headers: Record<string, string> } {
+    if (useServerKey) {
+      return {
+        url: `${window.location.origin}/api/gemini-proxy/models/${GEMINI_MODEL}:generateContent`,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    }
+    return {
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey.value },
+    }
+  }
+
+  function extractImageParts(data: unknown): { imageData: { base64: string; mimeType: string } | null; textContent: string } {
+    const typed = data as { candidates?: { content?: { parts?: unknown[] } }[] } | undefined
+    const parts = typed?.candidates?.[0]?.content?.parts ?? []
+    let imageData: { base64: string; mimeType: string } | null = null
+    let textContent = ''
+
+    for (const part of parts as { inlineData?: { data: string; mimeType?: string }; text?: string }[]) {
+      if (part.inlineData) {
+        imageData = {
+          base64: part.inlineData.data,
+          mimeType: part.inlineData.mimeType || 'image/png',
+        }
+      }
+      if (part.text) {
+        textContent += part.text
+      }
+    }
+
+    return { imageData, textContent }
+  }
+
   async function generateImage(prompt: string): Promise<{ base64: string; mimeType: string; text?: string } | null> {
-    if (!apiKey.value) {
+    const useServerKey = SERVER_PROXIED && !apiKey.value
+    if (!apiKey.value && !useServerKey) {
       error.value = 'Gemini API key not set. Go to Brand Settings to configure.'
       return null
     }
@@ -32,10 +68,10 @@ export function useImageGen() {
     error.value = null
 
     try {
-      const url = `${GEMINI_BASE}/models/${GEMINI_MODEL}:generateContent`
+      const { url, headers } = buildGenerateRequest(useServerKey)
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey.value },
+        headers,
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
@@ -51,22 +87,7 @@ export function useImageGen() {
       }
 
       const data = await res.json()
-      const parts = data?.candidates?.[0]?.content?.parts || []
-
-      let imageData: { base64: string; mimeType: string } | null = null
-      let textContent = ''
-
-      for (const part of parts) {
-        if (part.inlineData) {
-          imageData = {
-            base64: part.inlineData.data,
-            mimeType: part.inlineData.mimeType || 'image/png',
-          }
-        }
-        if (part.text) {
-          textContent += part.text
-        }
-      }
+      const { imageData, textContent } = extractImageParts(data)
 
       if (!imageData) {
         error.value = 'No image generated. Try a different prompt.'
