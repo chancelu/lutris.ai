@@ -5,7 +5,7 @@ import { useEditorStore } from '@/stores/editor'
 import { useAIChat } from '@/composables/use-chat'
 
 const store = useEditorStore()
-const { draftMessage, activeTab } = useAIChat()
+const { draftMessage } = useAIChat()
 
 // 对话驱动优先（PRD Idea→Spec→Design 一条龙）：入口只保留 AI 对话 + 导入 PRD 文本两条路径，
 // 去掉"画布直入"（Start from template）和 Figma 导入选项 —— 这些绕开了 Idea 对话阶段，

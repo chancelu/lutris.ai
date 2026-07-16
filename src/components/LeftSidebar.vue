@@ -8,7 +8,7 @@ import DesignPanel from './DesignPanel.vue'
 import LayersPanel from './LayersPanel.vue'
 
 const store = useEditorStore()
-const { activeTab, focusRequested } = useAIChat()
+const { focusRequested } = useAIChat()
 const { addCurrentSelection } = useAISelect()
 
 const hasSelection = computed(() => (store.state.selectedIds?.size ?? 0) > 0)
@@ -16,7 +16,6 @@ const layersCollapsed = ref(false)
 
 function editWithAI() {
   addCurrentSelection()
-  activeTab.value = 'create'
   focusRequested.value++
 }
 </script>

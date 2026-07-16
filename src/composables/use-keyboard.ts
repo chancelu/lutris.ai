@@ -59,7 +59,7 @@ function shouldPreventDefault(e: KeyboardEvent, hasPenState: boolean): boolean {
 }
 
 export function useKeyboard() {
-  const { activeTab, inlinePanel } = useAIChat()
+  const { inlinePanel } = useAIChat()
   const store = useEditorStore()
   const editing = ref(false)
 
@@ -160,7 +160,7 @@ export function useKeyboard() {
     store.state.showUI = !store.state.showUI
   })
   whenever(mod('keyj'), () => {
-    activeTab.value = activeTab.value === 'create' ? 'ship' : 'create'
+    inlinePanel.value = inlinePanel.value === 'export' ? null : 'export'
   })
   whenever(mod('keyw'), () => {
     if (activeTabRef.value) closeTab(activeTabRef.value.id)
@@ -228,25 +228,16 @@ export function useKeyboard() {
   })
 
   // --- Workflow shortcuts ---
-  // Ctrl+E → Ship
+  // Ctrl+E → Export panel
   whenever(mod('keye'), () => {
-    activeTab.value = 'ship'
+    inlinePanel.value = inlinePanel.value === 'export' ? null : 'export'
   })
-  // Ctrl+/ → Create
+  // Ctrl+/ → back to AI chat
   whenever(mod('slash'), () => {
-    activeTab.value = 'create'
+    inlinePanel.value = null
   })
-  // Ctrl+B → Create (Brand lives inside Create)
-  whenever(mod('keyb'), () => {
-    activeTab.value = 'create'
-  })
-  // Ctrl+Shift+F → Ship
-  whenever(mod('shift+keyf'), () => {
-    activeTab.value = 'ship'
-  })
-  // Ctrl+Shift+D → Spec
+  // Ctrl+Shift+D → Spec panel
   whenever(mod('shift+keyd'), () => {
     inlinePanel.value = inlinePanel.value === 'spec' ? null : 'spec'
   })
-
 }
