@@ -146,13 +146,9 @@ describe('PRD Sync - After AI Modification', () => {
     expect(toastOps.map(o => o.name)).toEqual(['render', 'set_fill'])
   })
 
-  test('sync-prd-from-design event dispatched on action click', () => {
-    let dispatched = false
-    const handler = () => { dispatched = true }
-    // Simulate event dispatch
-    handler()
-    expect(dispatched).toBe(true)
-  })
+  // superseded 2026-07-15: the 'sync-prd-from-design' window event had zero dispatchers
+  // anywhere in the app — EditorView listened for an event nothing ever fired. Removed
+  // the dead listener; PRD sync now happens via explicit useProductDoc calls.
 
   test('updateFromDesign generates design description', () => {
     const nodes = [
