@@ -33,7 +33,7 @@ function getPhase() {
 test('1. editor loads with zero console errors and shows the welcome overlay', async () => {
   const overlay = page.locator('[data-test-id="welcome-overlay"]')
   await expect(overlay).toBeVisible()
-  await expect(overlay.locator('img[src="/lutris-otter.png"]')).toBeVisible()
+  await expect(overlay.locator('img[src="/mascot-waving.png"]')).toBeVisible()
   await expect(overlay).toContainText('What do you want to build?')
   await expect(page.locator('[data-test-id="welcome-describe-idea"]')).toBeVisible()
   await expect(page.locator('[data-test-id="welcome-blank-canvas"]')).toBeVisible()
@@ -110,7 +110,7 @@ test('5. advancing to dev auto-opens the Code view with the otter empty state', 
 
   const empty = page.locator('[data-test-id="code-panel-empty"]')
   await expect(empty).toBeVisible()
-  await expect(empty.locator('img[src="/lutris-otter.png"]')).toBeVisible()
+  await expect(empty.locator('img[src="/mascot-designing.png"]')).toBeVisible()
   canvas.assertNoErrors()
 })
 

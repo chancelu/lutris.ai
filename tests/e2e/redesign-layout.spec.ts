@@ -22,7 +22,7 @@ test.afterAll(async () => {
 test('welcome overlay shows on empty canvas in idea phase', async () => {
   const overlay = page.locator('[data-test-id="welcome-overlay"]')
   await expect(overlay).toBeVisible()
-  await expect(overlay.locator('img[src="/lutris-otter.png"]')).toBeVisible()
+  await expect(overlay.locator('img[src="/mascot-waving.png"]')).toBeVisible()
   await expect(overlay).toContainText('What do you want to build?')
   // Export is gated to design/dev — hidden while in idea phase.
   await expect(page.locator('[data-test-id="topbar-export"]')).not.toBeVisible()

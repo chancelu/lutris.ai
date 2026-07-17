@@ -52,7 +52,7 @@ function handleAction(type: Parameters<typeof emit>[1]) {
       class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-canvas/80"
     >
       <div class="pointer-events-auto flex w-full max-w-md flex-col items-center px-6 text-center">
-        <img src="/lutris-otter.png" class="h-28 w-auto object-contain" alt="" />
+        <img src="/mascot-waving.png" class="h-28 w-auto object-contain" alt="" />
         <h2 class="mt-5 text-[24px] font-semibold tracking-tight text-surface sm:text-[28px]">What do you want to build?</h2>
         <p class="mt-2 text-[13px] text-surface/60">Describe it — the otter drafts the spec, design, and code.</p>
 

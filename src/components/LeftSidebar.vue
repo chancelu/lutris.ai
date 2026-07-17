@@ -117,7 +117,7 @@ function editWithAI() {
         </div>
       </template>
       <div v-else class="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-        <img src="/lutris-otter.png" class="h-16 w-auto object-contain opacity-70" alt="" />
+        <img src="/mascot-designing.png" class="h-16 w-auto object-contain opacity-70" alt="" />
         <p class="text-[11px] text-muted">Select a layer to edit its design.</p>
       </div>
     </div>

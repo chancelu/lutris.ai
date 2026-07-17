@@ -35,7 +35,7 @@ test.afterAll(async () => {
 test('entering dev auto-opens the Code view with the otter empty state', async () => {
   const empty = page.locator('[data-test-id="code-panel-empty"]')
   await expect(empty).toBeVisible()
-  await expect(empty.locator('img[src="/lutris-otter.png"]')).toBeVisible()
+  await expect(empty.locator('img[src="/mascot-designing.png"]')).toBeVisible()
   await expect(empty).toContainText('Ask the AI to export your code.')
   canvas.assertNoErrors()
 })

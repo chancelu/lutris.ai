@@ -84,7 +84,7 @@ watch(activeFile, () => {
     data-test-id="code-panel-empty"
     class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
   >
-    <img src="/lutris-otter.png" class="h-16 w-auto object-contain opacity-80" alt="" />
+    <img src="/mascot-designing.png" class="h-16 w-auto object-contain opacity-80" alt="" />
     <p class="text-[12px] text-muted">Ask the AI to export your code.</p>
   </div>
 

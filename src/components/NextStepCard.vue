@@ -52,7 +52,7 @@ function onCta() {
     data-test-id="next-step-card"
     class="flex items-center gap-2.5 rounded-xl border border-border/30 bg-canvas/50 px-3 py-2.5"
   >
-    <img src="/lutris-otter.png" class="h-8 w-auto shrink-0 object-contain" alt="" />
+    <img src="/mascot-celebrating.png" class="h-8 w-auto shrink-0 object-contain" alt="" />
     <p class="min-w-0 flex-1 text-[11px] leading-4 text-muted">{{ step!.summary }}</p>
     <button
       data-test-id="next-step-cta"
