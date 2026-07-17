@@ -49,12 +49,12 @@ function handleAction(type: Parameters<typeof emit>[1]) {
     <div
       v-if="showOverlay"
       data-test-id="welcome-overlay"
-      class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-canvas/60"
+      class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-canvas/80"
     >
       <div class="pointer-events-auto flex w-full max-w-md flex-col items-center px-6 text-center">
         <img src="/lutris-otter.png" class="h-28 w-auto object-contain" alt="" />
         <h2 class="mt-5 text-[24px] font-semibold tracking-tight text-surface sm:text-[28px]">What do you want to build?</h2>
-        <p class="mt-2 text-[13px] text-muted">Describe it — the otter drafts the spec, design, and code.</p>
+        <p class="mt-2 text-[13px] text-surface/60">Describe it — the otter drafts the spec, design, and code.</p>
 
         <button
           data-test-id="welcome-describe-idea"
@@ -65,7 +65,7 @@ function handleAction(type: Parameters<typeof emit>[1]) {
           Describe your idea
         </button>
 
-        <div class="mt-5 flex items-center gap-2 text-[12px] text-muted/70">
+        <div class="mt-5 flex items-center gap-2 text-[12px] text-muted">
           <button
             data-test-id="welcome-import-prd"
             class="transition hover:text-surface"

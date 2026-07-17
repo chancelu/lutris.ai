@@ -11,6 +11,7 @@ import { useEditorStore } from '@/stores/editor'
 import { useProjects } from '@/composables/use-projects'
 import { usePipeline } from '@/composables/use-pipeline'
 import { useAIChat } from '@/composables/use-chat'
+import { useTheme } from '@/composables/use-theme'
 import ProjectSwitcher from './ProjectSwitcher.vue'
 import UserMenu from './UserMenu.vue'
 import PipelinePhaseStepper from './PipelinePhaseStepper.vue'
@@ -32,6 +33,12 @@ const store = useEditorStore()
 const { renameProject } = useProjects()
 const { currentPhase } = usePipeline()
 const { inlinePanel } = useAIChat()
+const { resolvedTheme, setTheme } = useTheme()
+
+// Explicit dark <-> light switch (no 'system' stop — the menu label promises a mode)
+function toggleColorMode() {
+  setTheme(resolvedTheme.value === 'light' ? 'dark' : 'light')
+}
 const isEditingName = ref(false)
 const editName = ref('')
 
@@ -70,20 +77,12 @@ function openProviderSettings() {
 
 <template>
   <header class="flex h-12 shrink-0 items-center bg-panel px-3">
-    <div class="flex items-center gap-2.5">
+    <div class="flex items-center gap-2">
       <img src="/lutris-otter.png" class="h-5 w-auto object-contain" alt="Lutris.ai" />
-      <ProjectSwitcher
-        :project-name="projectName"
-        :projects="projects"
-        :active-project-id="activeProjectId"
-        @switch="emit('switchProject', $event)"
-        @create="emit('createProject')"
-        @delete="emit('deleteProject', $event)"
-      />
-      <span class="text-border/30">/</span>
       <span
         v-if="!isEditingName"
-        class="cursor-pointer text-[12px] text-muted transition hover:text-surface"
+        class="cursor-pointer text-[12px] font-medium text-surface/90 transition hover:text-surface"
+        title="Click to rename"
         @click="startEditName"
       >{{ store.state.documentName }}</span>
       <input
@@ -93,6 +92,14 @@ function openProviderSettings() {
         @blur="commitName"
         @keydown.enter="commitName"
         @keydown.escape="isEditingName = false"
+      />
+      <ProjectSwitcher
+        :project-name="projectName"
+        :projects="projects"
+        :active-project-id="activeProjectId"
+        @switch="emit('switchProject', $event)"
+        @create="emit('createProject')"
+        @delete="emit('deleteProject', $event)"
       />
     </div>
     <div class="flex flex-1 items-center justify-center">
@@ -135,6 +142,15 @@ function openProviderSettings() {
             >
               <icon-lucide-sparkles class="size-3.5" />
               <span>AI provider settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              data-test-id="topbar-settings-theme"
+              class="flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] text-muted outline-none transition hover:bg-hover hover:text-surface"
+              @select="toggleColorMode"
+            >
+              <icon-lucide-moon v-if="resolvedTheme === 'light'" class="size-3.5" />
+              <icon-lucide-sun v-else class="size-3.5" />
+              <span>{{ resolvedTheme === 'light' ? 'Dark mode' : 'Light mode' }}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenuPortal>

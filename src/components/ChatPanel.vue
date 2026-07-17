@@ -143,8 +143,14 @@ function handleClearChat() {
             class="flex h-full flex-col items-center justify-center px-6 py-8"
           >
             <img src="/lutris-otter.png" class="h-16 w-auto object-contain opacity-80" alt="" />
-            <p class="mt-4 text-[14px] font-medium text-surface/80">What would you like to create?</p>
-            <p class="mt-1 text-[11px] text-muted/60">Describe a screen, component, or layout</p>
+            <template v-if="currentPhase === 'idea'">
+              <p class="mt-4 text-[14px] font-medium text-surface/80">Tell me about your idea</p>
+              <p class="mt-1 text-[11px] text-muted/60">A few sentences are enough — I'll draft the spec from there</p>
+            </template>
+            <template v-else>
+              <p class="mt-4 text-[14px] font-medium text-surface/80">What would you like to create?</p>
+              <p class="mt-1 text-[11px] text-muted/60">Describe a screen, component, or layout</p>
+            </template>
             <button
               v-if="hasCanvasContent && canAnalyzeCanvas"
               class="mt-4 flex items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/5 px-3 py-1.5 text-[12px] text-accent transition hover:bg-accent/10"
