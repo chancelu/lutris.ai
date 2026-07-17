@@ -16,7 +16,7 @@ function togglePage(pageId: string) {
 }
 
 function addPage() {
-  const page = createSpecPage(`新页面 ${pages.value.length + 1}`)
+  const page = createSpecPage(`New page ${pages.value.length + 1}`)
   upsertPage(page, 'user', 'Added page')
   expandedPageIds.value = new Set([...expandedPageIds.value, page.id])
 }
@@ -46,7 +46,7 @@ function countInList(list: readonly { role: SpecComponentRole; children?: readon
 <template>
   <div class="flex min-h-0 flex-1 flex-col overflow-auto">
     <!-- Pages / Components (PRD §11 结构化 Spec) -->
-    <div class="shrink-0 border-b border-border">
+    <div class="shrink-0 border-b border-border/30">
       <div class="flex items-center gap-1 px-3 py-2">
         <span class="text-[12px] font-semibold text-surface">Pages</span>
         <span class="text-[10px] text-muted">({{ pages.length }} pages · {{ countComponents() }} components)</span>
@@ -65,7 +65,7 @@ function countInList(list: readonly { role: SpecComponentRole; children?: readon
       </div>
 
       <div v-else class="max-h-64 overflow-auto px-2 pb-2 space-y-1">
-        <div v-for="page in pages" :key="page.id" class="rounded-lg border border-border/60">
+        <div v-for="page in pages" :key="page.id" class="rounded-lg border border-border/30">
           <button
             class="flex w-full items-center gap-1.5 px-2 py-1.5 text-left"
             @click="togglePage(page.id)"

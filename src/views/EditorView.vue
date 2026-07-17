@@ -29,7 +29,7 @@ const firstTab = createTab()
 const store = useEditorStore()
 useKeyboard()
 useMenu()
-const { currentPhase } = usePipeline()
+const { currentPhase, skipToDesign } = usePipeline()
 // Idea/Spec 阶段 AI 没有 canvas 工具权限（见 phase-tools.ts filterToolsByPhase），
 // 画布上的工具箱/图层面板此时点了也没用——收起来，把注意力留在对话上。
 const showCanvasChrome = computed(() => currentPhase.value === 'design' || currentPhase.value === 'dev')
@@ -114,6 +114,10 @@ function onWelcomeAction(type: string) {
       }
     }
     input.click()
+    return
+  }
+  if (type === 'blank-canvas') {
+    skipToDesign()
   }
 }
 
@@ -198,7 +202,7 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
 
     <!-- Minimal UI when showUI is false -->
     <div v-if="showChrome && !store.state.showUI" class="absolute top-7 left-7 z-10 flex items-center gap-2 rounded-lg border border-border bg-panel px-2 py-1 shadow-sm">
-      <img src="/lutris-mascot.png" class="h-4 w-auto object-contain" alt="Lutris.ai" />
+      <img src="/lutris-otter.png" class="h-4 w-auto object-contain" alt="Lutris.ai" />
       <span data-test-id="editor-document-name" class="text-xs text-surface">{{ store.state.documentName }}</span>
       <button data-test-id="editor-show-ui" class="ml-1 flex size-6 cursor-pointer items-center justify-center rounded text-muted transition-colors hover:bg-hover hover:text-surface" title="Show UI" @click="store.state.showUI = true">
         <icon-lucide-sidebar class="size-3.5" />

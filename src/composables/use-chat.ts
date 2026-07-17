@@ -92,7 +92,7 @@ const pendingMessage = ref<string | null>(null)
 const pendingSystemPrefix = ref<string | null>(null)
 const draftMessage = ref<string>('')
 const focusRequested = ref(0)
-const inlinePanel = ref<'spec' | 'export' | null>(null)
+const inlinePanel = ref<'spec' | 'export' | 'code' | null>(null)
 // Bumped when chat instance is re-created (e.g. after IDB restore) so ChatPanel can react
 const chatInstanceVersion = ref(0)
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 
 import { useEditorStore } from '@/stores/editor'
 import { useAIChat } from '@/composables/use-chat'
@@ -12,7 +13,21 @@ const { focusRequested } = useAIChat()
 const { addCurrentSelection } = useAISelect()
 
 const hasSelection = computed(() => (store.state.selectedIds?.size ?? 0) > 0)
-const layersCollapsed = ref(false)
+
+// Left rail: collapsed to a 48px icon rail by default (persisted); clicking an
+// icon expands the full 280px sidebar with that section active, clicking the
+// active icon (or the chevron) collapses back.
+const railCollapsed = useLocalStorage('lutris:left-rail-collapsed', true)
+const activeSection = ref<'layers' | 'design'>('layers')
+
+function toggleSection(section: 'layers' | 'design') {
+  if (!railCollapsed.value && activeSection.value === section) {
+    railCollapsed.value = true
+    return
+  }
+  activeSection.value = section
+  railCollapsed.value = false
+}
 
 function editWithAI() {
   addCurrentSelection()
@@ -21,50 +36,90 @@ function editWithAI() {
 </script>
 
 <template>
-  <aside class="flex h-full w-[280px] shrink-0 flex-col overflow-hidden border-r border-border/10 bg-panel">
-    <!-- Layers header -->
+  <!-- Collapsed: 48px icon rail -->
+  <aside
+    v-if="railCollapsed"
+    data-test-id="left-rail"
+    class="flex h-full w-12 shrink-0 flex-col items-center gap-1 bg-panel pt-3"
+  >
     <button
-      class="flex shrink-0 items-center gap-1.5 px-2 py-1.5 text-left hover:bg-hover"
-      @click="layersCollapsed = !layersCollapsed"
+      data-test-id="left-rail-layers"
+      class="flex size-8 items-center justify-center rounded-lg text-muted transition hover:bg-hover hover:text-surface"
+      title="Layers"
+      @click="toggleSection('layers')"
     >
-      <icon-lucide-chevron-right
-        class="size-3 text-muted transition-transform"
-        :class="!layersCollapsed && 'rotate-90'"
-      />
-      <span class="text-[11px] font-medium text-surface">Layers</span>
+      <icon-lucide-layers class="size-4" />
     </button>
-
-    <!-- Layers content -->
-    <div
-      v-if="!layersCollapsed"
-      class="flex min-h-[120px] flex-1 flex-col overflow-hidden border-b border-border/10"
+    <button
+      data-test-id="left-rail-design"
+      class="flex size-8 items-center justify-center rounded-lg text-muted transition hover:bg-hover hover:text-surface"
+      title="Design"
+      @click="toggleSection('design')"
     >
-      <LayersPanel @collapse="layersCollapsed = true" />
-    </div>
-    <div v-else class="border-b border-border/10" />
+      <icon-lucide-sliders-horizontal class="size-4" />
+    </button>
+  </aside>
 
-    <!-- Design properties (when selection exists) -->
-    <div v-if="hasSelection" class="flex max-h-[50%] shrink-0 flex-col overflow-y-auto">
+  <!-- Expanded: 280px sidebar -->
+  <aside
+    v-else
+    data-test-id="left-sidebar"
+    class="flex h-full w-[280px] shrink-0 flex-col overflow-hidden bg-panel"
+  >
+    <!-- Sidebar header: section switch + collapse -->
+    <div class="flex shrink-0 items-center gap-0.5 px-2 py-1.5">
       <button
-        class="flex shrink-0 items-center gap-1.5 px-2 py-1.5 text-left hover:bg-hover"
-        @click="store.clearSelection()"
+        data-test-id="left-sidebar-layers-tab"
+        class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition"
+        :class="activeSection === 'layers' ? 'bg-accent/15 text-accent' : 'text-muted hover:bg-hover hover:text-surface'"
+        @click="toggleSection('layers')"
       >
-        <icon-lucide-chevron-right class="size-3 rotate-90 text-muted" />
-        <span class="text-[11px] font-medium text-surface">Design</span>
-        <span class="ml-auto text-[10px] text-muted">✕</span>
+        <icon-lucide-layers class="size-3.5" />
+        Layers
       </button>
-      <DesignPanel />
+      <button
+        data-test-id="left-sidebar-design-tab"
+        class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition"
+        :class="activeSection === 'design' ? 'bg-accent/15 text-accent' : 'text-muted hover:bg-hover hover:text-surface'"
+        @click="toggleSection('design')"
+      >
+        <icon-lucide-sliders-horizontal class="size-3.5" />
+        Design
+      </button>
+      <div class="flex-1" />
+      <button
+        data-test-id="left-sidebar-collapse"
+        class="flex size-6 items-center justify-center rounded-md text-muted transition hover:bg-hover hover:text-surface"
+        title="Collapse sidebar"
+        @click="railCollapsed = true"
+      >
+        <icon-lucide-chevrons-left class="size-3.5" />
+      </button>
     </div>
 
-    <!-- Edit with AI button -->
-    <div v-if="hasSelection" class="shrink-0 border-t border-border/10 p-3">
-      <button
-        class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2.5 text-[12px] font-medium text-white shadow-sm shadow-accent/20 transition hover:bg-accent/80"
-        @click="editWithAI"
-      >
-        <icon-lucide-sparkles class="size-3.5" />
-        Edit with AI
-      </button>
+    <!-- Layers section -->
+    <div v-show="activeSection === 'layers'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <LayersPanel @collapse="railCollapsed = true" />
+    </div>
+
+    <!-- Design section -->
+    <div v-show="activeSection === 'design'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <template v-if="hasSelection">
+        <DesignPanel class="flex-1" />
+        <div class="shrink-0 p-3">
+          <button
+            class="flex w-full items-center justify-center gap-2 rounded-full bg-accent px-3 py-2.5 text-[12px] font-medium text-white shadow-sm shadow-accent/20 transition hover:bg-accent/80"
+            @click="editWithAI"
+          >
+            <icon-lucide-sparkles class="size-3.5" />
+            Edit with AI
+          </button>
+        </div>
+      </template>
+      <div v-else class="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+        <img src="/lutris-otter.png" class="h-16 w-auto object-contain opacity-70" alt="" />
+        <p class="text-[11px] text-muted">Select a layer to edit its design.</p>
+      </div>
     </div>
   </aside>
 </template>

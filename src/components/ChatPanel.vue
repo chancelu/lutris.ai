@@ -7,6 +7,7 @@ import ChatInput from '@/components/chat/ChatInput.vue'
 import ChatMessage from '@/components/chat/ChatMessage.vue'
 import ProviderSetup from '@/components/chat/ProviderSetup.vue'
 import AIContextCards from '@/components/AIContextCards.vue'
+import NextStepCard from '@/components/NextStepCard.vue'
 import { useAIChat } from '@/composables/use-chat'
 import { useAISelect } from '@/composables/use-ai-select'
 import { usePipeline } from '@/composables/use-pipeline'
@@ -141,7 +142,7 @@ function handleClearChat() {
             data-test-id="chat-empty-state"
             class="flex h-full flex-col items-center justify-center px-6 py-8"
           >
-            <icon-lucide-sparkles class="size-6 text-accent/60" />
+            <img src="/lutris-otter.png" class="h-16 w-auto object-contain opacity-80" alt="" />
             <p class="mt-4 text-[14px] font-medium text-surface/80">What would you like to create?</p>
             <p class="mt-1 text-[11px] text-muted/60">Describe a screen, component, or layout</p>
             <button
@@ -160,6 +161,9 @@ function handleClearChat() {
               :key="msg.id"
               :message="msg"
             />
+
+            <!-- Guided-loop: phase-complete card with the single next action -->
+            <NextStepCard />
 
             <div
               v-if="progressLabel && (status === 'submitted' || status === 'streaming')"
@@ -193,7 +197,7 @@ function handleClearChat() {
         </ScrollAreaScrollbar>
       </ScrollAreaRoot>
 
-      <div v-if="messages.length > 0" class="flex shrink-0 items-center gap-1 border-t border-border px-3 py-1">
+      <div v-if="messages.length > 0" class="flex shrink-0 items-center gap-1 border-t border-border/30 px-3 py-1">
         <button
           v-if="IS_DEV"
           class="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted hover:bg-hover hover:text-surface"

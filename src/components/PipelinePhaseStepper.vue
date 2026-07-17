@@ -22,13 +22,15 @@ function onPhaseClick(phase: PipelinePhase) {
     <template v-for="(phase, i) in PIPELINE_PHASES" :key="phase">
       <button
         type="button"
-        class="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium transition"
+        class="flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-medium transition"
         :class="[
           phase === currentPhase
             ? 'bg-accent/15 text-accent'
             : phases[phase].status === 'completed'
               ? 'text-surface hover:bg-hover'
-              : 'text-muted/40',
+              : canJumpTo(phase)
+                ? 'text-muted hover:bg-hover hover:text-surface'
+                : 'text-muted opacity-40',
           canJumpTo(phase) ? 'cursor-pointer' : 'cursor-not-allowed',
         ]"
         :disabled="!canJumpTo(phase)"

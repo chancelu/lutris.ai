@@ -2,16 +2,16 @@
 import { computed, ref } from 'vue'
 
 import { useEditorStore } from '@/stores/editor'
-import { useAIChat } from '@/composables/use-chat'
+import { usePipeline } from '@/composables/use-pipeline'
 
 const store = useEditorStore()
-const { draftMessage } = useAIChat()
+const { currentPhase } = usePipeline()
 
-// 对话驱动优先（PRD Idea→Spec→Design 一条龙）：入口只保留 AI 对话 + 导入 PRD 文本两条路径，
-// 去掉"画布直入"（Start from template）和 Figma 导入选项 —— 这些绕开了 Idea 对话阶段，
-// 产出的是没有经过 Spec 结构化的设计稿，方向反了。
+// Idea-phase entry: describe the idea in chat, import an existing PRD, or
+// skip straight to a blank canvas (skipToDesign). The overlay is the guide —
+// no card chrome, content floats on the dimmed canvas.
 const emit = defineEmits<{
-  action: [type: 'ai' | 'import-prd']
+  action: [type: 'ai' | 'import-prd' | 'blank-canvas']
 }>()
 
 const dismissed = ref(false)
@@ -29,7 +29,9 @@ const hasContent = computed(() => {
   }
 })
 
-const showOverlay = computed(() => !dismissed.value && !hasContent.value)
+const showOverlay = computed(
+  () => !dismissed.value && !hasContent.value && currentPhase.value === 'idea'
+)
 
 function handleAction(type: Parameters<typeof emit>[1]) {
   dismissed.value = true
@@ -46,25 +48,35 @@ function handleAction(type: Parameters<typeof emit>[1]) {
   >
     <div
       v-if="showOverlay"
-      class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+      data-test-id="welcome-overlay"
+      class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-canvas/60"
     >
-      <div class="pointer-events-auto w-full max-w-lg rounded-2xl bg-canvas/80 px-6 py-8 text-center backdrop-blur-sm">
-        <icon-lucide-sparkles class="mx-auto size-8 text-accent/50" />
-        <h2 class="mt-4 text-[24px] font-semibold tracking-tight text-surface sm:text-[28px]">What do you want to create?</h2>
-        <p class="mt-2 text-[13px] text-muted/60">Describe any interface and watch it come to life</p>
+      <div class="pointer-events-auto flex w-full max-w-md flex-col items-center px-6 text-center">
+        <img src="/lutris-otter.png" class="h-28 w-auto object-contain" alt="" />
+        <h2 class="mt-5 text-[24px] font-semibold tracking-tight text-surface sm:text-[28px]">What do you want to build?</h2>
+        <p class="mt-2 text-[13px] text-muted">Describe it — the otter drafts the spec, design, and code.</p>
 
         <button
-          class="group mt-6 w-full rounded-2xl border border-accent/15 bg-panel/80 px-6 py-4 text-left text-[15px] text-muted/60 shadow-sm backdrop-blur-sm transition-all hover:border-accent/30 hover:shadow-md hover:shadow-accent/5"
+          data-test-id="welcome-describe-idea"
+          class="mt-7 flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-[14px] font-medium text-white shadow-sm transition hover:bg-accent/90"
           @click="handleAction('ai')"
         >
-          <span class="flex items-center gap-3">
-            <icon-lucide-message-square class="size-4 text-accent/40 transition group-hover:text-accent/70" />
-            Describe the interface you want...
-          </span>
+          <icon-lucide-message-square class="size-4" />
+          Describe your idea
         </button>
 
-        <div class="mt-5 flex items-center justify-center gap-2 text-[12px]">
-          <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('import-prd')">Import PRD</button>
+        <div class="mt-5 flex items-center gap-2 text-[12px] text-muted/70">
+          <button
+            data-test-id="welcome-import-prd"
+            class="transition hover:text-surface"
+            @click="handleAction('import-prd')"
+          >Import PRD</button>
+          <span class="text-muted/40">·</span>
+          <button
+            data-test-id="welcome-blank-canvas"
+            class="transition hover:text-surface"
+            @click="handleAction('blank-canvas')"
+          >Start from a blank canvas</button>
         </div>
       </div>
     </div>

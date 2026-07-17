@@ -33,15 +33,6 @@ const SCALES = [
 
 const hasSelection = computed(() => store.state.selectedIds.size > 0)
 // Dead measurementMode toggles removed (Slice B) — phase CTAs belong to NextStepCard.
-const nextStepActions = [
-  { label: 'Export another format', value: 'again' },
-]
-
-function handleNextStep(value: string) {
-  if (value === 'again') {
-    exportSuccess.value = null
-  }
-}
 
 async function handleExport() {
   isExporting.value = true
@@ -105,17 +96,17 @@ async function exportAsPDF() {
       <div class="mt-1 text-[11px] leading-5 text-muted">Start with the deliverable. Code and handoff stay available, but secondary.</div>
     </div>
 
-    <div class="mb-3 rounded-2xl border border-border bg-inset/50 p-3">
+    <div class="mb-3 rounded-xl border border-border/30 bg-canvas/40 p-3">
       <div class="mb-1 text-[12px] text-muted">Filename</div>
       <input
         v-model="filename"
         type="text"
         placeholder="Export"
-        class="w-full rounded-xl border border-border bg-transparent px-3 py-2 text-[13px] text-surface placeholder:text-muted/50 focus:border-blue-500 focus:outline-none"
+        class="w-full rounded-lg border border-border/30 bg-transparent px-3 py-2 text-[13px] text-surface placeholder:text-muted/50 focus:border-blue-500 focus:outline-none"
       />
     </div>
 
-    <div class="mb-3 rounded-2xl border border-border bg-inset/50 p-3">
+    <div class="mb-3 rounded-xl border border-border/30 bg-canvas/40 p-3">
       <div class="mb-1 text-[12px] text-muted">Format</div>
       <div class="grid grid-cols-5 gap-1">
         <button
@@ -124,7 +115,7 @@ async function exportAsPDF() {
           class="rounded-xl border py-2 text-center text-[12px] transition-colors"
           :class="format === f.value
             ? 'border-blue-500 bg-blue-500/10 text-surface font-semibold'
-            : 'border-border text-muted hover:border-border hover:text-surface'"
+            : 'border-border/30 text-muted hover:text-surface'"
           @click="format = f.value"
         >
           {{ f.label }}
@@ -135,7 +126,7 @@ async function exportAsPDF() {
       </div>
     </div>
 
-    <div v-if="format !== 'SVG'" class="mb-3 rounded-2xl border border-border bg-inset/50 p-3">
+    <div v-if="format !== 'SVG'" class="mb-3 rounded-xl border border-border/30 bg-canvas/40 p-3">
       <div class="mb-1 text-[12px] text-muted">Scale</div>
       <div class="flex gap-1">
         <button
@@ -144,7 +135,7 @@ async function exportAsPDF() {
           class="rounded-full border px-2.5 py-1 text-[12px] transition-colors"
           :class="scale === s.value
             ? 'border-blue-500 bg-blue-500/10 text-surface font-semibold'
-            : 'border-border text-muted hover:text-surface'"
+            : 'border-border/30 text-muted hover:text-surface'"
           @click="scale = s.value"
         >
           {{ s.label }}
@@ -152,9 +143,9 @@ async function exportAsPDF() {
       </div>
     </div>
 
-    <div class="mb-3 flex items-center justify-center rounded-2xl border border-border bg-inset/40 p-4">
+    <div class="mb-3 flex items-center justify-center rounded-xl border border-border/30 bg-canvas/40 p-4">
       <div class="flex flex-col items-center gap-2">
-        <div class="flex size-16 items-center justify-center rounded-2xl bg-panel text-muted">
+        <div class="flex size-16 items-center justify-center rounded-xl bg-panel text-muted">
           <icon-lucide-image v-if="format === 'PNG' || format === 'JPG' || format === 'WEBP'" class="size-8 opacity-40" />
           <icon-lucide-file-code v-else-if="format === 'SVG'" class="size-8 opacity-40" />
           <icon-lucide-file-text v-else class="size-8 opacity-40" />
@@ -171,7 +162,7 @@ async function exportAsPDF() {
 
     <button
       :disabled="isExporting"
-      class="w-full rounded-2xl bg-blue-600 py-2 text-xs text-white hover:bg-blue-500 disabled:opacity-40"
+      class="w-full rounded-xl bg-blue-600 py-2 text-xs text-white hover:bg-blue-500 disabled:opacity-40"
       @click="handleExport"
     >
       {{ isExporting ? 'Exporting...' : `Export as ${format}` }}
@@ -182,12 +173,7 @@ async function exportAsPDF() {
     </div>
 
     <div v-if="exportSuccess" class="mt-2">
-      <NextStepCard
-        title="Export complete"
-        body="Pick the next delivery step."
-        :actions="nextStepActions"
-        @action="handleNextStep"
-      />
+      <NextStepCard />
     </div>
   </div>
 </template>
