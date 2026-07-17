@@ -34,9 +34,10 @@ test('top bar is visible with logo', async () => {
 
 test('document name is visible in top bar', async () => {
   const header = page.locator('header').first()
-  // Document name is a clickable span in the header
-  const nameSpan = header.locator('span.text-muted, span.text-surface').filter({ hasText: /\w+/ }).first()
+  // Single editable project name in the header (R10 dedup: switcher is icon-only)
+  const nameSpan = header.locator('span[title="Click to rename"]')
   await expect(nameSpan).toBeVisible()
+  await expect(nameSpan).toContainText(/\w+/)
   canvas.assertNoErrors()
 })
 

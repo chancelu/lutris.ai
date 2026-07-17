@@ -147,7 +147,8 @@ test('chat empty state shows the otter and a friendly prompt', async () => {
   const empty = page.locator('[data-test-id="chat-empty-state"]')
   await expect(empty).toBeVisible()
   await expect(empty.locator('img[src="/lutris-otter.png"]')).toBeVisible()
-  await expect(empty).toContainText('What would you like to create?')
+  // Phase-aware copy (R10): idea phase invites the brief
+  await expect(empty).toContainText('Tell me about your idea')
 })
 
 test('empty input has disabled send button', async () => {
