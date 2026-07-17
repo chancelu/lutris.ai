@@ -5,10 +5,44 @@
 
 import dedent from 'dedent'
 
+import type { IdeaBrief } from '@/types/pipeline'
+
 const COMMON_PREFIX = dedent`
   You are a design assistant inside Lutris.ai, a Figma-like design editor.
   Be concise and direct. Use specific design terminology.
 `
+
+// ── Dynamic context sections（§4 data-flow fixes）──
+// buildDynamicPrompt() 在 spec/design 阶段把这些段落拼到 phase prompt 后面。
+
+/** §4.1: Idea → Spec。把已确认的 IdeaBrief 注入后续阶段的 system prompt。 */
+export function buildIdeaBriefSection(idea: IdeaBrief): string {
+  const decisions = idea.keyDecisions.length > 0
+    ? `\n- Open decisions: ${idea.keyDecisions.join('; ')}`
+    : ''
+  return `\n\n## Idea Brief (confirmed by the user — treat as the source of truth)\n- Positioning: ${idea.summary}\n- Target users: ${idea.targetUsers}\n- Problem: ${idea.problem}${decisions}`
+}
+
+/**
+ * §4.2: Spec → Design。紧凑的 SpecPage 列表（含真实 page id，供
+ * submit_design_output.pageNodeMap 当 key 用）；完整细节走 get_spec_pages 工具。
+ * 参数是结构类型而不是 SpecPage —— useSpec() 暴露的是 DeepReadonly 数组。
+ */
+export function buildSpecPagesSection(
+  pages: ReadonlyArray<{
+    id: string
+    name: string
+    route: string
+    purpose: string
+    components: ReadonlyArray<{ name: string }>
+  }>
+): string {
+  const lines = pages.map((p) => {
+    const components = p.components.map((c) => c.name).join(', ')
+    return `- [${p.id}] ${p.name} (${p.route}) — ${p.purpose}${components ? `. Components: ${components}` : ''}`
+  })
+  return `\n\n## Approved Spec Pages\nRender each of these pages onto the canvas. The bracketed id is the SpecPage.id — use it as the key in submit_design_output.pageNodeMap. Call \`get_spec_pages\` for full details (user stories, component roles, interaction rules).\n${lines.join('\n')}`
+}
 
 export const IDEA_PROMPT = dedent`
   ${COMMON_PREFIX}
@@ -41,6 +75,9 @@ export const SPEC_PROMPT = dedent`
   structured spec: pages, components, and interaction rules. Do NOT render anything to the
   canvas yet — there are no design tools available to you in this phase.
 
+  The confirmed idea brief is appended below under "## Idea Brief" — treat it as the
+  source of truth for what the product is and who it serves.
+
   For each screen the product needs, define:
   - **name** and **route** (e.g. "商品列表页" / "/products")
   - **purpose** — one sentence on what problem this page solves
@@ -64,6 +101,10 @@ export const DESIGN_PROMPT = dedent`
   The spec is approved. Your job now is to render the approved pages onto the canvas using
   the design tools available to you. Always use tools to make changes. Briefly describe what
   you did after.
+
+  The approved spec pages (with their SpecPage.id values) are appended below under
+  "## Approved Spec Pages" when available. Call \`get_spec_pages\` at any time to re-query
+  full spec details (user stories, component roles, interaction rules).
 
   # Creating designs
 

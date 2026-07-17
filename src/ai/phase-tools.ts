@@ -53,6 +53,42 @@ export function filterToolsByPhase(allTools: AITools['tools'], phase: PipelinePh
 }
 
 /**
+ * §4.4: 只读上下文工具。Design 阶段挂 get_spec_pages，让 agent 随时重新查询
+ * 完整 spec 细节（user story、component role、交互规则），system prompt 里只注入
+ * 紧凑摘要（id/name/route/purpose/组件名），不把整个 spec 塞进上下文。
+ */
+export function createPhaseReadTools(phase: PipelinePhase): ToolSet {
+  if (phase !== 'design') return {}
+  return {
+    get_spec_pages: tool({
+      description: 'Get the full approved spec pages (id, name, route, purpose, user story, components with roles, interaction rules). Read-only. Use each page id as a key in submit_design_output.pageNodeMap.',
+      parameters: valibotSchema(v.object({})),
+      // @ts-expect-error -- valibotSchema doesn't properly infer execute param types for tool()
+      execute: async () => {
+        const { pages } = useSpec()
+        return JSON.stringify({
+          pages: pages.value.map((p) => ({
+            id: p.id,
+            name: p.name,
+            route: p.route,
+            purpose: p.purpose,
+            userStory: p.userStory,
+            components: p.components.map((c) => ({
+              id: c.id,
+              name: c.name,
+              role: c.role,
+              repeatable: c.repeatable,
+              dataBinding: c.dataBinding,
+            })),
+            interactionRules: p.interactionRules,
+          })),
+        })
+      },
+    }),
+  }
+}
+
+/**
  * 构造当前 phase 的 submit_xxx 桥接工具。调用即触发 usePipeline().advancePhase()。
  * 校验失败时把 reason 原样返回给 AI，让它知道该阶段产出还缺什么、继续对话补全。
  */
@@ -144,8 +180,14 @@ export function createSubmitTools(phase: PipelinePhase): ToolSet {
           })
 
           const result = advancePhase('spec', { specDocumentId: specPages.map((p: { id: string }) => p.id).join(',') })
-          if (!result.valid) return { success: false, error: result.reason }
-          return { success: true, message: `Spec submitted with ${specPages.length} page(s). Advancing to Design phase.` }
+          if (!result.valid) return JSON.stringify({ success: false, error: result.reason })
+          // §4.3: 返回真实 page id 列表，Design 阶段 agent 靠这些 id 构造
+          // submit_design_output.pageNodeMap 的 key，而不是自己瞎编。
+          return JSON.stringify({
+            success: true,
+            message: `Spec submitted with ${specPages.length} page(s). Advancing to Design phase.`,
+            pages: specPages.map((p: { id: string; name: string; route: string }) => ({ id: p.id, name: p.name, route: p.route })),
+          })
         },
       }),
     }

@@ -189,6 +189,41 @@ export function usePipeline() {
     return phaseIndex(phase) <= furthestPhaseIndex.value
   }
 
+  /**
+   * No-API-key escape hatch（"Start from a blank canvas"）：
+   * 把 idea + spec 标记为 skipped，直接落进 design 阶段，画布 chrome 随之解锁。
+   * 已 completed 的阶段保持 completed（不重写真实历史），dev 阶段调用为 no-op。
+   * 跳转记录为 user-override，与 jumpToPhase 一致。
+   */
+  function skipToDesign(note?: string): boolean {
+    const pipeline = activePipeline.value
+    const from = pipeline.currentPhase
+    if (from === 'dev') return false // 已经走过 design，跳回去没有意义
+
+    const now = Date.now()
+    for (const phase of ['idea', 'spec'] as const) {
+      if (pipeline.phases[phase].status !== 'completed') {
+        pipeline.phases[phase].status = 'skipped'
+      }
+    }
+
+    if (from !== 'design') {
+      pipeline.currentPhase = 'design'
+      if (pipeline.phases.design.status === 'pending') {
+        pipeline.phases.design.status = 'in-progress'
+        pipeline.phases.design.enteredAt = now
+      }
+      pipeline.history.push({
+        from,
+        to: 'design',
+        timestamp: now,
+        reason: 'user-override',
+        note: note ?? 'Skipped idea/spec — starting from a blank canvas',
+      })
+    }
+    return true
+  }
+
   return {
     currentPhase,
     phases,
@@ -199,5 +234,6 @@ export function usePipeline() {
     revertPhase,
     jumpToPhase,
     canJumpTo,
+    skipToDesign,
   }
 }

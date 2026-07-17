@@ -9,6 +9,7 @@ import ProviderSetup from '@/components/chat/ProviderSetup.vue'
 import AIContextCards from '@/components/AIContextCards.vue'
 import { useAIChat } from '@/composables/use-chat'
 import { useAISelect } from '@/composables/use-ai-select'
+import { usePipeline } from '@/composables/use-pipeline'
 import { useEditorStore } from '@/stores/editor'
 import { AI_PROVIDERS } from '@llc3233149/core'
 
@@ -22,6 +23,10 @@ const hasCanvasContent = computed(() => {
   const page = editorStore.graph.nodes.get(editorStore.state.currentPageId)
   return (page?.childIds?.length ?? 0) > 0
 })
+// Idea/Spec phase agents have no canvas tools — offering "analyze imported design"
+// there dead-ends. Only show it once the agent can actually inspect the canvas.
+const { currentPhase } = usePipeline()
+const canAnalyzeCanvas = computed(() => currentPhase.value === 'design' || currentPhase.value === 'dev')
 
 const { isConfigured, ensureChat, resetChat, pendingMessage, pendingSystemPrefix, aiProgress, providerID, isServerConfigured, saveChatToProject, chatInstanceVersion } = useAIChat()
 const { hasContext, buildContextPrompt, clearAIContext } = useAISelect()
@@ -140,7 +145,7 @@ function handleClearChat() {
             <p class="mt-4 text-[14px] font-medium text-surface/80">What would you like to create?</p>
             <p class="mt-1 text-[11px] text-muted/60">Describe a screen, component, or layout</p>
             <button
-              v-if="hasCanvasContent"
+              v-if="hasCanvasContent && canAnalyzeCanvas"
               class="mt-4 flex items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/5 px-3 py-1.5 text-[12px] text-accent transition hover:bg-accent/10"
               @click="handleSubmit('Analyze the imported design and create a product spec')"
             >

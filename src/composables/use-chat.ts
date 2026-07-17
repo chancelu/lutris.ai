@@ -7,8 +7,8 @@ import { useLocalStorage } from '@vueuse/core'
 import { DirectChatTransport, ToolLoopAgent } from 'ai'
 import { computed, ref, shallowRef, watch } from 'vue'
 
-import { createSubmitTools, filterToolsByPhase } from '@/ai/phase-tools'
-import { DESIGN_PROMPT, DEV_PROMPT, IDEA_PROMPT, SPEC_PROMPT } from '@/ai/prompts'
+import { createPhaseReadTools, createSubmitTools, filterToolsByPhase } from '@/ai/phase-tools'
+import { DESIGN_PROMPT, DEV_PROMPT, IDEA_PROMPT, SPEC_PROMPT, buildIdeaBriefSection, buildSpecPagesSection } from '@/ai/prompts'
 import { createAITools } from '@/ai/tools'
 import { useEditorStore } from '@/stores/editor'
 import { AI_PROVIDERS, DEFAULT_AI_MODEL, DEFAULT_AI_PROVIDER } from '@llc3233149/core'
@@ -17,6 +17,7 @@ import { useFocusRegion } from './use-focus-region'
 import { usePipeline } from './use-pipeline'
 import { useProductDoc } from './use-product-doc'
 import { useProjects } from './use-projects'
+import { useSpec } from './use-spec'
 
 import type { PipelinePhase } from '@/types/pipeline'
 import type { AIProviderID } from '@llc3233149/core'
@@ -249,8 +250,8 @@ let overrideTransport: (() => any) | null = null
 
 let chat: Chat<UIMessage> | null = null
 
-function buildDynamicPrompt(): string {
-  const { currentPhase } = usePipeline()
+export function buildDynamicPrompt(): string {
+  const { currentPhase, outputs } = usePipeline()
   let fullPrompt = pickPhasePrompt(currentPhase.value)
   try {
     const { getBrandSystemPrompt, hasBrand } = useBrand()
@@ -266,6 +267,24 @@ function buildDynamicPrompt(): string {
       fullPrompt += `\n\n## Product Requirements Context\nThe current PRD summary:\n${summary}`
     }
   } catch { /* product doc composable not available */ }
+
+  // §4.1/§4.5: pipeline outputs live in IDB per project and survive chat resets —
+  // later-phase agents always see the confirmed upstream artifacts.
+  if (currentPhase.value === 'spec' || currentPhase.value === 'design') {
+    try {
+      const idea = outputs.value.idea
+      if (idea) fullPrompt += buildIdeaBriefSection(idea)
+    } catch { /* pipeline outputs not available */ }
+  }
+
+  // §4.2: Spec → Design。注入紧凑的 SpecPage 列表（含真实 page id），
+  // 完整细节由 get_spec_pages 只读工具按需查询。
+  if (currentPhase.value === 'design') {
+    try {
+      const { pages } = useSpec()
+      if (pages.value.length > 0) fullPrompt += buildSpecPagesSection(pages.value)
+    } catch { /* spec composable not available */ }
+  }
 
   // Which region the user was last interacting with (left layers/properties,
   // center canvas, or this chat panel) — helps the model disambiguate
@@ -315,6 +334,7 @@ function createTransport() {
   function currentPhaseTools() {
     return {
       ...filterToolsByPhase(allTools, currentPhase.value),
+      ...createPhaseReadTools(currentPhase.value),
       ...createSubmitTools(currentPhase.value),
     }
   }

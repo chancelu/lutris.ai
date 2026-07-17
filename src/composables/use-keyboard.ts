@@ -4,7 +4,6 @@ import { computed, ref } from 'vue'
 import { extractImageFilesFromClipboard } from '@/composables/use-canvas-drop'
 import { useAIChat } from '@/composables/use-chat'
 import { TOOL_SHORTCUTS, useEditorStore } from '@/stores/editor'
-import { closeTab, createTab, activeTab as activeTabRef } from '@/stores/tabs'
 
 import type { ComputedRef } from 'vue'
 
@@ -21,9 +20,6 @@ const PREVENT_MOD_SHIFT = new Set(['KeyK', 'KeyH', 'KeyL', 'KeyE', 'KeyS', 'KeyG
 const PREVENT_MOD_ONLY = new Set([
   'Backslash',
   'KeyJ',
-  'KeyW',
-  'KeyN',
-  'KeyT',
   'KeyZ',
   'KeyY',
   'Digit0',
@@ -162,11 +158,6 @@ export function useKeyboard() {
   whenever(mod('keyj'), () => {
     inlinePanel.value = inlinePanel.value === 'export' ? null : 'export'
   })
-  whenever(mod('keyw'), () => {
-    if (activeTabRef.value) closeTab(activeTabRef.value.id)
-  })
-  whenever(mod('keyn'), () => createTab())
-  whenever(mod('keyt'), () => createTab())
   whenever(mod('keyz'), () => store.undoAction())
   whenever(mod('keyy'), () => store.redoAction())
   whenever(mod('digit0'), () => store.zoomTo100())

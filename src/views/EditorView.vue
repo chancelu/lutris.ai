@@ -140,6 +140,7 @@ if (import.meta.env.DEV) {
     jumpToPhase: pipeline.jumpToPhase,
     canJumpTo: pipeline.canJumpTo,
     revertPhase: pipeline.revertPhase,
+    skipToDesign: pipeline.skipToDesign,
     get currentPhase() { return pipeline.currentPhase.value },
     get phases() { return pipeline.phases.value },
   }
@@ -180,14 +181,6 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
         <div v-if="showChrome && store.state.showUI && showCanvasChrome" class="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center">
           <div class="pointer-events-auto">
             <Toolbar />
-          </div>
-        </div>
-        <div
-          v-if="showChrome && store.state.showUI && !showCanvasChrome"
-          class="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center"
-        >
-          <div class="pointer-events-auto rounded-full border border-border/10 bg-panel/90 px-3 py-1.5 text-[11px] text-muted shadow-lg shadow-black/15 backdrop-blur-md">
-            画布工具会在 Design 阶段解锁 — 先在右侧和 AI 聊清楚需求
           </div>
         </div>
       </div>

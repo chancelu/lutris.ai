@@ -32,19 +32,12 @@ const SCALES = [
 ]
 
 const hasSelection = computed(() => store.state.selectedIds.size > 0)
+// Dead measurementMode toggles removed (Slice B) — phase CTAs belong to NextStepCard.
 const nextStepActions = [
   { label: 'Export another format', value: 'again' },
-  { label: 'Create handoff notes', value: 'handoff' },
-  { label: 'Review code output', value: 'code' },
 ]
 
 function handleNextStep(value: string) {
-  if (value === 'handoff') {
-    store.state.measurementMode = true
-  }
-  if (value === 'code') {
-    store.state.measurementMode = false
-  }
   if (value === 'again') {
     exportSuccess.value = null
   }
