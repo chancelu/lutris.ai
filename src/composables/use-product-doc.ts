@@ -135,16 +135,6 @@ export function useProductDoc() {
     return currentContent.value || undefined
   }
 
-  function acceptDesignVersion() {
-    if (!pendingConflict.value) return
-    updateSummary(pendingConflict.value.designContent, 'design', 'Accepted design version')
-    pendingConflict.value = null
-  }
-
-  function keepDocVersion() {
-    pendingConflict.value = null
-  }
-
   function acceptPendingSync() {
     if (!pendingSyncConfirm.value) return
     const { content, source } = pendingSyncConfirm.value
@@ -164,14 +154,6 @@ export function useProductDoc() {
     return PM_STRUCTURED_PARSE_PROMPT
   }
 
-  function getDesignSyncPrompt(): string {
-    return PM_DESIGN_SYNC_PROMPT
-  }
-
-  function getDocToDesignPrompt(): string {
-    return PM_DOC_TO_DESIGN_PROMPT
-  }
-
   return {
     currentContent,
     versions: readonly(computed(() => versions.value.map((version) => ({
@@ -185,7 +167,6 @@ export function useProductDoc() {
     showMarkdown,
     isImporting: readonly(isImporting),
     isParsing: readonly(isParsing),
-    pendingConflict: readonly(pendingConflict),
     pendingSyncConfirm: readonly(pendingSyncConfirm),
     hasContent,
     versionCount,
@@ -196,14 +177,10 @@ export function useProductDoc() {
     restoreVersion,
     updateFromDesign,
     requestDesignSync,
-    acceptDesignVersion,
-    keepDocVersion,
     acceptPendingSync,
     rejectPendingSync,
     saveToStorage: () => undefined,
     getParsePrompt,
     getStructuredParsePrompt,
-    getDesignSyncPrompt,
-    getDocToDesignPrompt,
   }
 }
