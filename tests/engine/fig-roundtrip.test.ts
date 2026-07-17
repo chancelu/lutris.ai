@@ -16,7 +16,7 @@ import { heavy } from '../helpers/test-utils'
 
 setDefaultTimeout(60_000)
 
-const FIXTURES = resolve(import.meta.dir, '../fixtures')
+const FIXTURES = resolve(import.meta.dirname, '../fixtures')
 
 const VALID_NODE_TYPES = new Set<string>([
   'CANVAS',

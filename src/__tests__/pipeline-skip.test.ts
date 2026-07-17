@@ -81,6 +81,55 @@ describe('skipToDesign', () => {
     expect(currentPhase.value).toBe('dev')
     expect(phases.value.idea.status).toBe('in-progress')
   })
+
+  it('keeps already-skipped phases skipped (idempotent double skip)', () => {
+    const { skipToDesign, phases, history } = usePipeline()
+
+    expect(skipToDesign()).toBe(true)
+    expect(phases.value.idea.status).toBe('skipped')
+    expect(phases.value.spec.status).toBe('skipped')
+    const entriesAfterFirst = history.value.length
+
+    // Second call from inside design: still true, statuses unchanged, and no
+    // duplicate history entry (from === 'design' → no jump record).
+    expect(skipToDesign()).toBe(true)
+    expect(phases.value.idea.status).toBe('skipped')
+    expect(phases.value.spec.status).toBe('skipped')
+    expect(history.value.length).toBe(entriesAfterFirst)
+  })
+
+  it('works from the spec phase and records the real origin phase', () => {
+    const pipeline = resetPipeline()
+    pipeline.value.phases.idea.status = 'completed'
+    pipeline.value.currentPhase = 'spec'
+    pipeline.value.phases.spec.status = 'in-progress'
+
+    const { skipToDesign, currentPhase, phases, history } = usePipeline()
+
+    expect(skipToDesign()).toBe(true)
+    expect(currentPhase.value).toBe('design')
+    expect(phases.value.idea.status).toBe('completed')
+    expect(phases.value.spec.status).toBe('skipped')
+
+    const last = history.value[history.value.length - 1]
+    expect(last.from).toBe('spec')
+    expect(last.to).toBe('design')
+    expect(last.reason).toBe('user-override')
+  })
+
+  it('from design phase marks idea/spec skipped without a history entry', () => {
+    const pipeline = resetPipeline()
+    pipeline.value.currentPhase = 'design'
+    pipeline.value.phases.design.status = 'in-progress'
+
+    const { skipToDesign, phases, history } = usePipeline()
+    const entriesBefore = history.value.length
+
+    expect(skipToDesign()).toBe(true)
+    expect(phases.value.idea.status).toBe('skipped')
+    expect(phases.value.spec.status).toBe('skipped')
+    expect(history.value.length).toBe(entriesBefore)
+  })
 })
 
 describe('buildDynamicPrompt pipeline context', () => {
@@ -195,4 +244,13 @@ describe('spec → design data flow', () => {
     expect(prompt).toContain('/products')
     expect(prompt).toContain('ProductCard')
   })
+
+  // NOTE (Slice E): a multi-page variant of this test (2 pages in one
+  // submit_spec_output call) was written and then removed because it exposes
+  // a genuine product bug outside this slice's ownership: the second
+  // consecutive useSpec().upsertPage() throws DataCloneError — upsertPage
+  // spreads the reactive pages.value (proxied items) into a new array, and
+  // currentSnapshot()'s structuredClone(toRaw(pages.value)) only unwraps the
+  // outer array. Repro: two upsertPage(createSpecPage(...)) calls in a row.
+  // Owner of src/composables/use-spec.ts should deep-toRaw or clone on write.
 })

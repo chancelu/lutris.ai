@@ -125,6 +125,8 @@ test('provider setup shows when no key set', async () => {
   }
   await expect(apiKeyInput()).toBeVisible()
   await expect(providerSetup).toBeVisible()
+  // R10: the no-key escape hatch is offered while in the idea phase.
+  await expect(page.locator('[data-test-id="skip-to-design"]')).toBeVisible()
 })
 
 test('saving API key shows chat interface', async () => {
@@ -139,6 +141,13 @@ test('saving API key shows chat interface', async () => {
   await page.locator('button:has-text("Connect")').click()
 
   await expect(chatInput()).toBeVisible()
+})
+
+test('chat empty state shows the otter and a friendly prompt', async () => {
+  const empty = page.locator('[data-test-id="chat-empty-state"]')
+  await expect(empty).toBeVisible()
+  await expect(empty.locator('img[src="/lutris-otter.png"]')).toBeVisible()
+  await expect(empty).toContainText('What would you like to create?')
 })
 
 test('empty input has disabled send button', async () => {

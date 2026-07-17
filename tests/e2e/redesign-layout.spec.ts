@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 import { CanvasHelper } from '../helpers/canvas'
+import { expandLeftRail } from '../helpers/shell'
 
 let page: Page
 let canvas: CanvasHelper
@@ -18,6 +19,24 @@ test.afterAll(async () => {
   await page.close()
 })
 
+test('welcome overlay shows on empty canvas in idea phase', async () => {
+  const overlay = page.locator('[data-test-id="welcome-overlay"]')
+  await expect(overlay).toBeVisible()
+  await expect(overlay.locator('img[src="/lutris-otter.png"]')).toBeVisible()
+  await expect(overlay).toContainText('What do you want to build?')
+  // Export is gated to design/dev — hidden while in idea phase.
+  await expect(page.locator('[data-test-id="topbar-export"]')).not.toBeVisible()
+  canvas.assertNoErrors()
+})
+
+test('blank-canvas action dismisses overlay and lands in design phase', async () => {
+  await page.locator('[data-test-id="welcome-blank-canvas"]').click()
+  await expect(page.locator('[data-test-id="welcome-overlay"]')).not.toBeVisible()
+  const phase = await page.evaluate(() => window.__OPEN_PENCIL_PIPELINE__!.currentPhase)
+  expect(phase).toBe('design')
+  canvas.assertNoErrors()
+})
+
 test('TopBar is visible with logo and document name', async () => {
   const header = page.locator('header').first()
   await expect(header).toBeVisible()
@@ -25,10 +44,8 @@ test('TopBar is visible with logo and document name', async () => {
   canvas.assertNoErrors()
 })
 
-test('TopBar has Export button and UserMenu', async () => {
-  const header = page.locator('header').first()
-  await expect(header).toBeVisible()
-  await expect(header.locator('button', { hasText: 'Export' })).toBeVisible()
+test('TopBar has Export button in design phase', async () => {
+  await expect(page.locator('[data-test-id="topbar-export"]')).toBeVisible()
   canvas.assertNoErrors()
 })
 
@@ -44,18 +61,18 @@ test('AI Panel (PropertiesPanel) is on the RIGHT side', async () => {
   canvas.assertNoErrors()
 })
 
-test('Canvas is in the center', async () => {
+test('Canvas starts after the collapsed 48px rail', async () => {
   const canvasArea = page.locator('[data-test-id="canvas-area"]')
   await expect(canvasArea).toBeVisible()
 
   const box = await canvasArea.boundingBox()
   expect(box).not.toBeNull()
-  // Canvas should not be at the far left (left sidebar is there)
-  expect(box!.x).toBeGreaterThan(200)
+  // R10 shell: the left rail is 48px when collapsed (was a 280px sidebar).
+  expect(box!.x).toBeLessThan(100)
   canvas.assertNoErrors()
 })
 
-test('Design panel appears in left sidebar when element is selected', async () => {
+test('Design panel appears after expanding the rail and selecting an element', async () => {
   // Create and select a shape via store to ensure reliable selection
   await page.evaluate(() => {
     const store = window.__OPEN_PENCIL_STORE__!
@@ -63,6 +80,10 @@ test('Design panel appears in left sidebar when element is selected', async () =
     store.select([id])
   })
   await canvas.waitForRender()
+
+  // Rail is collapsed by default — the design panel needs an explicit expand.
+  await expect(page.locator('[data-test-id="left-rail"]')).toBeVisible()
+  await expandLeftRail(page, 'design')
 
   const drawer = page.locator('[data-test-id="design-panel-single"]')
   await expect(drawer).toBeVisible({ timeout: 5000 })
@@ -75,15 +96,7 @@ test('Toolbar has exactly 6 tool buttons', async () => {
   canvas.assertNoErrors()
 })
 
-test('WelcomeOverlay shows on empty canvas', async () => {
-  await page.evaluate(() => {
-    const store = window.__OPEN_PENCIL_STORE__!
-    const children = store.graph.getChildren(store.state.currentPageId)
-    for (const child of children) {
-      store.graph.deleteNode(child.id)
-    }
-    store.state.sceneVersion++
-  })
-  await canvas.waitForRender()
+test('WelcomeOverlay stays gone once the canvas has content and phase left idea', async () => {
+  await expect(page.locator('[data-test-id="welcome-overlay"]')).not.toBeVisible()
   canvas.assertNoErrors()
 })

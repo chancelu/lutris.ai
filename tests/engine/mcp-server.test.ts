@@ -138,7 +138,7 @@ describe('MCP server', () => {
   })
 
   test('open_file loads a .fig file', async () => {
-    const fixturePath = join(import.meta.dir, '..', 'fixtures', 'gold-preview.fig')
+    const fixturePath = join(import.meta.dirname, '..', 'fixtures', 'gold-preview.fig')
     const result = await client.callTool({ name: 'open_file', arguments: { path: fixturePath } })
     const data = parseResult(result) as { pages: { name: string }[]; currentPage: string }
     expect(data.pages.length).toBeGreaterThan(0)
@@ -154,7 +154,7 @@ describe('MCP server', () => {
   })
 
   test('save_file roundtrips a document', async () => {
-    const tmpPath = join(import.meta.dir, '..', `_mcp_test_${Date.now()}.fig`)
+    const tmpPath = join(import.meta.dirname, '..', `_mcp_test_${Date.now()}.fig`)
     try {
       await client.callTool({ name: 'new_document', arguments: {} })
       await client.callTool({

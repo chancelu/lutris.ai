@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 import { CanvasHelper } from '../helpers/canvas'
+import { expandLeftRail } from '../helpers/shell'
 
 let page: Page
 let canvas: CanvasHelper
@@ -12,6 +13,11 @@ test.beforeAll(async ({ browser }) => {
   await page.goto('/demo')
   canvas = new CanvasHelper(page)
   await canvas.waitForInit()
+  // R10 shell: the layers panel lives behind the collapsed left rail, which
+  // only exists in design/dev. The demo route starts in the idea phase (the
+  // welcome overlay stays hidden because the canvas has content).
+  await page.evaluate(() => window.__OPEN_PENCIL_PIPELINE__!.skipToDesign())
+  await expandLeftRail(page, 'layers')
 })
 
 test.afterAll(async () => {

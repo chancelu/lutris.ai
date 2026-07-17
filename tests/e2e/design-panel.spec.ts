@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { CanvasHelper } from '../helpers/canvas'
+import { dismissWelcomeAndEnterDesign, expandLeftRail } from '../helpers/shell'
 
 let page: Page
 let canvas: CanvasHelper
@@ -12,6 +13,10 @@ test.beforeAll(async ({ browser }) => {
   await page.goto('/editor')
   canvas = new CanvasHelper(page)
   await canvas.waitForInit()
+  // R10 shell: canvas chrome requires design/dev, and the design panel lives
+  // behind the collapsed left rail.
+  await dismissWelcomeAndEnterDesign(page)
+  await expandLeftRail(page, 'design')
 })
 
 test.afterAll(async () => {
@@ -67,6 +72,13 @@ test('selecting a rectangle shows design panel with type and name', async () => 
   await expect(nodeHeader()).toContainText('Rectangle')
 })
 
+test('R10 section headers are visible: Position, Layout, Appearance, Fill, Stroke, Effects', async () => {
+  const panel = designPanel()
+  for (const label of ['Position', 'Layout', 'Appearance', 'Fill', 'Stroke', 'Effects']) {
+    await expect(panel.locator('label', { hasText: label }).first()).toBeVisible()
+  }
+})
+
 test('position section shows X, Y, rotation inputs', async () => {
   await expect(positionSection()).toBeVisible()
 
@@ -87,11 +99,27 @@ test('fill item shows color swatch', async () => {
   await expect(swatch).toBeVisible()
 })
 
-// StrokeSection is not currently mounted in the DesignPanel.
-test.skip('adding a stroke creates stroke section item', async () => {})
+test('adding a stroke creates stroke section item', async () => {
+  await expect(strokeSection()).toBeVisible()
+  await strokeSection().locator('[data-test-id="stroke-section-add"]').click()
+  await canvas.waitForRender()
 
-// EffectsSection is not currently mounted in the DesignPanel.
-test.skip('adding an effect creates effect item', async () => {})
+  const id = await getSelectedId()
+  const node = await getNode(id!)
+  expect(node!.strokes.length).toBeGreaterThan(0)
+})
+
+test('adding an effect creates effect item', async () => {
+  await expect(effectsSection()).toBeVisible()
+  await effectsSection().locator('[data-test-id="effects-section-add"]').click()
+  await canvas.waitForRender()
+
+  await expect(effectsSection().locator('[data-test-id="effects-item"]').first()).toBeVisible()
+
+  const id = await getSelectedId()
+  const node = await getNode(id!)
+  expect(node!.effects.length).toBe(1)
+})
 
 test('adding a second fill shows two fill items', async () => {
   const addBtn = fillSection().locator('[data-test-id="fill-section-add"]')
@@ -131,8 +159,10 @@ test('deselecting hides design panel', async () => {
   await page.keyboard.press('Escape')
   await canvas.waitForRender()
 
-  // DesignPanel is unmounted when nothing is selected
+  // DesignPanel single view is unmounted when nothing is selected; the rail
+  // design section shows its otter placeholder instead.
   await expect(page.locator('[data-test-id="design-panel-single"]')).not.toBeVisible()
+  await expect(page.getByText('Select a layer to edit its design.')).toBeVisible()
 })
 
 test('multi-select shows mixed header', async () => {

@@ -1,6 +1,11 @@
 import { test, expect, type Page } from '@playwright/test'
 
 import { CanvasHelper } from '../helpers/canvas'
+import { dismissWelcomeAndEnterDesign } from '../helpers/shell'
+
+// Slice E / E3: the e2e dev server runs keyless (VITE_AI_* stripped), so the
+// AI flow starts at ProviderSetup; a dummy key unlocks the chat UI without
+// any network access.
 
 let page: Page
 let canvas: CanvasHelper
@@ -12,6 +17,10 @@ test.beforeAll(async ({ browser }) => {
   await page.goto('/editor')
   canvas = new CanvasHelper(page)
   await canvas.waitForInit()
+  await dismissWelcomeAndEnterDesign(page)
+  // Unlock the chat UI with a dummy key (no LLM calls are made).
+  await page.locator('[data-test-id="api-key-input"]').fill('sk-or-test-key-12345')
+  await page.locator('[data-test-id="api-key-save"]').click()
 })
 
 test.afterAll(async () => {
@@ -19,7 +28,6 @@ test.afterAll(async () => {
 })
 
 test('chat input is visible in AI Panel', async () => {
-  // Chat panel should be visible by default in the properties panel
   const chatPanel = page.locator('[data-test-id="chat-panel"]')
   await expect(chatPanel).toBeVisible()
   canvas.assertNoErrors()
@@ -31,30 +39,39 @@ test('chat input field exists', async () => {
   canvas.assertNoErrors()
 })
 
-test('Spec button in bottom bar toggles SpecPanel', async () => {
-  // Look for the Spec button in the properties panel bottom area
-  // (scoped to properties-panel to avoid colliding with the TopBar pipeline stepper's "Spec" phase button)
-  const specButton = page.locator('[data-test-id="properties-panel"] button:has-text("Spec")')
-  if (await specButton.isVisible()) {
-    await specButton.click()
-    await canvas.waitForRender()
+test('Spec view button in panel header toggles SpecPanel', async () => {
+  // R10 shell: the Spec view switch lives in the properties-panel header
+  // (the old bottom-bar Spec toggle was removed).
+  const specButton = page.locator('[data-test-id="panel-view-spec"]')
+  await expect(specButton).toBeVisible()
+  await specButton.click()
+  await canvas.waitForRender()
 
-    const specPanel = page.locator('[data-test-id="product-doc-panel"]')
-    // Spec panel should be visible after clicking
-    await expect(specPanel).toBeVisible({ timeout: 3000 })
+  const specPanel = page.locator('[data-test-id="product-doc-panel"]')
+  await expect(specPanel).toBeVisible({ timeout: 3000 })
 
-    // Toggle back
-    await specButton.click()
-    await canvas.waitForRender()
-  }
+  // Back to chat
+  await page.locator('[data-test-id="panel-view-chat"]').click()
+  await canvas.waitForRender()
+  await expect(page.locator('[data-test-id="chat-panel"]')).toBeVisible()
   canvas.assertNoErrors()
 })
 
-test('Export button in bottom bar toggles ExportPanel', async () => {
-  const exportButton = page.locator('button:has-text("Export")').first()
-  if (await exportButton.isVisible()) {
-    await exportButton.click()
-    await canvas.waitForRender()
-    canvas.assertNoErrors()
-  }
+test('TopBar Export button opens the Export view', async () => {
+  // Export requires canvas content; create a shape first.
+  await page.evaluate(() => {
+    const store = window.__OPEN_PENCIL_STORE__!
+    store.createShape('RECTANGLE', 100, 100, 120, 80)
+  })
+  await canvas.waitForRender()
+
+  await page.locator('[data-test-id="topbar-export"]').click()
+  await canvas.waitForRender()
+
+  // Export view is open (header shows its close button); close it again.
+  await expect(page.locator('[data-test-id="panel-export-close"]')).toBeVisible()
+  await page.locator('[data-test-id="panel-export-close"]').click()
+  await canvas.waitForRender()
+  await expect(page.locator('[data-test-id="chat-panel"]')).toBeVisible()
+  canvas.assertNoErrors()
 })

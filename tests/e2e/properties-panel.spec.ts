@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 import { CanvasHelper } from '../helpers/canvas'
+import { dismissWelcomeAndEnterDesign, expandLeftRail } from '../helpers/shell'
 import { getSelectedNode, getPageChildren } from '../helpers/store'
 
 let page: Page
@@ -13,6 +14,9 @@ test.beforeAll(async ({ browser }) => {
   await page.goto('/editor')
   canvas = new CanvasHelper(page)
   await canvas.waitForInit()
+  // R10 shell: the properties sections live in the design panel behind the rail.
+  await dismissWelcomeAndEnterDesign(page)
+  await expandLeftRail(page, 'design')
 })
 
 test.afterAll(async () => {
@@ -112,5 +116,23 @@ test('flip horizontal sets flipX', async () => {
   canvas.assertNoErrors()
 })
 
-// LayoutSection (which contains clip-content-checkbox) is not currently mounted.
-test.skip('clip content checkbox toggles clipsContent', async () => {})
+// LayoutSection is mounted in the R10 DesignPanel again.
+test('clip content checkbox toggles clipsContent', async () => {
+  await canvas.clearCanvas()
+  await page.evaluate(() => {
+    const store = window.__OPEN_PENCIL_STORE__!
+    const id = store.createShape('FRAME', 200, 200, 200, 150)
+    store.select([id])
+  })
+  await canvas.waitForRender()
+
+  const checkbox = page.locator('[data-test-id="clip-content-checkbox"]')
+  await expect(checkbox).toBeVisible()
+
+  const before = (await getSelectedNode(page))!.clipsContent
+  await checkbox.click()
+  await canvas.waitForRender()
+  const after = (await getSelectedNode(page))!.clipsContent
+  expect(after).toBe(!before)
+  canvas.assertNoErrors()
+})
