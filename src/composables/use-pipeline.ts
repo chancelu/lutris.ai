@@ -77,7 +77,16 @@ export function validatePhaseOutput<P extends PipelinePhase>(
 // ── Orchestrator ──
 
 export function usePipeline() {
-  const { activePipeline } = useProjects()
+  const { activePipeline, saveActiveProjectData } = useProjects()
+
+  /**
+   * 每次阶段状态变更后落盘。否则用户刷新页面后 currentPhase 丢回 idea，
+   * 但 spec/聊天等内容还在——进度与实际数据不一致。
+   * saveActiveProjectData 在无活动项目时静默 early-return，调用零成本。
+   */
+  function persistPipeline() {
+    void saveActiveProjectData()
+  }
 
   const currentPhase = computed(() => activePipeline.value.currentPhase)
   const phases = computed(() => activePipeline.value.phases)
@@ -130,6 +139,7 @@ export function usePipeline() {
         reason: 'validation-fail-revert',
         note: result.reason,
       })
+      persistPipeline()
       return result
     }
 
@@ -146,7 +156,7 @@ export function usePipeline() {
       pipeline.history.push({ from: phase, to: next, timestamp: Date.now(), reason: 'agent-advance' })
     }
     // 已经是最后一个阶段（dev）：完成后停留在 dev，不再前进
-
+    persistPipeline()
     return { valid: true }
   }
 
@@ -162,6 +172,7 @@ export function usePipeline() {
     pipeline.phases[prev].enteredAt = Date.now()
     pipeline.currentPhase = prev
     pipeline.history.push({ from, to: prev, timestamp: Date.now(), reason: 'validation-fail-revert', note })
+    persistPipeline()
     return true
   }
 
@@ -181,6 +192,7 @@ export function usePipeline() {
       pipeline.phases[phase].enteredAt = Date.now()
     }
     pipeline.history.push({ from, to: phase, timestamp: Date.now(), reason: 'user-override' })
+    persistPipeline()
     return true
   }
 
@@ -221,6 +233,7 @@ export function usePipeline() {
         note: note ?? 'Skipped idea/spec — starting from a blank canvas',
       })
     }
+    persistPipeline()
     return true
   }
 

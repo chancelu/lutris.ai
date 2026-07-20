@@ -44,7 +44,8 @@ export default defineConfig({
       VITE_AI_API_KEY: '',
       VITE_AI_BASE_URL: '',
       VITE_AI_MODEL: '',
-      VITE_AI_API_TYPE: ''
+      VITE_AI_API_TYPE: '',
+      VITE_GEMINI_API_KEY: ''
     },
     port: 1420,
     timeout: 60_000,

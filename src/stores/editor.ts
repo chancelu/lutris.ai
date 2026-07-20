@@ -1,6 +1,7 @@
 import { shallowReactive, shallowRef, computed, watch } from 'vue'
 
 import { toast } from '@/composables/use-toast'
+import { deepRawClone } from '@/utils/deep-raw'
 import { saveToIDB, loadFromIDB } from '@/stores/autosave-idb'
 import {
   IS_TAURI,
@@ -1761,7 +1762,7 @@ export function createEditorStore() {
     const walk = (id: string) => {
       const node = graph.getNode(id)
       if (!node) return
-      snapshot.set(id, structuredClone(node))
+      snapshot.set(id, deepRawClone(node))
       for (const childId of node.childIds) walk(childId)
     }
     walk(state.currentPageId)

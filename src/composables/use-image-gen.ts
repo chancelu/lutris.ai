@@ -8,7 +8,10 @@ const GEMINI_MODEL = 'gemini-2.5-flash-image'
 // directly with their own key/quota.
 const SERVER_PROXIED = (import.meta.env.VITE_GEMINI_SERVER_PROXY as string) === 'true'
 
-const apiKey = ref(localStorage.getItem('designflow-gemini-key') || '')
+// Priority: user-entered key (localStorage) > env-injected key (VITE_GEMINI_API_KEY)
+const apiKey = ref(
+  localStorage.getItem('designflow-gemini-key') || (import.meta.env.VITE_GEMINI_API_KEY as string) || ''
+)
 
 export function useImageGen() {
   const generating = ref(false)
@@ -60,7 +63,7 @@ export function useImageGen() {
   async function generateImage(prompt: string): Promise<{ base64: string; mimeType: string; text?: string } | null> {
     const useServerKey = SERVER_PROXIED && !apiKey.value
     if (!apiKey.value && !useServerKey) {
-      error.value = 'Gemini API key not set. Go to Brand Settings to configure.'
+      error.value = 'Image generation key not set. Add VITE_GEMINI_API_KEY to your environment.'
       return null
     }
 

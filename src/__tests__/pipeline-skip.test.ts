@@ -16,6 +16,7 @@ import { createPhaseReadTools, createSubmitTools } from '@/ai/phase-tools'
 import { buildDynamicPrompt } from '@/composables/use-chat'
 import { usePipeline } from '@/composables/use-pipeline'
 import { useProjects } from '@/composables/use-projects'
+import { useSpec } from '@/composables/use-spec'
 import { createEmptyPipelineState } from '@/types/pipeline'
 
 function resetPipeline() {
@@ -245,12 +246,57 @@ describe('spec → design data flow', () => {
     expect(prompt).toContain('ProductCard')
   })
 
-  // NOTE (Slice E): a multi-page variant of this test (2 pages in one
-  // submit_spec_output call) was written and then removed because it exposes
-  // a genuine product bug outside this slice's ownership: the second
-  // consecutive useSpec().upsertPage() throws DataCloneError — upsertPage
-  // spreads the reactive pages.value (proxied items) into a new array, and
-  // currentSnapshot()'s structuredClone(toRaw(pages.value)) only unwraps the
-  // outer array. Repro: two upsertPage(createSpecPage(...)) calls in a row.
-  // Owner of src/composables/use-spec.ts should deep-toRaw or clone on write.
+  // Regression (was Slice E removed test): a multi-page submit_spec_output
+  // performs consecutive upsertPage() writes. Previously the 2nd write threw
+  // DataCloneError ("structuredClone ... could not be cloned") because
+  // upsertPage spread reactive proxied items into pages.value and
+  // currentSnapshot()'s structuredClone(toRaw(...)) only unwrapped the outer
+  // array. Fixed by deepRawClone on all use-spec write/snapshot paths.
+  it('submit_spec_output with multiple pages does not throw DataCloneError', async () => {
+    const pipeline = resetPipeline()
+    pipeline.value.currentPhase = 'spec'
+    pipeline.value.phases.spec.status = 'in-progress'
+
+    const { replacePages } = useSpec()
+    replacePages([], 'user', 'reset')
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool execute params are any-typed in phase-tools
+    const submitTools = createSubmitTools('spec') as any
+    const raw = await submitTools.submit_spec_output.execute({
+      pages: [
+        {
+          name: 'Today',
+          route: '/today',
+          purpose: 'See today\'s habits',
+          userStory: 'As a parent, I want to see today\'s habits, so that I stay on track',
+          components: [{ name: 'HabitCard', role: 'list-item', repeatable: true }],
+        },
+        {
+          name: 'Routines',
+          route: '/routines',
+          purpose: 'Manage family routines',
+          userStory: 'As a parent, I want to manage routines, so that the family shares them',
+          components: [{ name: 'RoutineList', role: 'container' }],
+        },
+        {
+          name: 'Family board',
+          route: '/family',
+          purpose: 'Shared family progress',
+          userStory: 'As a kid, I want to see family progress, so that I feel motivated',
+        },
+      ],
+    }, {})
+
+    const submitted = JSON.parse(raw as string)
+    expect(submitted.success).toBe(true)
+    expect(submitted.pages).toHaveLength(3)
+
+    // A follow-up write after reads (the exact old repro: second consecutive
+    // upsertPage after pages.value round-tripped through the reactive ref)
+    // must not throw either.
+    const spec = useSpec()
+    const extra = spec.createSpecPage('Extra', { route: '/extra', purpose: 'p', userStory: 'u' })
+    expect(() => spec.upsertPage(extra, 'ai', 'extra')).not.toThrow()
+    expect(spec.pages.value).toHaveLength(4)
+  })
 })
