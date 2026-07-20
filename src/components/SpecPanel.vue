@@ -66,9 +66,12 @@ function countInList(list: readonly { role: SpecComponentRole; children?: readon
 
       <div v-else class="max-h-64 overflow-auto px-2 pb-2 space-y-1">
         <div v-for="page in pages" :key="page.id" class="rounded-lg border border-border/30">
-          <button
-            class="flex w-full items-center gap-1.5 px-2 py-1.5 text-left"
+          <div
+            role="button"
+            tabindex="0"
+            class="flex w-full cursor-pointer items-center gap-1.5 px-2 py-1.5 text-left"
             @click="togglePage(page.id)"
+            @keydown.enter.prevent="togglePage(page.id)"
           >
             <icon-lucide-chevron-right
               class="size-3 shrink-0 text-muted transition-transform"
@@ -80,11 +83,12 @@ function countInList(list: readonly { role: SpecComponentRole; children?: readon
             <span class="text-[10px] text-muted">{{ page.components.length }}</span>
             <button
               class="rounded p-0.5 text-muted hover:bg-red-500/10 hover:text-red-400"
+              title="Delete page"
               @click.stop="deletePage(page.id)"
             >
               <icon-lucide-trash-2 class="size-3" />
             </button>
-          </button>
+          </div>
 
           <div v-if="expandedPageIds.has(page.id)" class="space-y-1.5 px-2 pb-2 pl-6">
             <p v-if="page.purpose" class="text-[11px] text-muted">{{ page.purpose }}</p>

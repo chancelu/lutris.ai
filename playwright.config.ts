@@ -35,8 +35,19 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: 'bun run dev',
+    // Self-contained dev server: no bun required. VITE_AI_* are stripped so the
+    // app boots in its keyless state (process env wins over .env.local) — the
+    // ProviderSetup/no-key e2e paths depend on this.
+    command: 'npx vite --port 1420 --strictPort',
+    env: {
+      VITE_AI_PROVIDER: '',
+      VITE_AI_API_KEY: '',
+      VITE_AI_BASE_URL: '',
+      VITE_AI_MODEL: '',
+      VITE_AI_API_TYPE: ''
+    },
     port: 1420,
+    timeout: 60_000,
     reuseExistingServer: true
   }
 })
