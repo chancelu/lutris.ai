@@ -6,7 +6,8 @@ const button = tv({
   variants: {
     tone: {
       ghost: 'bg-transparent text-muted hover:bg-hover hover:text-surface',
-      accent: 'bg-accent text-white hover:bg-accent/90',
+      accent: 'bg-accent text-on-accent hover:bg-accent/90',
+      primary: 'bg-surface text-panel hover:bg-surface/90',
       panel: 'bg-panel/70 text-surface backdrop-blur-xl',
       panelAccent: 'border-accent/20 bg-panel/70 text-accent backdrop-blur-xl'
     },
@@ -22,7 +23,7 @@ const button = tv({
       iconSm: 'size-7'
     },
     bordered: {
-      true: 'border border-white/10',
+      true: 'border border-border',
       false: ''
     }
   },
@@ -32,7 +33,7 @@ const button = tv({
     { tone: 'panel', size: 'icon', class: 'shadow-md' },
     { tone: 'panel', size: 'iconSm', class: 'shadow-sm' },
     { tone: 'panelAccent', size: 'icon', class: 'shadow-md' },
-    { tone: 'panel', bordered: true, class: 'border border-white/10' },
+    { tone: 'panel', bordered: true, class: 'border border-border' },
     { tone: 'panelAccent', bordered: true, class: 'border' }
   ],
   defaultVariants: {
@@ -44,7 +45,7 @@ const button = tv({
 })
 
 export function uiButton(options?: {
-  tone?: 'ghost' | 'accent' | 'panel' | 'panelAccent'
+  tone?: 'ghost' | 'accent' | 'primary' | 'panel' | 'panelAccent'
   shape?: 'square' | 'rounded' | 'pill'
   size?: 'sm' | 'md' | 'icon' | 'iconSm'
   bordered?: boolean

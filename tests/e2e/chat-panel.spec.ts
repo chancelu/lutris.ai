@@ -143,12 +143,11 @@ test('saving API key shows chat interface', async () => {
   await expect(chatInput()).toBeVisible()
 })
 
-test('chat empty state shows the otter and a friendly prompt', async () => {
+test('chat empty state shows a friendly phase-aware prompt', async () => {
   const empty = page.locator('[data-test-id="chat-empty-state"]')
   await expect(empty).toBeVisible()
-  await expect(empty.locator('img[src="/lutris-otter.png"]')).toBeVisible()
-  // Phase-aware copy (R10): idea phase invites the brief
-  await expect(empty).toContainText('Tell me about your idea')
+  // R12: serif Chinese empty state, no mascot.
+  await expect(empty).toContainText('说说你的想法')
 })
 
 test('empty input has disabled send button', async () => {

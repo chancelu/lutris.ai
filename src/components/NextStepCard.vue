@@ -4,7 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { usePipeline } from '@/composables/use-pipeline'
 import { useAIChat } from '@/composables/use-chat'
 
-// Phase-complete card: otter + one-line summary + a single next action.
+// Phase-complete card: one-line summary + a single next action.
 // Self-contained — derives the current step from pipeline state and hides
 // itself once dismissed for the active phase.
 const { currentPhase, phases } = usePipeline()
@@ -19,13 +19,13 @@ watch(currentPhase, () => {
 
 const step = computed(() => {
   if (currentPhase.value === 'spec' && phases.value.idea.status === 'completed') {
-    return { summary: 'Idea brief done — the otter drafted your spec.', cta: 'Review the spec' }
+    return { summary: '想法已整理成需求初稿，确认细节后就能开始设计。', cta: '查看 Spec' }
   }
   if (currentPhase.value === 'design' && phases.value.spec.status === 'completed') {
-    return { summary: 'Spec done — your pages are ready for design.', cta: 'Start designing' }
+    return { summary: '需求已确认——页面清单就绪，可以开始设计了。', cta: '开始设计' }
   }
   if (currentPhase.value === 'dev' && phases.value.design.status === 'completed') {
-    return { summary: 'Design done — the otter can hand you the code.', cta: 'Get the code' }
+    return { summary: '设计完成——可以导出前端代码了。', cta: '查看代码' }
   }
   return null
 })
@@ -33,15 +33,14 @@ const step = computed(() => {
 const visible = computed(() => step.value !== null && !dismissed.value)
 
 function onCta() {
-  if (currentPhase.value === 'spec') {
-    inlinePanel.value = 'spec'
-  } else if (currentPhase.value === 'dev') {
+  if (currentPhase.value === 'dev') {
     inlinePanel.value = 'code'
-  } else {
+  } else if (currentPhase.value === 'design') {
     // Design: the canvas is the stage, chat is how you shape it.
     inlinePanel.value = null
     focusRequested.value++
   }
+  // Spec: Spec Studio 已经是主区，卡片让路即可
   dismissed.value = true
 }
 </script>
@@ -50,13 +49,15 @@ function onCta() {
   <div
     v-if="visible"
     data-test-id="next-step-card"
-    class="flex items-center gap-2.5 rounded-xl border border-border/30 bg-canvas/50 px-3 py-2.5"
+    class="glass flex animate-in items-center gap-2.5 rounded-xl border border-accent/20 px-3 py-2.5 fade-in slide-in-from-bottom-1 duration-300"
   >
-    <img src="/mascot-celebrating.png" class="h-8 w-auto shrink-0 object-contain" alt="" />
+    <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent/15">
+      <icon-lucide-sparkles class="size-3 text-accent" />
+    </span>
     <p class="min-w-0 flex-1 text-[11px] leading-4 text-muted">{{ step!.summary }}</p>
     <button
       data-test-id="next-step-cta"
-      class="shrink-0 rounded-full bg-accent px-3 py-1 text-[11px] font-medium text-white transition hover:bg-accent/90"
+      class="gradient-cta shrink-0 rounded-full px-3 py-1 text-[11px] font-medium text-on-accent transition-[filter] hover:brightness-110"
       @click="onCta"
     >
       {{ step!.cta }}

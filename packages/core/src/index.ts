@@ -53,6 +53,7 @@ export {
 
 export { FigmaAPI, FigmaNodeProxy, computeImageHash, type FigmaFontName } from './figma-api'
 export { ALL_TOOLS, defineTool, toolsToAI, extractNodeIds, buildTailwindConfig } from './tools'
+export { detectIssues } from './tools/describe'
 export type { ToolDef, ParamDef, ParamType } from './tools'
 export { executeRpcCommand, ALL_RPC_COMMANDS } from './rpc'
 export { queryByXPath, matchByXPath } from './xpath'
@@ -108,6 +109,7 @@ export {
   colorToCSSCompact,
   rgba255ToColor,
   colorToFill,
+  parseGradientFill,
   colorDistance
 } from './color'
 export {

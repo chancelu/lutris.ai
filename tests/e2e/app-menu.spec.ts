@@ -25,10 +25,11 @@ test.afterAll(async () => {
   await page.close()
 })
 
-test('top bar is visible with logo', async () => {
+test('top bar is visible with wordmark', async () => {
   const header = page.locator('header').first()
   await expect(header).toBeVisible()
-  await expect(header.locator('img[alt="Lutris.ai"]')).toBeVisible()
+  // R12: the otter logo was replaced by a serif "Lutris" wordmark.
+  await expect(header).toContainText('Lutris')
   canvas.assertNoErrors()
 })
 

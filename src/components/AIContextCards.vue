@@ -28,7 +28,7 @@ function typeIcon(type: string): string {
         🎯 Editing {{ selectedForAI.length }} element{{ selectedForAI.length > 1 ? 's' : '' }}
       </span>
       <button
-        class="text-[10px] text-muted hover:text-surface transition"
+        class="text-[10px] text-muted hover:text-surface transition-colors"
         @click="clearAIContext"
       >
         Clear all

@@ -300,7 +300,7 @@ function serializeTextProps(
     postscript: ''
   }
   nc.textData = exportTextData(node)
-  nc.textAutoResize = 'WIDTH_AND_HEIGHT'
+  nc.textAutoResize = node.textAutoResize
   nc.textAlignHorizontal = node.textAlignHorizontal
   nc.textUserLayoutVersion = 3
   if (fontDigestMap) nc.derivedTextData = buildDerivedTextData(node, fontDigestMap)

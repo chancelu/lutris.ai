@@ -227,8 +227,10 @@ export function useKeyboard() {
   whenever(mod('slash'), () => {
     inlinePanel.value = null
   })
-  // Ctrl+Shift+D → Spec panel
-  whenever(mod('shift+keyd'), () => {
-    inlinePanel.value = inlinePanel.value === 'spec' ? null : 'spec'
+  // Ctrl+Shift+D → 跳到 Spec 阶段（Spec Studio 在主区；仅当流程已到达过 spec）
+  whenever(mod('shift+keyd'), async () => {
+    const { usePipeline } = await import('@/composables/use-pipeline')
+    const { canJumpTo, jumpToPhase } = usePipeline()
+    if (canJumpTo('spec')) jumpToPhase('spec')
   })
 }

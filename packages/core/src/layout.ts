@@ -374,12 +374,18 @@ function configureChildAsLeaf(yogaChild: YogaNode, child: SceneNode, parent: Sce
 
 // Fallback text size estimate when CanvasKit is unavailable (headless/tests).
 // Without this, text nodes keep their 100×100 default and blow up HUG containers.
+// CJK glyphs are full-width (~1em); latin averages much narrower — a single
+// factor underestimates CJK by ~40% and overestimates latin, so measure per char.
+const CJK_CHAR_RE = /[⺀-鿿豈-﫿　-〿＀-￾]/
 function estimateTextSize(node: SceneNode): { width: number; height: number } {
   const fontSize = node.fontSize || 14
   const lineHeight = fontSize * 1.2
-  const charWidth = fontSize * GLYPH_WIDTH_FACTOR
+  let width = 0
+  for (const ch of node.text) {
+    width += fontSize * (CJK_CHAR_RE.test(ch) ? 1.0 : GLYPH_WIDTH_FACTOR)
+  }
   return {
-    width: Math.ceil(node.text.length * charWidth),
+    width: Math.ceil(width),
     height: Math.ceil(lineHeight)
   }
 }
@@ -406,7 +412,10 @@ function configureTextLeaf(
       if (cached) return cached
 
       const measured = globalTextMeasurer?.(child, maxW)
-      const result = measured ?? { width: child.width, height: child.height }
+      // 测量器失效（字体未就绪/无头环境）时退回按字符估算——绝不能沿用节点上
+      // 存的 width/height：那可能是 createNode 的 100×100 默认值，会把文本撑到
+      // 行高之外被 overflow 裁掉（恢复项目后列表文字消失的实测根因）
+      const result = measured ?? estimateTextSize(child)
       cache.set(cacheKey, result)
       return result
     })
@@ -423,7 +432,8 @@ function configureTextLeaf(
       if (cached) return cached
 
       const measured = globalTextMeasurer?.(child, constraintW)
-      const result = { width: constraintW, height: measured?.height ?? child.height }
+      // 同上：测量器失效时用估算高度，而不是可能早已过期的 child.height
+      const result = { width: constraintW, height: measured?.height ?? estimateTextSize(child).height }
       cache.set(cacheKey, result)
       return result
     })

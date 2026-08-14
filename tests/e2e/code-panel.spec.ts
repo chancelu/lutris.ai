@@ -32,10 +32,13 @@ test.afterAll(async () => {
   await page.close()
 })
 
-test('entering dev auto-opens the Code view with the otter empty state', async () => {
+test('entering dev keeps chat; opening the Code tab shows the otter empty state', async () => {
+  // R12: no forced view switch on phase change — open the Code tab explicitly.
+  await expect(page.locator('[data-test-id="chat-panel"]')).toBeVisible()
+  await page.locator('[data-test-id="panel-view-code"]').click()
   const empty = page.locator('[data-test-id="code-panel-empty"]')
   await expect(empty).toBeVisible()
-  await expect(empty.locator('img[src="/mascot-designing.png"]')).toBeVisible()
+  await expect(empty.locator('svg[aria-label="Lutris otter"]')).toBeVisible()
   await expect(empty).toContainText('Ask the AI to export your code.')
   canvas.assertNoErrors()
 })

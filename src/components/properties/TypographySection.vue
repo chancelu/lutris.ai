@@ -163,7 +163,7 @@ onMounted(async () => {
           class="flex cursor-pointer items-center justify-center rounded border px-2 py-1"
           :class="
             node.textAlignHorizontal === align
-              ? 'border-accent bg-accent text-white'
+              ? 'border-accent bg-accent text-on-accent'
               : 'border-border bg-input text-muted hover:bg-hover hover:text-surface'
           "
           @click="setAlign(align)"
@@ -179,7 +179,7 @@ onMounted(async () => {
           class="flex cursor-pointer items-center justify-center rounded border px-2 py-1 font-bold"
           :class="
             node.fontWeight >= 700
-              ? 'border-accent bg-accent text-white'
+              ? 'border-accent bg-accent text-on-accent'
               : 'border-border bg-input text-muted hover:bg-hover hover:text-surface'
           "
           title="Bold (⌘B)"
@@ -191,7 +191,7 @@ onMounted(async () => {
           class="flex cursor-pointer items-center justify-center rounded border px-2 py-1"
           :class="
             node.italic
-              ? 'border-accent bg-accent text-white'
+              ? 'border-accent bg-accent text-on-accent'
               : 'border-border bg-input text-muted hover:bg-hover hover:text-surface'
           "
           title="Italic (⌘I)"
@@ -203,7 +203,7 @@ onMounted(async () => {
           class="flex cursor-pointer items-center justify-center rounded border px-2 py-1"
           :class="
             node.textDecoration === 'UNDERLINE'
-              ? 'border-accent bg-accent text-white'
+              ? 'border-accent bg-accent text-on-accent'
               : 'border-border bg-input text-muted hover:bg-hover hover:text-surface'
           "
           title="Underline (⌘U)"
@@ -215,7 +215,7 @@ onMounted(async () => {
           class="flex cursor-pointer items-center justify-center rounded border px-2 py-1"
           :class="
             node.textDecoration === 'STRIKETHROUGH'
-              ? 'border-accent bg-accent text-white'
+              ? 'border-accent bg-accent text-on-accent'
               : 'border-border bg-input text-muted hover:bg-hover hover:text-surface'
           "
           title="Strikethrough"

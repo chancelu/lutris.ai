@@ -2,7 +2,7 @@ import { twMerge } from 'tailwind-merge'
 import { tv } from 'tailwind-variants'
 
 const content = tv({
-  base: 'z-50 rounded-lg border border-border bg-panel p-1 shadow-lg'
+  base: 'glass z-50 rounded-lg border border-border p-1 shadow-xl shadow-black/20'
 })
 
 const item = tv({

@@ -104,7 +104,7 @@ test('clicking a node inside a frame does not reparent it', async () => {
 
 test('creating a shape updates layers', async () => {
   const before = await getLayerNames()
-  await canvas.drawRect(600, 500, 50, 50)
+  await canvas.drawRect(300, 300, 50, 50)
   const names = await getLayerNames()
   expect(names).toContain('Rectangle')
   expect(names.length).toBe(before.length + 1)

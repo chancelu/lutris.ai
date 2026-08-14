@@ -39,20 +39,21 @@ test('chat input field exists', async () => {
   canvas.assertNoErrors()
 })
 
-test('Spec view button in panel header toggles SpecPanel', async () => {
-  // R10 shell: the Spec view switch lives in the properties-panel header
-  // (the old bottom-bar Spec toggle was removed).
-  const specButton = page.locator('[data-test-id="panel-view-spec"]')
-  await expect(specButton).toBeVisible()
-  await specButton.click()
+test('jumping to spec phase shows the Spec Studio in the main area', async () => {
+  // R12: Spec is no longer a right-column tab — it's a first-class main-area
+  // view (Spec Studio). The right column keeps the chat alive.
+  const jumped = await page.evaluate(() => window.__OPEN_PENCIL_PIPELINE__!.jumpToPhase('spec'))
+  expect(jumped).toBe(true)
   await canvas.waitForRender()
 
-  const specPanel = page.locator('[data-test-id="product-doc-panel"]')
-  await expect(specPanel).toBeVisible({ timeout: 3000 })
+  await expect(page.locator('[data-test-id="spec-studio"]')).toBeVisible({ timeout: 3000 })
+  await expect(page.locator('[data-test-id="spec-add-page"]')).toBeVisible()
+  await expect(page.locator('[data-test-id="chat-panel"]')).toBeVisible()
 
-  // Back to chat
-  await page.locator('[data-test-id="panel-view-chat"]').click()
+  // Back to design — Spec Studio leaves the main area again.
+  await page.evaluate(() => window.__OPEN_PENCIL_PIPELINE__!.jumpToPhase('design'))
   await canvas.waitForRender()
+  await expect(page.locator('[data-test-id="spec-studio"]')).not.toBeVisible()
   await expect(page.locator('[data-test-id="chat-panel"]')).toBeVisible()
   canvas.assertNoErrors()
 })

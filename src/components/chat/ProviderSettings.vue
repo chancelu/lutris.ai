@@ -192,7 +192,7 @@ function clearKey() {
           </div>
 
           <PopoverClose
-            class="mt-1 w-full rounded bg-accent px-2 py-1 text-center text-[11px] font-medium text-white hover:bg-accent/90"
+            class="mt-1 w-full rounded-lg bg-accent px-2 py-1.5 text-center text-[11px] font-medium text-on-accent transition-colors hover:bg-accent/90"
             data-test-id="provider-settings-done"
             @click="save"
           >

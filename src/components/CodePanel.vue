@@ -7,6 +7,7 @@ import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewpor
 import { computed, ref, watch } from 'vue'
 
 import { useCodeOutput, type CodeFramework } from '@/stores/code-output'
+import OtterMark from '@/components/OtterMark.vue'
 
 const { output, byFramework, availableFrameworks } = useCodeOutput()
 
@@ -84,7 +85,7 @@ watch(activeFile, () => {
     data-test-id="code-panel-empty"
     class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
   >
-    <img src="/mascot-designing.png" class="h-16 w-auto object-contain opacity-80" alt="" />
+    <OtterMark :size="56" class="opacity-80" />
     <p class="text-[12px] text-muted">Ask the AI to export your code.</p>
   </div>
 
@@ -94,13 +95,13 @@ watch(activeFile, () => {
       data-test-id="code-panel-header"
       class="flex shrink-0 items-center justify-between gap-2 border-b border-border/30 px-3 py-1.5"
     >
-      <div class="flex items-center gap-0.5">
+      <div class="flex items-center gap-0.5 rounded-full border border-border/30 bg-inset p-0.5">
         <button
           v-for="f in frameworks"
           :key="f"
           :data-test-id="`code-panel-framework-${f.toLowerCase()}`"
-          class="rounded-full px-2 py-0.5 text-[11px] font-medium transition"
-          :class="f === payload.framework ? 'bg-accent/15 text-accent' : 'text-muted hover:bg-hover hover:text-surface'"
+          class="rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
+          :class="f === payload.framework ? 'bg-panel text-surface' : 'text-muted hover:text-surface'"
           @click="activeFramework = f"
         >
           {{ f }}
@@ -109,7 +110,7 @@ watch(activeFile, () => {
       <div class="flex items-center gap-0.5">
         <button
           data-test-id="code-panel-copy"
-          class="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted transition hover:bg-hover hover:text-surface"
+          class="flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-[11px] text-muted transition-colors hover:bg-hover hover:text-surface"
           @click="copyCode"
         >
           <icon-lucide-check v-if="copied" class="size-3 text-green-400" />
@@ -118,7 +119,7 @@ watch(activeFile, () => {
         </button>
         <button
           data-test-id="code-panel-download"
-          class="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted transition hover:bg-hover hover:text-surface"
+          class="flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-[11px] text-muted transition-colors hover:bg-hover hover:text-surface"
           @click="downloadCode"
         >
           <icon-lucide-download class="size-3" />

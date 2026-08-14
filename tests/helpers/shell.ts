@@ -22,15 +22,14 @@ export async function dismissWelcomeAndEnterDesign(page: Page): Promise<string> 
   return page.evaluate(() => window.__OPEN_PENCIL_PIPELINE__?.currentPhase ?? 'unknown')
 }
 
-/** Expand the 48px left rail into the 280px sidebar on the given section,
- *  or switch the active section when the sidebar is already expanded. */
+/** R14: rail 只放工具 + layers；design 属性搬进了右栏「设计」tab。
+ *  layers → 打开悬浮图层面板；design → 切到右栏设计 tab。 */
 export async function expandLeftRail(page: Page, section: 'layers' | 'design') {
-  const rail = page.locator('[data-test-id="left-rail"]')
-  if (await rail.isVisible().catch(() => false)) {
-    await page.locator(`[data-test-id="left-rail-${section}"]`).click()
-  } else {
-    await page.locator(`[data-test-id="left-sidebar-${section}-tab"]`).click()
+  if (section === 'design') {
+    await page.locator('[data-test-id="panel-view-design"]').click()
+    return
   }
+  await page.locator('[data-test-id="tool-dock-layers"]').click()
   await page.locator('[data-test-id="left-sidebar"]').waitFor({ state: 'visible', timeout: 5000 })
 }
 

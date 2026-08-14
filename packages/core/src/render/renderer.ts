@@ -1,4 +1,4 @@
-import { parseColor, colorToFill } from '../color'
+import { parseColor, colorToFill, parseGradientFill } from '../color'
 import { TRANSPARENT } from '../constants'
 import { isTreeNode } from './tree'
 import { stripEmoji, emojiToIconName, getIconNetwork } from './emoji-icons'
@@ -208,10 +208,14 @@ function applySizeOverrides(
   return { w, h }
 }
 
+function bgToFill(bg: string) {
+  return parseGradientFill(bg) ?? colorToFill(bg)
+}
+
 function applyVisualOverrides(props: Record<string, unknown>, o: Partial<SceneNode>): void {
   const bg = props.bg ?? props.fill
   if (typeof bg === 'string') {
-    o.fills = [colorToFill(bg)]
+    o.fills = [bgToFill(bg)]
   }
 
   if (typeof props.stroke === 'string') {
@@ -351,16 +355,23 @@ function applyAutoLayoutSizing(
   const isVertical = dir === 'col' || dir === 'column'
   o.layoutMode = (isVertical ? 'VERTICAL' : 'HORIZONTAL') as LayoutMode
 
-  // Default to FIXED so users can freely resize elements on canvas.
-  // Only use HUG when explicitly requested via w="hug" or h="hug".
-  o.primaryAxisSizing = 'FIXED'
-  o.counterAxisSizing = 'FIXED'
+  // Default to HUG on axes without an explicit size — flex containers shrink to
+  // fit their content. This is what the design prompt documents ("Default =
+  // hug") and what the AI relies on when it omits w/h: previously an
+  // unspecified axis stayed FIXED at the 100×100 createNode default, so cards
+  // rendered as fixed squares whose wrapped text spilled over sibling
+  // elements (the "messy layout" users saw). Users can still resize on
+  // canvas — a manual resize switches the axis back to FIXED.
+  o.primaryAxisSizing = 'HUG'
+  o.counterAxisSizing = 'HUG'
 
   const primaryDim = isVertical ? h : w
   const counterDim = isVertical ? w : h
 
-  if (primaryDim === 'hug') o.primaryAxisSizing = 'HUG'
-  if (counterDim === 'hug') o.counterAxisSizing = 'HUG'
+  // Explicit number → FIXED. 'fill' also stays FIXED (layoutGrow/alignSelf
+  // were already applied by applySizeOverrides; HUG+grow would fight in Yoga).
+  if (typeof primaryDim === 'number' || primaryDim === 'fill') o.primaryAxisSizing = 'FIXED'
+  if (typeof counterDim === 'number' || counterDim === 'fill') o.counterAxisSizing = 'FIXED'
 }
 
 function applyLayoutOverrides(
@@ -480,6 +491,21 @@ function applyShapeAndEffectOverrides(props: Record<string, unknown>, o: Partial
       {
         type: 'LAYER_BLUR',
         radius: props.blur,
+        visible: true,
+        color: { ...TRANSPARENT },
+        offset: { x: 0, y: 0 },
+        spread: 0
+      }
+    ]
+  }
+
+  // 玻璃拟态的正确打开方式：模糊卡片背后的内容，而不是卡片自己
+  if (typeof props.backdropBlur === 'number') {
+    o.effects = [
+      ...(o.effects ?? []),
+      {
+        type: 'BACKGROUND_BLUR',
+        radius: props.backdropBlur,
         visible: true,
         color: { ...TRANSPARENT },
         offset: { x: 0, y: 0 },

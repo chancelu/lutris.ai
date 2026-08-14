@@ -239,7 +239,7 @@ function dropClass(nodeId: string): string {
           :style="{ paddingLeft: `${4 + node.depth * 16}px` }"
           :class="[
             store.state.selectedIds.has(node.id)
-              ? 'bg-accent text-white'
+              ? 'bg-accent text-on-accent'
               : 'bg-transparent text-surface hover:bg-hover',
             !node.visible ? 'opacity-50' : '',
             dropClass(node.id),
@@ -281,12 +281,12 @@ function dropClass(nodeId: string): string {
 
 <style scoped>
 .layer-drop-before {
-  border-top: 2px solid var(--color-accent, #3b82f6);
+  border-top: 2px solid var(--color-accent, #7FBFA1);
 }
 .layer-drop-after {
-  border-bottom: 2px solid var(--color-accent, #3b82f6);
+  border-bottom: 2px solid var(--color-accent, #7FBFA1);
 }
 .layer-drop-inside {
-  background-color: color-mix(in srgb, var(--color-accent, #3b82f6) 20%, transparent);
+  background-color: color-mix(in srgb, var(--color-accent, #7FBFA1) 20%, transparent);
 }
 </style>

@@ -33,7 +33,7 @@ export function notifyCodeExport(result: CodeExportResult): void {
 export const exportCode = defineTool({
   name: 'export_code',
   description:
-    'Export selected nodes as production code. Supports Vue SFC (.vue), React component (.tsx), or standalone HTML+CSS.',
+    'Export selected nodes as production code. Supports Vue SFC (.vue), React component (.tsx), or standalone HTML+CSS. READ-ONLY projection of the canvas — this does NOT modify the design. If the user asked for a visual/design change, do NOT answer with exported code: call return_to_phase(\'design\') first and modify the canvas there.',
   params: {
     format: {
       type: 'string',

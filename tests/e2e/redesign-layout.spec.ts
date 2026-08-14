@@ -22,8 +22,8 @@ test.afterAll(async () => {
 test('welcome overlay shows on empty canvas in idea phase', async () => {
   const overlay = page.locator('[data-test-id="welcome-overlay"]')
   await expect(overlay).toBeVisible()
-  await expect(overlay.locator('img[src="/mascot-waving.png"]')).toBeVisible()
-  await expect(overlay).toContainText('What do you want to build?')
+  // R12 "Atelier" welcome: serif Chinese headline, no mascot.
+  await expect(overlay).toContainText('从一个想法')
   // Export is gated to design/dev — hidden while in idea phase.
   await expect(page.locator('[data-test-id="topbar-export"]')).not.toBeVisible()
   canvas.assertNoErrors()
@@ -37,10 +37,11 @@ test('blank-canvas action dismisses overlay and lands in design phase', async ()
   canvas.assertNoErrors()
 })
 
-test('TopBar is visible with logo and document name', async () => {
+test('TopBar is visible with wordmark and document name', async () => {
   const header = page.locator('header').first()
   await expect(header).toBeVisible()
-  await expect(header.locator('img[alt="Lutris.ai"]')).toBeVisible()
+  // R12: the otter logo was replaced by a serif "Lutris" wordmark.
+  await expect(header).toContainText('Lutris')
   canvas.assertNoErrors()
 })
 
@@ -81,8 +82,8 @@ test('Design panel appears after expanding the rail and selecting an element', a
   })
   await canvas.waitForRender()
 
-  // Rail is collapsed by default — the design panel needs an explicit expand.
-  await expect(page.locator('[data-test-id="left-rail"]')).toBeVisible()
+  // Dock 默认收起在底部居中 —— 设计面板需要显式切到「设计」tab。
+  await expect(page.locator('[data-test-id="tool-dock"]')).toBeVisible()
   await expandLeftRail(page, 'design')
 
   const drawer = page.locator('[data-test-id="design-panel-single"]')

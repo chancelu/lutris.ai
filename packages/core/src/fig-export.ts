@@ -292,16 +292,20 @@ function compressViaWorker(
       name: e.name,
       data: new Uint8Array(e.data)
     }))
+    // thumbnailPng 可能是模块级常量 THUMBNAIL_1X1（无 renderer/渲染失败时的
+    // 回退）——直接 transfer 会把它 detach，第二次 autosave 起全部抛
+    // DataCloneError。复制一份再 transfer。
+    const thumbCopy = new Uint8Array(thumbnailPng)
 
     const transferables = [
       schemaDeflated.buffer,
       kiwiData.buffer,
-      thumbnailPng.buffer,
+      thumbCopy.buffer,
       ...imgCopies.map((e) => e.data.buffer)
     ]
 
     worker.postMessage(
-      { schemaDeflated, kiwiData, thumbnailPng, metaJson, images: imgCopies },
+      { schemaDeflated, kiwiData, thumbnailPng: thumbCopy, metaJson, images: imgCopies },
       transferables
     )
   })

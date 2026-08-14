@@ -90,8 +90,9 @@ test('variable bind badge appears on fill', async () => {
 
 test('alignment buttons align nodes to same X', async () => {
   await canvas.clearCanvas()
-  await canvas.drawRect(50, 200, 60, 60)
-  await canvas.drawRect(250, 200, 60, 60)
+  // R14: 左侧悬浮 rail 覆盖画布 (x<64, y 64-400)，绘图起点避开它
+  await canvas.drawRect(150, 200, 60, 60)
+  await canvas.drawRect(320, 200, 60, 60)
   await canvas.pressKey('Meta+a')
   await canvas.waitForRender()
 

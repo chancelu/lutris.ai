@@ -159,10 +159,10 @@ test('deselecting hides design panel', async () => {
   await page.keyboard.press('Escape')
   await canvas.waitForRender()
 
-  // DesignPanel single view is unmounted when nothing is selected; the rail
-  // design section shows its otter placeholder instead.
+  // DesignPanel single view is unmounted when nothing is selected; the
+  // properties view shows its otter placeholder instead.
   await expect(page.locator('[data-test-id="design-panel-single"]')).not.toBeVisible()
-  await expect(page.getByText('Select a layer to edit its design.')).toBeVisible()
+  await expect(page.getByText('在画布上选中一个图层，就能在这里调整它的属性')).toBeVisible()
 })
 
 test('multi-select shows mixed header', async () => {

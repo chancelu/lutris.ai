@@ -87,6 +87,56 @@ describe('renderTree', () => {
     expect(node.fills[0]!.type).toBe('SOLID')
   })
 
+  it('renders gradient bg through the JSX pipeline', () => {
+    const g = createGraph()
+    const tree = Frame({
+      name: 'Glow',
+      w: 200,
+      h: 100,
+      bg: 'linear-gradient(135deg, #10B981, #22D3EE)'
+    })
+    const result = renderTree(g, tree)
+
+    const node = g.nodes.get(result.id)!
+    expect(node.fills.length).toBe(1)
+    expect(node.fills[0]!.type).toBe('GRADIENT_LINEAR')
+    expect(node.fills[0]!.gradientStops).toHaveLength(2)
+  })
+
+  it('renders radial gradient bg through the JSX pipeline', () => {
+    const g = createGraph()
+    const tree = Ellipse({
+      name: 'Orb',
+      w: 300,
+      h: 300,
+      bg: 'radial-gradient(circle, #10B98133, #10B98100)'
+    })
+    const result = renderTree(g, tree)
+
+    const node = g.nodes.get(result.id)!
+    expect(node.fills[0]!.type).toBe('GRADIENT_RADIAL')
+    expect(node.fills[0]!.gradientStops![1]!.color.a).toBe(0)
+  })
+
+  it('backdropBlur produces BACKGROUND_BLUR, blur produces LAYER_BLUR', () => {
+    const g = createGraph()
+    const tree = Frame({
+      name: 'Glass',
+      w: 200,
+      h: 100,
+      bg: '#FFFFFFCC',
+      backdropBlur: 12,
+      blur: 4
+    })
+    const result = renderTree(g, tree)
+
+    const node = g.nodes.get(result.id)!
+    const types = node.effects.map((e) => e.type)
+    expect(types).toContain('BACKGROUND_BLUR')
+    expect(types).toContain('LAYER_BLUR')
+    expect(node.effects.find((e) => e.type === 'BACKGROUND_BLUR')!.radius).toBe(12)
+  })
+
   it('renders text node with content', () => {
     const g = createGraph()
     const tree = Text({ name: 'Heading', size: 24, weight: 'bold', color: '#111', children: 'Hello' })

@@ -12,7 +12,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { createPhaseReadTools, createSubmitTools } from '@/ai/phase-tools'
+import { createPhaseReadTools, createReturnTool, createSubmitTools } from '@/ai/phase-tools'
 import { buildDynamicPrompt } from '@/composables/use-chat'
 import { usePipeline } from '@/composables/use-pipeline'
 import { useProjects } from '@/composables/use-projects'
@@ -298,5 +298,115 @@ describe('spec → design data flow', () => {
     const extra = spec.createSpecPage('Extra', { route: '/extra', purpose: 'p', userStory: 'u' })
     expect(() => spec.upsertPage(extra, 'ai', 'extra')).not.toThrow()
     expect(spec.pages.value).toHaveLength(4)
+  })
+
+  // Regression: models regularly send malformed payloads — role outside the
+  // picklist (Chinese, "display 组件"), components as bare strings, missing
+  // userStory/route. A strict tool schema rejects these BEFORE execute with a
+  // bare "An error occurred.", and the model retries the same payload (users
+  // saw rows of red "Submit Spec Output — Error"). The tool now normalizes
+  // anything page-shaped and only soft-fails (needsMoreInfo) on empty pages.
+  it('submit_spec_output normalizes malformed model payloads instead of hard-failing', async () => {
+    const pipeline = resetPipeline()
+    pipeline.value.currentPhase = 'spec'
+    pipeline.value.phases.spec.status = 'in-progress'
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool execute params are any-typed in phase-tools
+    const submitTools = createSubmitTools('spec') as any
+    const raw = await submitTools.submit_spec_output.execute({
+      pages: [
+        {
+          name: '首页',
+          // route / purpose / userStory missing entirely
+          components: [
+            'Header', // bare string component
+            { name: '打卡按钮', role: '操作按钮' }, // role outside the picklist
+            { name: 'StreakList', role: 'list-item', repeatable: true },
+          ],
+        },
+        { name: 'Circle', route: '/circle', purpose: 'p', userStory: 'u', components: 'oops' },
+      ],
+    }, {})
+
+    const submitted = JSON.parse(raw as string)
+    expect(submitted.success).toBe(true)
+    expect(submitted.pages).toHaveLength(2)
+    expect(submitted.pages[0].route).toBe('/') // fallback route, first page
+
+    const spec = useSpec()
+    const first = spec.pages.value.find((p) => p.name === '首页')!
+    expect(first.components).toHaveLength(3)
+    expect(first.components[0]).toMatchObject({ name: 'Header', role: 'display' })
+    expect(first.components[1].role).toBe('display') // unknown role falls back
+    expect(first.components[2]).toMatchObject({ name: 'StreakList', role: 'list-item', repeatable: true })
+    const second = spec.pages.value.find((p) => p.name === 'Circle')!
+    expect(second.components).toHaveLength(0) // non-array components tolerated
+  })
+
+  it('submit_spec_output with no pages soft-fails with needsMoreInfo instead of throwing', async () => {
+    const pipeline = resetPipeline()
+    pipeline.value.currentPhase = 'spec'
+    pipeline.value.phases.spec.status = 'in-progress'
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool execute params are any-typed in phase-tools
+    const submitTools = createSubmitTools('spec') as any
+    const result = await submitTools.submit_spec_output.execute({ pages: [] }, {})
+    expect(result).toMatchObject({ success: false, needsMoreInfo: true })
+
+    const { currentPhase } = usePipeline()
+    expect(currentPhase.value).toBe('spec') // did NOT advance
+  })
+})
+
+// The pipeline is iterative: an agent in dev must be able to walk the user
+// back to design (or design → spec) instead of declaring the phase "locked"
+// (real user report: dev-phase agent refused to touch the canvas).
+describe('return_to_phase', () => {
+  beforeEach(() => {
+    resetPipeline()
+  })
+
+  it('is not offered in the idea phase (nowhere to go back to)', () => {
+    expect(createReturnTool('idea')).toEqual({})
+    expect(Object.keys(createReturnTool('spec'))).toContain('return_to_phase')
+    expect(Object.keys(createReturnTool('design'))).toContain('return_to_phase')
+    expect(Object.keys(createReturnTool('dev'))).toContain('return_to_phase')
+  })
+
+  it('dev → design jump succeeds and switches currentPhase', async () => {
+    const pipeline = resetPipeline()
+    pipeline.value.currentPhase = 'dev'
+    pipeline.value.phases.design.status = 'completed'
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool execute params are any-typed in phase-tools
+    const tools = createReturnTool('dev') as any
+    const result = await tools.return_to_phase.execute({ phase: 'design', reason: '改首页配色' }, {})
+
+    expect(result).toMatchObject({ success: true })
+    expect(usePipeline().currentPhase.value).toBe('design')
+  })
+
+  it('returning to a phase the project never reached soft-fails with needsMoreInfo', async () => {
+    const pipeline = resetPipeline()
+    pipeline.value.currentPhase = 'spec' // furthest = spec, design/dev unreachable
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool execute params are any-typed in phase-tools
+    const tools = createReturnTool('spec') as any
+    const result = await tools.return_to_phase.execute({ phase: 'design', reason: 'x' }, {})
+
+    expect(result).toMatchObject({ success: false, needsMoreInfo: true })
+    expect(usePipeline().currentPhase.value).toBe('spec')
+  })
+
+  it('returning to the current phase is a no-op success', async () => {
+    const pipeline = resetPipeline()
+    pipeline.value.currentPhase = 'design'
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool execute params are any-typed in phase-tools
+    const tools = createReturnTool('design') as any
+    const result = await tools.return_to_phase.execute({ phase: 'design', reason: '继续改' }, {})
+
+    expect(result).toMatchObject({ success: true })
+    expect(usePipeline().currentPhase.value).toBe('design')
   })
 })

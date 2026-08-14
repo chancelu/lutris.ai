@@ -62,9 +62,9 @@ function onSelect(v: Variable) {
   <PopoverRoot>
     <PopoverTrigger as-child>
       <button
-        class="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded border-none transition-colors"
+        class="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-lg border-none transition-colors"
         :class="boundVariable
-          ? 'bg-accent/20 text-accent'
+          ? 'bg-accent/15 text-accent'
           : 'bg-transparent text-muted hover:bg-hover hover:text-surface'"
         :title="boundVariable ? `Bound: ${boundVariable.name}` : 'Bind variable'"
       >
@@ -75,10 +75,10 @@ function onSelect(v: Variable) {
       <PopoverContent
         side="left"
         :side-offset="8"
-        class="z-50 w-52 rounded-lg border border-border bg-panel p-2 shadow-lg"
+        class="z-50 w-52 rounded-xl border border-border/40 bg-panel p-2 shadow-lg"
       >
         <!-- Bound state -->
-        <div v-if="boundVariable" class="mb-2 flex items-center gap-2 rounded bg-accent/10 px-2 py-1.5">
+        <div v-if="boundVariable" class="mb-2 flex items-center gap-2 rounded-lg bg-accent/10 px-2 py-1.5">
           <div
             v-if="variableType === 'COLOR'"
             class="size-3 shrink-0 rounded-sm border border-border"
@@ -87,7 +87,7 @@ function onSelect(v: Variable) {
           <icon-lucide-hash v-else class="size-3 shrink-0 text-accent" />
           <span class="min-w-0 flex-1 truncate text-[11px] text-accent">{{ boundVariable.name }}</span>
           <button
-            class="cursor-pointer border-none bg-transparent p-0 text-muted hover:text-surface"
+            class="cursor-pointer border-none bg-transparent p-0 text-muted transition-colors hover:text-surface"
             title="Unbind"
             @click="emit('unbind')"
           >
@@ -100,7 +100,7 @@ function onSelect(v: Variable) {
           <ComboboxInput
             v-model="search"
             placeholder="Search variables…"
-            class="mb-1 w-full rounded border border-border bg-input px-2 py-1 text-[11px] text-surface outline-none placeholder:text-muted"
+            class="mb-1 w-full rounded-lg border border-border bg-input px-2 py-1 text-[11px] text-surface outline-none placeholder:text-muted"
           />
           <ComboboxContent class="max-h-48 overflow-y-auto p-1">
             <ComboboxEmpty class="px-2 py-3 text-center text-[11px] text-muted">
@@ -110,7 +110,7 @@ function onSelect(v: Variable) {
               v-for="v in filteredVariables"
               :key="v.id"
               :value="v"
-              class="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-[11px] text-surface data-[highlighted]:bg-hover"
+              class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 text-[11px] text-surface data-[highlighted]:bg-hover"
             >
               <div
                 v-if="variableType === 'COLOR'"

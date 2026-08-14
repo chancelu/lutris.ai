@@ -73,7 +73,7 @@ function save() {
       <button
         type="submit"
         data-test-id="api-key-save"
-        class="mt-1 w-full rounded bg-accent py-1.5 text-xs font-medium text-white hover:bg-accent/90"
+        class="mt-1 w-full rounded-lg bg-surface py-2 text-xs font-medium text-panel transition-colors hover:bg-surface/90 disabled:opacity-40"
         :disabled="!keyInput.trim()"
       >
         Connect

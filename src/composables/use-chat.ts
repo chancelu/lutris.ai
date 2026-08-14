@@ -7,7 +7,7 @@ import { useLocalStorage } from '@vueuse/core'
 import { DirectChatTransport, ToolLoopAgent } from 'ai'
 import { computed, ref, shallowRef, watch } from 'vue'
 
-import { createPhaseReadTools, createSubmitTools, filterToolsByPhase } from '@/ai/phase-tools'
+import { createPhaseReadTools, createReturnTool, createSubmitTools, filterToolsByPhase } from '@/ai/phase-tools'
 import { DESIGN_PROMPT, DEV_PROMPT, IDEA_PROMPT, SPEC_PROMPT, buildIdeaBriefSection, buildSpecPagesSection } from '@/ai/prompts'
 import { createAITools } from '@/ai/tools'
 import { useEditorStore } from '@/stores/editor'
@@ -21,7 +21,7 @@ import { useSpec } from './use-spec'
 
 import type { PipelinePhase } from '@/types/pipeline'
 import type { AIProviderID } from '@llc3233149/core'
-import type { LanguageModel, UIMessage } from 'ai'
+import type { LanguageModel, ToolSet, UIMessage } from 'ai'
 
 const STORAGE_PREFIX = 'lutris:'
 const LEGACY_KEY_STORAGE = `${STORAGE_PREFIX}openrouter-api-key`
@@ -92,7 +92,7 @@ const pendingMessage = ref<string | null>(null)
 const pendingSystemPrefix = ref<string | null>(null)
 const draftMessage = ref<string>('')
 const focusRequested = ref(0)
-const inlinePanel = ref<'spec' | 'export' | 'code' | null>(null)
+const inlinePanel = ref<'export' | 'code' | 'design' | null>(null)
 // Bumped when chat instance is re-created (e.g. after IDB restore) so ChatPanel can react
 const chatInstanceVersion = ref(0)
 
@@ -122,9 +122,11 @@ const isConfigured = computed(() => {
   return true
 })
 
-// Task 10: phase 变了，工具白名单和 system prompt 都变了，
-// 必须重建 transport（跟切换 provider 一样的模式）
-watch(() => usePipeline().currentPhase.value, () => resetChat())
+// 阶段切换不再 resetChat：transport 的 prepareCall 每次模型调用都按
+// currentPhase 动态重建 system prompt 和工具白名单（见 createTransport），
+// Chat 实例本身与阶段无关。旧实现在这里 resetChat → chat.stop()，会在
+// submit_xxx 工具推进阶段的瞬间把正在运行的 agent loop 整个掐掉——
+// 用户看到的就是"AI 说到一半消失/没有下文"。
 
 watch(providerID, (id) => {
   const def = AI_PROVIDERS.find((p) => p.id === id)
@@ -326,30 +328,85 @@ function createTransport() {
   const { currentPhase } = usePipeline()
   const { tools: allTools, commitAIBatch } = createAITools(useEditorStore())
 
-  // Re-derived on every prepareCall (i.e. every step within a tool loop, not
-  // just once at transport creation) — a submit_xxx tool can advance
-  // currentPhase mid-loop, and the agent's tool set must follow immediately,
-  // otherwise the model gets a Design-phase system prompt telling it to call
-  // `render` while it's still stuck holding the Idea/Spec-phase tool set.
-  function currentPhaseTools() {
-    return {
-      ...filterToolsByPhase(allTools, currentPhase.value),
-      ...createPhaseReadTools(currentPhase.value),
-      ...createSubmitTools(currentPhase.value),
-    }
+  // 全阶段工具的并集 + 每步 activeTools 过滤。
+  // 实测踩坑：SDK 的 prepareCall 每个回合只跑一次（不是每个 step）——
+  // return_to_phase 在同回合内切换阶段后，如果 tools 还停在旧阶段的集合，
+  // 模型调 render 会报 "unavailable tool 'render'"，阶段回退形同虚设
+  // （这就是"系统暂时无法重绘画布"的真正根因）。正解：tools 给并集，
+  // prepareStep 在每个 step 前按当前阶段实时计算 activeTools。
+  const unionTools: ToolSet = {
+    ...allTools,
+    ...createPhaseReadTools('design'),
+    ...createSubmitTools('idea'),
+    ...createSubmitTools('spec'),
+    ...createSubmitTools('design'),
+    ...createSubmitTools('dev'),
+    ...createReturnTool('design'),
+  }
+
+  function activeToolsForPhase(phase: PipelinePhase): string[] {
+    return Object.keys({
+      ...filterToolsByPhase(allTools, phase),
+      ...createPhaseReadTools(phase),
+      ...createSubmitTools(phase),
+      ...createReturnTool(phase),
+    })
   }
 
   const agent = new ToolLoopAgent({
     model: createModel(),
     instructions: buildDynamicPrompt(),
-    tools: currentPhaseTools(),
+    tools: unionTools,
+    activeTools: activeToolsForPhase(currentPhase.value),
     maxOutputTokens: maxOutputTokens.value,
     prepareCall: (options) => ({
       ...options,
       maxOutputTokens: maxOutputTokens.value,
       instructions: buildDynamicPrompt(),
-      tools: currentPhaseTools(),
+      tools: unionTools,
+      activeTools: activeToolsForPhase(currentPhase.value),
     }),
+    // 每个 step 前重算 system prompt 与可用工具——submit_xxx / return_to_phase
+    // 在回合内推进或回退阶段后，下一步立刻拿到新阶段的工具集与指令。
+    prepareStep: () => ({
+      system: buildDynamicPrompt(),
+      activeTools: activeToolsForPhase(currentPhase.value),
+    }),
+    // 模型偶发输出截断/畸形的工具调用 JSON（长 JSX 字符串最容易在
+    // maxOutputTokens 处被截断）。默认处理是整个工具调用以一句
+    // "An error occurred." 失败——模型拿不到任何细节，直接放弃渲染。
+    // 这里尽力修复：能解析但校验不过的交给原错误；解析不了的尝试从
+    // 原始输入里抠出 jsx 参数重组（截断的 JSX 会在 render 里抛出
+    // 真实错误信息，模型据此缩小调用重试，恢复链路是闭环的）。
+    experimental_repairToolCall: async ({ toolCall, error }) => {
+      console.warn('[AI Chat] tool call repair attempt:', toolCall.toolName, error.message)
+      if (typeof toolCall.input !== 'string') return null
+      try {
+        const parsed = JSON.parse(toolCall.input) as Record<string, unknown> | null
+        // 语法合法但 schema 不符：render 场景下如果 jsx 存在但类型不对
+        // （模型偶发把 JSX 拆成数组/对象），尽力收成字符串；否则维持原错误
+        if (toolCall.toolName === 'render' && parsed && 'jsx' in parsed) {
+          const coerced = typeof parsed.jsx === 'string' ? parsed.jsx : JSON.stringify(parsed.jsx)
+          if (coerced.trim().startsWith('<')) {
+            return { ...toolCall, input: JSON.stringify({ ...parsed, jsx: coerced }) }
+          }
+        }
+        return null
+      } catch { /* 语法层面已坏，尝试抢救 */ }
+      const m = toolCall.input.match(/"jsx"\s*:\s*"((?:[^"\\]|\\.)*)"?/)
+      if (!m) return null
+      // 截断可能正好落在转义符中间（结尾落单 \）——去掉不完整的尾部转义再解析
+      let raw = m[1]
+      const trailing = raw.match(/\\+$/)?.[0].length ?? 0
+      if (trailing % 2 === 1) raw = raw.slice(0, -1)
+      try {
+        const jsx = JSON.parse(`"${raw}"`) as string
+        if (!jsx.trim().startsWith('<')) return null
+        return { ...toolCall, input: JSON.stringify({ jsx }) }
+      } catch {
+        return null
+      }
+    },
     experimental_onToolCallStart: (event) => {
       const name = event.toolCall.toolName
       if (name === 'render') aiProgress.value = 'generating'
@@ -364,11 +421,36 @@ function createTransport() {
     }
   })
 
-  return new DirectChatTransport({ agent })
+  return new DirectChatTransport({
+    agent,
+    // SDK 默认把任何错误都显示成一句 "An error occurred."（防泄露服务端细节），
+    // 但这里是纯客户端直连 provider——用户和我们都需要真实原因才能修。
+    onError: (error: unknown) => {
+      // 挖 cause 链到底层（顶层常是泛化包装）
+      let msg = error instanceof Error ? error.message : String(error)
+      let cause: unknown = error instanceof Error ? error.cause : undefined
+      while (cause) {
+        if (cause instanceof Error) msg = cause.message
+        else if (typeof cause === 'object') msg = JSON.stringify(cause)
+        else msg = String(cause as string | number | boolean)
+        cause = cause instanceof Error ? cause.cause : undefined
+      }
+      console.warn('[AI Chat] stream error surfaced:', msg, error)
+      return msg
+    },
+  })
 }
 
 function ensureChat(): Chat<UIMessage> | null {
   if (!isConfigured.value) return null
+  // 项目数据（含聊天记录）还在从 IDB 加载时不要创建 Chat——否则会用
+  // 上一个项目的 activeChat 初始化，把对话串到别的项目里。
+  try {
+    const { isLoading } = useProjects()
+    if (isLoading.value) return null
+  } catch {
+    // useProjects not available yet
+  }
   if (!chat) {
     const restored = getRestoredMessages()
     chat = new Chat<UIMessage>({
@@ -388,6 +470,9 @@ function resetChat() {
   }
   chat = null
   aiProgress.value = 'idle'
+  // 通知 ChatPanel 重取实例——否则它会一直拿着被清掉的旧 Chat 继续聊，
+  // 而 saveChatToProject 读的是模块态 chat（此时为 null），消息写不进 IDB。
+  chatInstanceVersion.value++
 }
 
 // ── Per-Project Chat Persistence ──

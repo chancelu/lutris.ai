@@ -33,26 +33,28 @@ function getPhase() {
 test('1. editor loads with zero console errors and shows the welcome overlay', async () => {
   const overlay = page.locator('[data-test-id="welcome-overlay"]')
   await expect(overlay).toBeVisible()
-  await expect(overlay.locator('img[src="/mascot-waving.png"]')).toBeVisible()
-  await expect(overlay).toContainText('What do you want to build?')
+  // R12 "Atelier" welcome: serif Chinese headline, no mascot.
+  await expect(overlay).toContainText('从一个想法')
   await expect(page.locator('[data-test-id="welcome-describe-idea"]')).toBeVisible()
   await expect(page.locator('[data-test-id="welcome-blank-canvas"]')).toBeVisible()
   expect(await getPhase()).toBe('idea')
   canvas.assertNoErrors()
 })
 
-test('2. blank-canvas skip lands in design with toolbar and a collapsed 48px rail', async () => {
+test('2. blank-canvas skip lands in design with toolbar and a bottom-center dock', async () => {
   await page.locator('[data-test-id="welcome-blank-canvas"]').click()
   await expect(page.locator('[data-test-id="welcome-overlay"]')).not.toBeVisible()
 
   expect(await getPhase()).toBe('design')
   await expect(page.locator('[data-test-id="toolbar"]')).toBeVisible()
 
-  const rail = page.locator('[data-test-id="left-rail"]')
-  await expect(rail).toBeVisible()
-  const box = await rail.boundingBox()
+  const dock = page.locator('[data-test-id="tool-dock"]')
+  await expect(dock).toBeVisible()
+  const box = await dock.boundingBox()
   expect(box).not.toBeNull()
-  expect(box!.width).toBeLessThanOrEqual(50)
+  // R15: 横向 dock——矮条（高度一按钮），宽度大于高度
+  expect(box!.height).toBeLessThanOrEqual(56)
+  expect(box!.width).toBeGreaterThan(box!.height)
   canvas.assertNoErrors()
 })
 
@@ -98,7 +100,7 @@ test('4. stepper gating: idea ↔ design jumps work, dev stays locked', async ()
   canvas.assertNoErrors()
 })
 
-test('5. advancing to dev auto-opens the Code view with the otter empty state', async () => {
+test('5. advancing to dev keeps the chat and lights the Code tab dot', async () => {
   const result = await page.evaluate(() =>
     window.__OPEN_PENCIL_PIPELINE__!.advancePhase('design', {
       pageNodeMap: { 'page-1': 'node-1' },
@@ -108,9 +110,15 @@ test('5. advancing to dev auto-opens the Code view with the otter empty state', 
   expect(result.valid).toBe(true)
   expect(await getPhase()).toBe('dev')
 
+  // R12: entering dev no longer rips the user out of the chat — the Code tab
+  // gets a notification dot instead, and the user opens it explicitly.
+  await expect(page.locator('[data-test-id="chat-panel"]')).toBeVisible()
+  await expect(page.locator('[data-test-id="panel-view-code-dot"]')).toBeVisible()
+
+  await page.locator('[data-test-id="panel-view-code"]').click()
   const empty = page.locator('[data-test-id="code-panel-empty"]')
   await expect(empty).toBeVisible()
-  await expect(empty.locator('img[src="/mascot-designing.png"]')).toBeVisible()
+  await expect(empty.locator('svg[aria-label="Lutris otter"]')).toBeVisible()
   canvas.assertNoErrors()
 })
 

@@ -819,8 +819,14 @@ export class SkiaRenderer {
 
     const truncateOpts = this.buildTruncateOpts(node, baseFontSize)
 
-    const fontFamilies = (primary: string) =>
-      cjkFallback ? [primary, cjkFallback] : [primary]
+    // CanvasKit 的 TypefaceFontProvider 不做逐字形回退：主字体（如 Inter）
+    // 缺 CJK 字形时，把 CJK 字体列在 fontFamilies 后面也救不回来（照样豆腐块）。
+    // 含 CJK 的文本把回退字体放最前——Noto Sans SC 同时覆盖拉丁字符，视觉一致。
+    const hasCJK = /[⺀-鿿豈-﫿＀-￾]/.test(node.text)
+    const fontFamilies = (primary: string) => {
+      if (!cjkFallback) return [primary]
+      return hasCJK && primary !== cjkFallback ? [cjkFallback, primary] : [primary]
+    }
 
     const paraStyle = new ck.ParagraphStyle({
       textAlign: this.getTextAlign(node.textAlignHorizontal),

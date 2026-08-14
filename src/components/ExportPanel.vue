@@ -102,7 +102,7 @@ async function exportAsPDF() {
         v-model="filename"
         type="text"
         placeholder="Export"
-        class="w-full rounded-lg border border-border/30 bg-transparent px-3 py-2 text-[13px] text-surface placeholder:text-muted/50 focus:border-blue-500 focus:outline-none"
+        class="w-full rounded-lg border border-border/30 bg-transparent px-3 py-2 text-[13px] text-surface placeholder:text-muted/50 focus:border-accent/50 focus:outline-none"
       />
     </div>
 
@@ -114,7 +114,7 @@ async function exportAsPDF() {
           :key="f.value"
           class="rounded-xl border py-2 text-center text-[12px] transition-colors"
           :class="format === f.value
-            ? 'border-blue-500 bg-blue-500/10 text-surface font-semibold'
+            ? 'border-accent/20 bg-accent/10 text-accent font-semibold'
             : 'border-border/30 text-muted hover:text-surface'"
           @click="format = f.value"
         >
@@ -134,7 +134,7 @@ async function exportAsPDF() {
           :key="s.value"
           class="rounded-full border px-2.5 py-1 text-[12px] transition-colors"
           :class="scale === s.value
-            ? 'border-blue-500 bg-blue-500/10 text-surface font-semibold'
+            ? 'border-accent/20 bg-accent/10 text-accent font-semibold'
             : 'border-border/30 text-muted hover:text-surface'"
           @click="scale = s.value"
         >
@@ -162,7 +162,7 @@ async function exportAsPDF() {
 
     <button
       :disabled="isExporting"
-      class="w-full rounded-xl bg-blue-600 py-2 text-xs text-white hover:bg-blue-500 disabled:opacity-40"
+      class="w-full rounded-lg bg-surface py-2 text-xs font-medium text-panel transition-colors hover:bg-surface/90 disabled:opacity-40"
       @click="handleExport"
     >
       {{ isExporting ? 'Exporting...' : `Export as ${format}` }}

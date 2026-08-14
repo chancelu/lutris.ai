@@ -29,7 +29,7 @@ const { triggerClass, itemClass, testId } = defineProps<{
         selectTrigger({
           class:
             triggerClass ??
-            'w-full justify-between rounded border border-border bg-input px-2 py-1 text-[11px] text-surface'
+            'w-full justify-between rounded-lg border border-border bg-input px-2 py-1 text-[11px] text-surface transition-colors'
         })
       "
     >

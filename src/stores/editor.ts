@@ -2,7 +2,7 @@ import { shallowReactive, shallowRef, computed, watch } from 'vue'
 
 import { toast } from '@/composables/use-toast'
 import { deepRawClone } from '@/utils/deep-raw'
-import { saveToIDB, loadFromIDB } from '@/stores/autosave-idb'
+import { loadFromIDB, saveDocumentToIDB } from '@/stores/autosave-idb'
 import {
   IS_TAURI,
   DEFAULT_SHAPE_FILL,
@@ -677,8 +677,18 @@ export function createEditorStore() {
           if (fileHandle || filePath) {
             await writeFile(data)
           } else {
-            // No file handle — save to IndexedDB for session recovery
-            await saveToIDB(data)
+            // Per-project IDB autosave（取代旧的全局 recovery 槽——全局槽会在
+            // 下次启动时被 migrateLegacySession 覆盖进默认项目，造成跨项目
+            // 画布污染）。写当前活动项目的 document 槽，刷新最多丢 3s 的改动。
+            try {
+              const { useProjects } = await import('@/composables/use-projects')
+              const { activeProjectId, isLoading } = useProjects()
+              // 项目切换的加载窗口里画布还是旧场景——此时写盘会串项目
+              const pid = isLoading.value ? null : activeProjectId.value
+              if (pid) await saveDocumentToIDB(pid, data)
+            } catch {
+              // non-critical — use-projects 的 30s 间隔保存兜底
+            }
           }
         } catch (e) {
           console.warn('[autosave] failed:', e)

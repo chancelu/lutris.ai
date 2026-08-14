@@ -1,5 +1,6 @@
-import { ref, readonly, computed, toRaw } from 'vue'
+import { ref, readonly, computed } from 'vue'
 
+import { deepRawClone } from '@/utils/deep-raw'
 import {
   saveDocumentToIDB,
   loadDocumentFromIDB,
@@ -71,14 +72,18 @@ async function persistMeta(meta: ProjectMeta): Promise<void> {
 async function saveActiveProjectData(): Promise<void> {
   const pid = activeProjectId.value
   if (!pid) return
+  // switchProject 先把 activeProjectId 切到新项目、再 await loadProjectData——
+  // 这个窗口里 active* refs 还是旧项目的数据。此时存盘会把旧项目的
+  // pipeline/chat/PRD 写进新项目的 IDB 槽（"串项目"的另一种形态）。
+  if (isLoading.value) return
   isSaving.value = true
   try {
     await Promise.all([
-      saveBrandToIDB(pid, structuredClone(toRaw(activeBrand.value))),
-      savePRDToIDB(pid, structuredClone(toRaw(activePRD.value))),
-      saveChatToIDB(pid, structuredClone(toRaw(activeChat.value))),
-      saveSnapshotsToIDB(pid, structuredClone(toRaw(activeSnapshots.value))),
-      savePipelineToIDB(pid, structuredClone(toRaw(activePipeline.value))),
+      saveBrandToIDB(pid, deepRawClone(activeBrand.value)),
+      savePRDToIDB(pid, deepRawClone(activePRD.value)),
+      saveChatToIDB(pid, deepRawClone(activeChat.value)),
+      saveSnapshotsToIDB(pid, deepRawClone(activeSnapshots.value)),
+      savePipelineToIDB(pid, deepRawClone(activePipeline.value)),
     ])
     lastSavedAt.value = Date.now()
     // Update meta timestamp
@@ -208,6 +213,9 @@ async function switchProject(
 async function saveCurrentDesign(editorStore: EditorStore): Promise<void> {
   const pid = activeProjectId.value
   if (!pid) return
+  // 与 saveActiveProjectData 同理：项目切换的加载窗口里，画布还是旧项目的
+  // 场景，写盘会把旧场景盖到新项目的 document 槽。
+  if (isLoading.value) return
   try {
     const figData = await editorStore.buildFigFile()
     await saveDocumentToIDB(pid, new Uint8Array(figData))

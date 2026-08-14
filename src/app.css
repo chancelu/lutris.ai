@@ -9,6 +9,33 @@
   }
 }
 
+/* R13 glass material — translucent panel + blur + hairline */
+@utility glass {
+  background: color-mix(in srgb, var(--color-panel) 78%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* R13 electric glow — reserved for primary CTA & active phase */
+@utility glow-accent {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-accent) 35%, transparent),
+    0 4px 24px color-mix(in srgb, var(--color-accent) 28%, transparent);
+}
+
+/* R13 brand gradient fill — primary CTA / active phase / otter mark only */
+@utility gradient-cta {
+  background: var(--gradient-accent);
+}
+
+/* R13 brand gradient text (single short phrase max) */
+@utility text-gradient {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 @utility scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--color-muted) 30%, transparent) transparent;
@@ -29,29 +56,60 @@
 }
 
 @theme {
-  /* Warm cream/ivory default — matches loading page #FBF8F3 */
-  --color-panel: #FBF8F3;
-  --color-canvas: #F5F1EB;
-  --color-border: #E8E0D4;
-  --color-hover: #F0EBE3;
-  --color-accent: #3B7A6B;
-  --color-surface: #2D2A26;
-  --color-muted: #8B7E6A;
-  --color-input: #FBF8F3;
-  --color-inset: #F0EBE3;
+  /* R13 "Deep Space" light — cool mist white + electric indigo */
+  --color-panel: #FFFFFF;
+  --color-canvas: #F4F6FB;
+  --color-border: #E2E7F2;
+  --color-hover: #EDF1F9;
+  --color-accent: #4F5FE8;
+  --color-accent-2: #0891B2;
+  --color-on-accent: #FFFFFF;
+  --color-surface: #151A26;
+  --color-muted: #6B7488;
+  --color-input: #FFFFFF;
+  --color-inset: #EDF1F9;
+
+  /* R13 brand gradient (CTA / active states / otter mark) */
+  --gradient-accent: linear-gradient(135deg, #6E7BFF 0%, #22D3EE 100%);
+
+  /* Geometric sans for headlines/wordmark — R13 dropped the R12 serif */
+  --font-display:
+    Inter, 'SF Pro Display', system-ui, -apple-system, 'PingFang SC', 'MiSans',
+    'Microsoft YaHei', sans-serif;
 }
 
-/* Dark theme overrides */
+/* R13 "Deep Space" dark — cold blue-black + glass + electric indigo→cyan.
+   科技感来自冷色、玻璃、几何与克制的光，而不是堆渐变。 */
 .dark {
-  --color-panel: #1c1c1e;
-  --color-canvas: #141416;
-  --color-border: #2e2e32;
-  --color-hover: #2a2a2e;
-  --color-accent: #5b9cf6;
-  --color-surface: #e8e8ec;
-  --color-muted: #8e8e93;
-  --color-input: #1c1c1e;
-  --color-inset: #18181a;
+  --color-panel: #0C0F16;
+  --color-canvas: #07090F;
+  --color-border: #1C2231;
+  --color-hover: #141926;
+  --color-accent: #6E7BFF;
+  --color-accent-2: #22D3EE;
+  --color-on-accent: #FFFFFF;
+  --color-surface: #EEF1F8;
+  --color-muted: #8B93A7;
+  --color-input: #0C0F16;
+  --color-inset: #0A0D14;
+}
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 32%, transparent);
+}
+
+/* Consistent keyboard focus ring (inputs keep their own focus styles) */
+:where(button, a, [role='button'], [role='tab'], [tabindex]):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  outline-offset: 1px;
 }
 
 html,
@@ -66,12 +124,19 @@ body {
     Inter,
     system-ui,
     -apple-system,
+    'PingFang SC',
+    'MiSans',
+    'Microsoft YaHei',
     sans-serif;
   font-size: 13px;
+  letter-spacing: -0.006em;
   color: var(--color-surface);
   background: var(--color-canvas);
   user-select: none;
   -webkit-user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 [data-test-id='chat-panel'] [data-test-id='chat-text-bubble'],

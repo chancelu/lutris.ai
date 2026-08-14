@@ -177,6 +177,35 @@ export function usePipeline() {
   }
 
   /**
+   * PRD 导入的逃生门（"Import PRD"）：需求文档已经有了，idea 阶段标记 skipped，
+   * 直接落进 spec 阶段——Spec Studio 随之成为主区，导入的内容在那里可见可改。
+   */
+  function skipToSpec(note?: string): boolean {
+    const pipeline = activePipeline.value
+    const from = pipeline.currentPhase
+    if (from !== 'idea') return false // 只有 idea 阶段才有"跳过"一说
+
+    const now = Date.now()
+    if (pipeline.phases.idea.status !== 'completed') {
+      pipeline.phases.idea.status = 'skipped'
+    }
+    pipeline.currentPhase = 'spec'
+    if (pipeline.phases.spec.status === 'pending') {
+      pipeline.phases.spec.status = 'in-progress'
+      pipeline.phases.spec.enteredAt = now
+    }
+    pipeline.history.push({
+      from,
+      to: 'spec',
+      timestamp: now,
+      reason: 'user-override',
+      note: note ?? 'Imported PRD — starting from the spec phase',
+    })
+    persistPipeline()
+    return true
+  }
+
+  /**
    * 用户手动跳转到某阶段（如点击 Design tab）。不做产出校验，
    * 但只允许跳到"已到达过的最远阶段"以内——不能跳过未完成的阶段。
    */
@@ -247,6 +276,7 @@ export function usePipeline() {
     revertPhase,
     jumpToPhase,
     canJumpTo,
+    skipToSpec,
     skipToDesign,
   }
 }

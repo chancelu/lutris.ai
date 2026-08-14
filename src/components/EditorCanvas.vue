@@ -149,13 +149,13 @@ function handleCanvasClick(e: MouseEvent) {
       >
         <div
           v-if="showAISelectPopup"
-          class="absolute z-30 flex items-center gap-2 rounded-lg border border-accent/30 bg-panel px-3 py-2 shadow-xl"
+          class="glass absolute z-30 flex items-center gap-2 rounded-lg border border-accent/40 px-3 py-2 shadow-xl"
           :style="{ left: `${aiSelectPopupPos.x}px`, top: `${Math.max(8, aiSelectPopupPos.y - 48)}px` }"
           @click.stop
         >
           <span class="text-[12px] text-surface">🎯 {{ aiSelectNodeName }}</span>
           <button
-            class="rounded bg-accent px-2.5 py-1 text-[11px] text-white transition hover:bg-accent/80"
+            class="gradient-cta rounded-lg px-2.5 py-1 text-[11px] font-medium text-on-accent transition-[filter] hover:brightness-110"
             @click="confirmAISelect"
           >
             Send to AI Chat
@@ -186,7 +186,7 @@ function handleCanvasClick(e: MouseEvent) {
           class="absolute inset-0 z-50 flex items-center justify-center bg-canvas"
         >
           <svg
-            class="size-8 text-white opacity-40"
+            class="size-8 text-muted opacity-60"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
