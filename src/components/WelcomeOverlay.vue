@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 
 import { useEditorStore } from '@/stores/editor'
 import { usePipeline } from '@/composables/use-pipeline'
+import { track } from '@/lib/analytics'
 import OtterMark from '@/components/OtterMark.vue'
 
 const store = useEditorStore()
@@ -35,6 +36,7 @@ const showOverlay = computed(
 )
 
 function handleAction(type: Parameters<typeof emit>[1]) {
+  track('welcome_action', { action: type })
   dismissed.value = true
   emit('action', type)
 }

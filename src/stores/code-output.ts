@@ -6,6 +6,8 @@ import { computed, readonly, ref } from 'vue'
 // registered here fires when export_code executes.
 import { onCodeExport } from '../../packages/core/src/tools/export-code'
 
+import { track } from '@/lib/analytics'
+
 import type { CodeFormat } from '../../packages/core/src/render/export-code'
 
 export type CodeFramework = 'Vue' | 'React' | 'HTML'
@@ -48,6 +50,7 @@ onCodeExport((result) => {
   }
   output.value = payload
   byFramework.value = { ...byFramework.value, [framework]: payload }
+  track('code_exported', { framework })
 })
 
 export function useCodeOutput() {

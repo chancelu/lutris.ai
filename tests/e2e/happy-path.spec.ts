@@ -254,6 +254,22 @@ test('10. code panel downloads a runnable project zip', async ({ browser }) => {
   expect(strFromU8(entries['src/Component.tsx'])).not.toContain('/* styles.css */')
   expect(strFromU8(entries['src/styles.css'])).toContain('{')
 
+  // 埋点漏斗：这条零 AI 路径应完整留下事件轨迹
+  const events: string[] = await p.evaluate(() =>
+    (window as any).__LUTRIS_ANALYTICS__.events.map((e: any) => e.event)
+  )
+  for (const expected of [
+    'welcome_action', // blank-canvas
+    'phase_skipped', // idea/spec → design
+    'finish_design_clicked',
+    'phase_advanced', // design → dev
+    'direct_export',
+    'code_exported',
+    'code_download', // kind: project
+  ]) {
+    expect(events, `missing event ${expected}`).toContain(expected)
+  }
+
   expect(errors).toEqual([])
   await p.close()
 })

@@ -9,6 +9,7 @@ import { computed, ref, watch } from 'vue'
 import { useCodeOutput, type CodeFramework } from '@/stores/code-output'
 import { exportCodeDirectly } from '@/composables/use-phase-actions'
 import { downloadProjectZip } from '@/lib/export-project'
+import { track } from '@/lib/analytics'
 import OtterMark from '@/components/OtterMark.vue'
 
 const { output, byFramework, availableFrameworks } = useCodeOutput()
@@ -66,6 +67,7 @@ function copyCode() {
 function downloadCode() {
   const file = activeFile.value
   if (!file) return
+  track('code_download', { kind: 'file', framework: payload.value?.framework })
   const blob = new Blob([file.code], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -85,6 +87,7 @@ function downloadProject() {
   const file = activeFile.value
   const framework = payload.value?.framework
   if (!file || !framework) return
+  track('code_download', { kind: 'project', framework })
   downloadProjectZip(framework, file.code)
 }
 

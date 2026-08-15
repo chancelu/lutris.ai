@@ -9,6 +9,7 @@ import { useAIChat } from '@/composables/use-chat'
 import { usePipeline } from '@/composables/use-pipeline'
 import { useSpec } from '@/composables/use-spec'
 import { toast } from '@/composables/use-toast'
+import { track } from '@/lib/analytics'
 import { useEditorStore } from '@/stores/editor'
 // 与 code-output store 相同的深相对导入：core 的 exports map 只暴露 index，
 // 但 listener registry 必须和工具注册表指向同一个模块实例。
@@ -96,16 +97,19 @@ export function finishDesignAndGoToDev(): boolean {
 
   const pageNodeMap = buildPageNodeMap()
   if (!pageNodeMap) {
+    track('finish_design_clicked', { ok: false, reason: 'no-frames' })
     toast.show('画布上还没有页面设计——先让 AI 生成，或手动创建一个 Frame', 'warning')
     return false
   }
 
   const result = advancePhase('design', { pageNodeMap, renderedAt: Date.now() })
   if (!result.valid) {
+    track('finish_design_clicked', { ok: false, reason: result.reason })
     toast.show(result.reason ?? '设计产出校验未通过', 'warning')
     return false
   }
 
+  track('finish_design_clicked', { ok: true, aiConfigured: isConfigured.value })
   if (isConfigured.value) {
     pendingMessage.value =
       '设计已确认。请用 export_code 把画布上的页面导出为 Vue 和 React 代码，然后调用 submit_dev_output 完成交付。'
@@ -127,6 +131,7 @@ export function exportCodeDirectly(): boolean {
   const mappedIds = Object.values(outputs.value.design?.pageNodeMap ?? {})
   const ids = mappedIds.length > 0 ? mappedIds : topLevelFrames().map((f) => f.id)
   if (ids.length === 0) {
+    track('direct_export', { ok: false, reason: 'empty-canvas' })
     toast.show('画布上没有可导出的内容', 'warning')
     return false
   }
@@ -145,9 +150,11 @@ export function exportCodeDirectly(): boolean {
   }
 
   if (exported === 0) {
+    track('direct_export', { ok: false, reason: 'export-error' })
     toast.show('导出失败——请检查画布内容后重试', 'error')
     return false
   }
+  track('direct_export', { ok: true, nodeCount: ids.length })
   toast.show('已生成 Vue / React 代码', 'success')
   return true
 }

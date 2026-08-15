@@ -12,6 +12,7 @@ import NextStepCard from '@/components/NextStepCard.vue'
 import { useAIChat } from '@/composables/use-chat'
 import { useAISelect } from '@/composables/use-ai-select'
 import { usePipeline } from '@/composables/use-pipeline'
+import { track } from '@/lib/analytics'
 import { useEditorStore } from '@/stores/editor'
 import { AI_PROVIDERS } from '@llc3233149/core'
 
@@ -127,6 +128,7 @@ function handleStop() {
 // Idea 阶段用户侧推进：让 AI 立即收尾——提交 Idea Brief 并接着拆 Spec。
 // 走正常对话通道，AI 的 submit_idea_brief 工具完成真正的 advancePhase。
 function finishIdea() {
+  track('idea_finish_clicked')
   handleSubmit(
     '我们已经聊清楚了。请立即调用 submit_idea_brief 提交目前确认的产品定位（summary / targetUsers / problem，如有待定决策列入 keyDecisions），然后继续把 Spec 页面结构拆解出来。'
   )
