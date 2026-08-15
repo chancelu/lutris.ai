@@ -18,6 +18,10 @@ watch(currentPhase, () => {
 })
 
 const step = computed(() => {
+  // 全部完成：dev 已提交——给一个明确的"做完了"收尾，而不是继续催导出
+  if (currentPhase.value === 'dev' && phases.value.dev.status === 'completed') {
+    return { summary: '交付完成——代码已导出。可以继续微调设计后重新导出。', cta: '再看一眼代码' }
+  }
   if (currentPhase.value === 'spec' && phases.value.idea.status === 'completed') {
     return { summary: '想法已整理成需求初稿，确认细节后就能开始设计。', cta: '查看 Spec' }
   }

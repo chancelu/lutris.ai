@@ -12,6 +12,7 @@ import { useProjects } from '@/composables/use-projects'
 import { usePipeline } from '@/composables/use-pipeline'
 import { useAIChat } from '@/composables/use-chat'
 import { useTheme } from '@/composables/use-theme'
+import { finishDesignAndGoToDev } from '@/composables/use-phase-actions'
 import ProjectSwitcher from './ProjectSwitcher.vue'
 import UserMenu from './UserMenu.vue'
 import PipelinePhaseStepper from './PipelinePhaseStepper.vue'
@@ -121,6 +122,18 @@ function openProviderSettings() {
 
     <!-- Right: actions -->
     <div class="glass pointer-events-auto flex items-center gap-0.5 rounded-full border border-border/40 px-1.5 py-1 shadow-xl shadow-black/25">
+      <!-- Design 阶段的主推进按钮：用户确认设计完成后一键进入交付，
+           不必等 AI 自觉调 submit_design_output -->
+      <button
+        v-if="currentPhase === 'design'"
+        data-test-id="topbar-finish-design"
+        class="gradient-cta glow-accent flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium text-on-accent transition-[filter] hover:brightness-110"
+        title="确认设计，进入代码交付"
+        @click="finishDesignAndGoToDev"
+      >
+        <icon-lucide-check class="size-3.5" />
+        <span>完成设计 →</span>
+      </button>
       <button
         v-if="showExport"
         data-test-id="topbar-export"

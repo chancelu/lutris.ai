@@ -164,3 +164,49 @@ test('7. fresh profile without keys shows simplified provider setup with skip li
   expect(errors).toEqual([])
   await keyless.close()
 })
+
+// ── P1: zero-AI user-driven path through design → dev ──
+// Covers the three new user-side actions: blank-canvas skip, the TopBar
+// "完成设计 →" advance (no AI submit needed), and the Code panel's
+// no-AI direct export. The whole flow runs without any provider key.
+test('9. zero-AI path: skip → design → finish design → direct code export', async ({
+  browser,
+}) => {
+  const p = await browser.newPage()
+  const errors: string[] = []
+  p.on('pageerror', (err) => errors.push(err.message))
+  await p.goto('/editor')
+  await p.locator('canvas[data-ready="1"]').waitFor({ timeout: 30_000 })
+
+  // Idea → Design via the no-key escape hatch
+  await p.locator('[data-test-id="welcome-blank-canvas"]').click()
+  await expect(p.locator('[data-test-id="welcome-overlay"]')).not.toBeVisible()
+  expect(await p.evaluate(() => window.__OPEN_PENCIL_PIPELINE__!.currentPhase)).toBe('design')
+
+  // Put a page frame on the canvas (stands in for AI-rendered design)
+  await p.evaluate(() => {
+    const store = window.__OPEN_PENCIL_STORE__!
+    const id = store.createShape('FRAME', 100, 100, 375, 812)
+    store.renameNode(id, '首页')
+  })
+
+  // User-side advance: 完成设计 → (TopBar primary button, design phase only)
+  const finish = p.locator('[data-test-id="topbar-finish-design"]')
+  await expect(finish).toBeVisible()
+  await finish.click()
+  expect(await p.evaluate(() => window.__OPEN_PENCIL_PIPELINE__!.currentPhase)).toBe('dev')
+  await expect(finish).not.toBeVisible() // button only exists in design phase
+
+  // Dev: open the Code view and export without any AI round-trip
+  await p.locator('[data-test-id="panel-view-code"]').click()
+  const empty = p.locator('[data-test-id="code-panel-empty"]')
+  await expect(empty).toBeVisible()
+  await p.locator('[data-test-id="code-panel-direct-export"]').click()
+
+  await expect(p.locator('[data-test-id="code-panel"]')).toBeVisible()
+  await expect(p.locator('[data-test-id="code-panel-framework-vue"]')).toBeVisible()
+  await expect(p.locator('[data-test-id="code-panel-framework-react"]')).toBeVisible()
+
+  expect(errors).toEqual([])
+  await p.close()
+})

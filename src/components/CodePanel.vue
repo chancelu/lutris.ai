@@ -7,6 +7,7 @@ import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewpor
 import { computed, ref, watch } from 'vue'
 
 import { useCodeOutput, type CodeFramework } from '@/stores/code-output'
+import { exportCodeDirectly } from '@/composables/use-phase-actions'
 import OtterMark from '@/components/OtterMark.vue'
 
 const { output, byFramework, availableFrameworks } = useCodeOutput()
@@ -87,6 +88,15 @@ watch(activeFile, () => {
   >
     <OtterMark :size="56" class="opacity-80" />
     <p class="text-[12px] text-muted">Ask the AI to export your code.</p>
+    <!-- 无 AI 直出：不依赖模型，直接把画布页面跑一遍代码生成器 -->
+    <button
+      data-test-id="code-panel-direct-export"
+      class="gradient-cta glow-accent mt-1 flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-medium text-on-accent transition-[filter] hover:brightness-110"
+      @click="exportCodeDirectly"
+    >
+      <icon-lucide-code class="size-3.5" />
+      Export now (no AI needed)
+    </button>
   </div>
 
   <div v-else data-test-id="code-panel" class="flex min-h-0 flex-1 flex-col">
