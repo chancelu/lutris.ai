@@ -210,3 +210,50 @@ test('9. zero-AI path: skip → design → finish design → direct code export'
   expect(errors).toEqual([])
   await p.close()
 })
+
+// ── P1: 交付物是可运行的工程 zip，不只是代码片段 ──
+test('10. code panel downloads a runnable project zip', async ({ browser }) => {
+  const p = await browser.newPage()
+  const errors: string[] = []
+  p.on('pageerror', (err) => errors.push(err.message))
+  await p.goto('/editor')
+  await p.locator('canvas[data-ready="1"]').waitFor({ timeout: 30_000 })
+
+  await p.locator('[data-test-id="welcome-blank-canvas"]').click()
+  await p.evaluate(() => {
+    const store = window.__OPEN_PENCIL_STORE__!
+    const id = store.createShape('FRAME', 100, 100, 375, 812)
+    store.renameNode(id, '首页')
+    store.createShape('TEXT', 20, 20, 200, 40, id)
+  })
+
+  // 无 AI 直出 → 默认落在最新导出的框架上
+  await p.locator('[data-test-id="topbar-finish-design"]').click()
+  await p.locator('[data-test-id="panel-view-code"]').click()
+  await p.locator('[data-test-id="code-panel-direct-export"]').click()
+  await expect(p.locator('[data-test-id="code-panel"]')).toBeVisible()
+
+  // React tab 上点击 Project → 应下载 zip 且可解压出完整 Vite 工程
+  await p.locator('[data-test-id="code-panel-framework-react"]').click()
+  const [download] = await Promise.all([
+    p.waitForEvent('download'),
+    p.locator('[data-test-id="code-panel-download-project"]').click(),
+  ])
+  expect(download.suggestedFilename()).toBe('lutris-react-app.zip')
+
+  const zipPath = await download.path()
+  const { unzipSync, strFromU8 } = await import('fflate')
+  const { readFileSync } = await import('node:fs')
+  const entries = unzipSync(new Uint8Array(readFileSync(zipPath!)))
+  expect(Object.keys(entries)).toEqual(
+    expect.arrayContaining(['package.json', 'src/main.tsx', 'src/Component.tsx', 'src/styles.css'])
+  )
+  const pkg = JSON.parse(strFromU8(entries['package.json']))
+  expect(pkg.scripts.dev).toBe('vite')
+  // 内嵌 CSS 注释块已被拆成真实文件，tsx 里不留残骸
+  expect(strFromU8(entries['src/Component.tsx'])).not.toContain('/* styles.css */')
+  expect(strFromU8(entries['src/styles.css'])).toContain('{')
+
+  expect(errors).toEqual([])
+  await p.close()
+})

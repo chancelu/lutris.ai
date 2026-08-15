@@ -8,6 +8,7 @@ import { computed, ref, watch } from 'vue'
 
 import { useCodeOutput, type CodeFramework } from '@/stores/code-output'
 import { exportCodeDirectly } from '@/composables/use-phase-actions'
+import { downloadProjectZip } from '@/lib/export-project'
 import OtterMark from '@/components/OtterMark.vue'
 
 const { output, byFramework, availableFrameworks } = useCodeOutput()
@@ -74,6 +75,19 @@ function downloadCode() {
   URL.revokeObjectURL(url)
 }
 
+// 单文件代码 → 可运行 Vite 工程 zip（npm install && npm run dev 即可跑）。
+// React 导出内嵌的 CSS 注释块会在打包时拆成真实的 styles.css。
+const canDownloadProject = computed(
+  () => payload.value?.framework === 'Vue' || payload.value?.framework === 'React'
+)
+
+function downloadProject() {
+  const file = activeFile.value
+  const framework = payload.value?.framework
+  if (!file || !framework) return
+  downloadProjectZip(framework, file.code)
+}
+
 watch(activeFile, () => {
   copied.value = false
 })
@@ -134,6 +148,16 @@ watch(activeFile, () => {
         >
           <icon-lucide-download class="size-3" />
           Download
+        </button>
+        <button
+          v-if="canDownloadProject"
+          data-test-id="code-panel-download-project"
+          title="Download a runnable Vite project (npm install && npm run dev)"
+          class="flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-[11px] font-medium text-accent transition-colors hover:bg-hover"
+          @click="downloadProject"
+        >
+          <icon-lucide-package class="size-3" />
+          Project
         </button>
       </div>
     </div>
