@@ -2,16 +2,18 @@
 import { computed, ref } from 'vue'
 
 import { useEditorStore } from '@/stores/editor'
-import { useAIChat } from '@/composables/use-chat'
+import { usePipeline } from '@/composables/use-pipeline'
+import { track } from '@/lib/analytics'
+import OtterMark from '@/components/OtterMark.vue'
 
 const store = useEditorStore()
-const { draftMessage } = useAIChat()
+const { currentPhase } = usePipeline()
 
-// 对话驱动优先（PRD Idea→Spec→Design 一条龙）：入口只保留 AI 对话 + 导入 PRD 文本两条路径，
-// 去掉"画布直入"（Start from template）和 Figma 导入选项 —— 这些绕开了 Idea 对话阶段，
-// 产出的是没有经过 Spec 结构化的设计稿，方向反了。
+// Idea-phase entry: describe the idea in chat, import an existing PRD, or
+// skip straight to a blank canvas (skipToDesign). The overlay is the guide —
+// no card chrome, content floats on the dimmed canvas.
 const emit = defineEmits<{
-  action: [type: 'ai' | 'import-prd']
+  action: [type: 'ai' | 'import-prd' | 'blank-canvas']
 }>()
 
 const dismissed = ref(false)
@@ -29,9 +31,12 @@ const hasContent = computed(() => {
   }
 })
 
-const showOverlay = computed(() => !dismissed.value && !hasContent.value)
+const showOverlay = computed(
+  () => !dismissed.value && !hasContent.value && currentPhase.value === 'idea'
+)
 
 function handleAction(type: Parameters<typeof emit>[1]) {
+  track('welcome_action', { action: type })
   dismissed.value = true
   emit('action', type)
 }
@@ -46,25 +51,84 @@ function handleAction(type: Parameters<typeof emit>[1]) {
   >
     <div
       v-if="showOverlay"
-      class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+      data-test-id="welcome-overlay"
+      class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-hidden bg-canvas"
     >
-      <div class="pointer-events-auto w-full max-w-lg rounded-2xl bg-canvas/80 px-6 py-8 text-center backdrop-blur-sm">
-        <icon-lucide-sparkles class="mx-auto size-8 text-accent/50" />
-        <h2 class="mt-4 text-[24px] font-semibold tracking-tight text-surface sm:text-[28px]">What do you want to create?</h2>
-        <p class="mt-2 text-[13px] text-muted/60">Describe any interface and watch it come to life</p>
+      <!-- 深空背景：网格 + 双辉光 -->
+      <div
+        class="absolute inset-0 opacity-[0.13]"
+        :style="{
+          backgroundImage:
+            'linear-gradient(color-mix(in srgb, var(--color-muted) 35%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--color-muted) 35%, transparent) 1px, transparent 1px)',
+          backgroundSize: '44px 44px',
+          maskImage: 'radial-gradient(ellipse 70% 60% at 50% 42%, black 30%, transparent 75%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 42%, black 30%, transparent 75%)',
+        }"
+      />
+      <div
+        class="absolute left-1/2 top-[16%] size-[420px] -translate-x-1/2 rounded-full opacity-25 blur-[110px]"
+        :style="{ background: 'var(--color-accent)' }"
+      />
+      <div
+        class="absolute bottom-[8%] left-[18%] size-[280px] rounded-full opacity-[0.13] blur-[100px]"
+        :style="{ background: 'var(--color-accent-2)' }"
+      />
+
+      <div class="pointer-events-none relative flex w-full max-w-xl animate-in flex-col items-center px-6 text-center fade-in slide-in-from-bottom-2 duration-500">
+        <!-- 品牌 mark -->
+        <div class="relative mb-7">
+          <div
+            class="absolute inset-0 scale-[1.9] rounded-[28px] opacity-40 blur-2xl"
+            :style="{ background: 'var(--gradient-accent)' }"
+          />
+          <OtterMark :size="64" class="relative drop-shadow-xl" />
+        </div>
+
+        <p class="text-[10px] font-semibold uppercase tracking-[0.32em] text-muted">
+          Lutris · AI Product Studio
+        </p>
+        <h2 class="font-display mt-4 text-[34px] font-semibold leading-[1.15] tracking-[-0.025em] text-surface sm:text-[44px]">
+          从一个想法，<br />到<span class="text-gradient">可交付的产品</span>
+        </h2>
+        <p class="mt-4 max-w-sm text-[13px] leading-relaxed text-muted">
+          需求定义、界面设计、前端代码——和 AI 聊几句，一条流水线走完。
+        </p>
 
         <button
-          class="group mt-6 w-full rounded-2xl border border-accent/15 bg-panel/80 px-6 py-4 text-left text-[15px] text-muted/60 shadow-sm backdrop-blur-sm transition-all hover:border-accent/30 hover:shadow-md hover:shadow-accent/5"
+          data-test-id="welcome-describe-idea"
+          class="pointer-events-auto mt-10 flex items-center gap-2 rounded-full px-7 py-3 text-[14px] font-medium text-white transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] glow-accent"
+          :style="{ background: 'var(--gradient-accent)' }"
           @click="handleAction('ai')"
         >
-          <span class="flex items-center gap-3">
-            <icon-lucide-message-square class="size-4 text-accent/40 transition group-hover:text-accent/70" />
-            Describe the interface you want...
-          </span>
+          <icon-lucide-sparkles class="size-4" />
+          聊聊我的想法
         </button>
 
-        <div class="mt-5 flex items-center justify-center gap-2 text-[12px]">
-          <button class="rounded-full border border-border/30 px-3 py-1.5 text-muted/50 transition hover:border-border/60 hover:text-surface" @click="handleAction('import-prd')">Import PRD</button>
+        <div class="mt-6 flex items-center gap-2 text-[12px] text-muted">
+          <button
+            data-test-id="welcome-import-prd"
+            class="pointer-events-auto transition-colors hover:text-surface"
+            @click="handleAction('import-prd')"
+          >导入 PRD</button>
+          <span class="text-muted/40">·</span>
+          <button
+            data-test-id="welcome-blank-canvas"
+            class="pointer-events-auto transition-colors hover:text-surface"
+            @click="handleAction('blank-canvas')"
+          >从空白画布开始</button>
+        </div>
+
+        <!-- 流水线 roadmap：玻璃 chips -->
+        <div class="mt-14 flex items-center gap-2 whitespace-nowrap text-[11px]">
+          <template v-for="(step, i) in ['Idea 想法', 'Spec 需求', 'Design 设计', 'Dev 代码']" :key="step">
+            <span
+              class="flex items-center gap-1.5 rounded-full border border-border/60 px-3 py-1 text-muted glass"
+            >
+              <span class="font-display font-semibold text-accent">{{ i + 1 }}</span>
+              {{ step }}
+            </span>
+            <span v-if="i < 3" class="h-px w-3 bg-border" />
+          </template>
         </div>
       </div>
     </div>

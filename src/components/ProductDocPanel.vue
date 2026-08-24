@@ -65,24 +65,24 @@ const renderedContent = computed(() => {
 <template>
   <div data-test-id="product-doc-panel" class="flex min-h-0 flex-1 flex-col select-text">
     <!-- Toolbar -->
-    <div class="flex shrink-0 items-center gap-1 border-b border-border px-2 py-1.5">
+    <div class="flex shrink-0 items-center gap-1 border-b border-border/30 px-2 py-1.5">
       <span class="text-[12px] font-semibold text-surface">Document</span>
       <div class="flex-1" />
       <template v-if="hasContent && !isEditing">
         <button
-          class="rounded px-1.5 py-0.5 text-[11px] text-muted hover:bg-hover hover:text-surface"
+          class="rounded-lg px-1.5 py-0.5 text-[11px] text-muted transition-colors hover:bg-hover hover:text-surface"
           @click="showMarkdown = !showMarkdown"
         >
           {{ showMarkdown ? 'MD' : '</>' }}
         </button>
         <button
-          class="rounded px-1.5 py-0.5 text-[11px] text-blue-400 hover:bg-blue-500/10"
+          class="rounded-lg px-1.5 py-0.5 text-[11px] text-accent transition-colors hover:bg-accent/10"
           @click="startEditing"
         >
           Edit
         </button>
         <button
-          class="rounded px-1.5 py-0.5 text-[11px] text-amber-400 hover:bg-amber-500/10"
+          class="rounded-lg px-1.5 py-0.5 text-[11px] text-accent transition-colors hover:bg-accent/10"
           @click="handleAIParse"
         >
           AI Parse
@@ -93,7 +93,7 @@ const renderedContent = computed(() => {
     <!-- Empty state -->
     <div v-if="!hasContent && !isEditing" class="flex flex-col items-center gap-2 px-6 py-12 text-center">
       <p class="text-xs text-muted">No document yet.</p>
-      <button class="rounded bg-blue-600 px-3 py-1.5 text-[12px] text-white hover:bg-blue-500" @click="startEditing">
+      <button class="rounded-lg bg-surface px-3 py-1.5 text-[12px] font-medium text-panel transition-colors hover:bg-surface/90" @click="startEditing">
         Write
       </button>
     </div>
@@ -102,12 +102,12 @@ const renderedContent = computed(() => {
     <div v-else-if="isEditing" class="flex flex-1 flex-col p-2">
       <textarea
         v-model="editBuffer"
-        class="min-h-[200px] flex-1 resize-none rounded border border-border bg-transparent p-2 font-mono text-[13px] text-surface placeholder:text-muted/50 focus:border-blue-500 focus:outline-none"
+        class="min-h-[200px] flex-1 resize-none rounded-lg border border-border bg-transparent p-2 font-mono text-[13px] text-surface placeholder:text-muted/50 focus:border-accent/50 focus:outline-none"
         placeholder="Write your product document in Markdown..."
       />
       <div class="mt-2 flex gap-1.5">
-        <button class="rounded bg-blue-600 px-2 py-1 text-[12px] text-white hover:bg-blue-500" @click="saveEdit">Save</button>
-        <button class="rounded border border-border px-2 py-1 text-[12px] text-muted hover:bg-hover" @click="cancelEdit">Cancel</button>
+        <button class="rounded-lg bg-surface px-2.5 py-1 text-[12px] font-medium text-panel transition-colors hover:bg-surface/90" @click="saveEdit">Save</button>
+        <button class="rounded-lg border border-border px-2.5 py-1 text-[12px] text-muted transition-colors hover:bg-hover" @click="cancelEdit">Cancel</button>
       </div>
     </div>
 

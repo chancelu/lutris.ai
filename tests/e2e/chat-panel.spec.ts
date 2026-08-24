@@ -125,6 +125,8 @@ test('provider setup shows when no key set', async () => {
   }
   await expect(apiKeyInput()).toBeVisible()
   await expect(providerSetup).toBeVisible()
+  // R10: the no-key escape hatch is offered while in the idea phase.
+  await expect(page.locator('[data-test-id="skip-to-design"]')).toBeVisible()
 })
 
 test('saving API key shows chat interface', async () => {
@@ -139,6 +141,13 @@ test('saving API key shows chat interface', async () => {
   await page.locator('button:has-text("Connect")').click()
 
   await expect(chatInput()).toBeVisible()
+})
+
+test('chat empty state shows a friendly phase-aware prompt', async () => {
+  const empty = page.locator('[data-test-id="chat-empty-state"]')
+  await expect(empty).toBeVisible()
+  // R12: serif Chinese empty state, no mascot.
+  await expect(empty).toContainText('说说你的想法')
 })
 
 test('empty input has disabled send button', async () => {

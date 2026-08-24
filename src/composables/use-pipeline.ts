@@ -9,6 +9,7 @@
 import { computed } from 'vue'
 
 import { useProjects } from '@/composables/use-projects'
+import { track } from '@/lib/analytics'
 import {
   PIPELINE_PHASES,
   phaseIndex,
@@ -77,7 +78,16 @@ export function validatePhaseOutput<P extends PipelinePhase>(
 // ── Orchestrator ──
 
 export function usePipeline() {
-  const { activePipeline } = useProjects()
+  const { activePipeline, saveActiveProjectData } = useProjects()
+
+  /**
+   * 每次阶段状态变更后落盘。否则用户刷新页面后 currentPhase 丢回 idea，
+   * 但 spec/聊天等内容还在——进度与实际数据不一致。
+   * saveActiveProjectData 在无活动项目时静默 early-return，调用零成本。
+   */
+  function persistPipeline() {
+    void saveActiveProjectData()
+  }
 
   const currentPhase = computed(() => activePipeline.value.currentPhase)
   const phases = computed(() => activePipeline.value.phases)
@@ -130,6 +140,8 @@ export function usePipeline() {
         reason: 'validation-fail-revert',
         note: result.reason,
       })
+      persistPipeline()
+      track('phase_validation_failed', { phase, reason: result.reason })
       return result
     }
 
@@ -144,9 +156,12 @@ export function usePipeline() {
       pipeline.phases[next].status = 'in-progress'
       pipeline.phases[next].enteredAt = Date.now()
       pipeline.history.push({ from: phase, to: next, timestamp: Date.now(), reason: 'agent-advance' })
+      track('phase_advanced', { from: phase, to: next })
+    } else {
+      // 已经是最后一个阶段（dev）：完成后停留在 dev，不再前进
+      track('phase_completed_final', { phase })
     }
-    // 已经是最后一个阶段（dev）：完成后停留在 dev，不再前进
-
+    persistPipeline()
     return { valid: true }
   }
 
@@ -162,6 +177,38 @@ export function usePipeline() {
     pipeline.phases[prev].enteredAt = Date.now()
     pipeline.currentPhase = prev
     pipeline.history.push({ from, to: prev, timestamp: Date.now(), reason: 'validation-fail-revert', note })
+    persistPipeline()
+    track('phase_reverted', { from, to: prev })
+    return true
+  }
+
+  /**
+   * PRD 导入的逃生门（"Import PRD"）：需求文档已经有了，idea 阶段标记 skipped，
+   * 直接落进 spec 阶段——Spec Studio 随之成为主区，导入的内容在那里可见可改。
+   */
+  function skipToSpec(note?: string): boolean {
+    const pipeline = activePipeline.value
+    const from = pipeline.currentPhase
+    if (from !== 'idea') return false // 只有 idea 阶段才有"跳过"一说
+
+    const now = Date.now()
+    if (pipeline.phases.idea.status !== 'completed') {
+      pipeline.phases.idea.status = 'skipped'
+    }
+    pipeline.currentPhase = 'spec'
+    if (pipeline.phases.spec.status === 'pending') {
+      pipeline.phases.spec.status = 'in-progress'
+      pipeline.phases.spec.enteredAt = now
+    }
+    pipeline.history.push({
+      from,
+      to: 'spec',
+      timestamp: now,
+      reason: 'user-override',
+      note: note ?? 'Imported PRD — starting from the spec phase',
+    })
+    persistPipeline()
+    track('phase_skipped', { from, to: 'spec' })
     return true
   }
 
@@ -181,12 +228,50 @@ export function usePipeline() {
       pipeline.phases[phase].enteredAt = Date.now()
     }
     pipeline.history.push({ from, to: phase, timestamp: Date.now(), reason: 'user-override' })
+    persistPipeline()
     return true
   }
 
   /** 是否可以跳到某阶段（供 UI 判断 tab 是否可点击） */
   function canJumpTo(phase: PipelinePhase): boolean {
     return phaseIndex(phase) <= furthestPhaseIndex.value
+  }
+
+  /**
+   * No-API-key escape hatch（"Start from a blank canvas"）：
+   * 把 idea + spec 标记为 skipped，直接落进 design 阶段，画布 chrome 随之解锁。
+   * 已 completed 的阶段保持 completed（不重写真实历史），dev 阶段调用为 no-op。
+   * 跳转记录为 user-override，与 jumpToPhase 一致。
+   */
+  function skipToDesign(note?: string): boolean {
+    const pipeline = activePipeline.value
+    const from = pipeline.currentPhase
+    if (from === 'dev') return false // 已经走过 design，跳回去没有意义
+
+    const now = Date.now()
+    for (const phase of ['idea', 'spec'] as const) {
+      if (pipeline.phases[phase].status !== 'completed') {
+        pipeline.phases[phase].status = 'skipped'
+      }
+    }
+
+    if (from !== 'design') {
+      pipeline.currentPhase = 'design'
+      if (pipeline.phases.design.status === 'pending') {
+        pipeline.phases.design.status = 'in-progress'
+        pipeline.phases.design.enteredAt = now
+      }
+      pipeline.history.push({
+        from,
+        to: 'design',
+        timestamp: now,
+        reason: 'user-override',
+        note: note ?? 'Skipped idea/spec — starting from a blank canvas',
+      })
+    }
+    persistPipeline()
+    track('phase_skipped', { from, to: 'design' })
+    return true
   }
 
   return {
@@ -199,5 +284,7 @@ export function usePipeline() {
     revertPhase,
     jumpToPhase,
     canJumpTo,
+    skipToSpec,
+    skipToDesign,
   }
 }

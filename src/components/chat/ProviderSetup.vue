@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import ProviderSelect from '@/components/chat/ProviderSelect.vue'
 import { uiInput } from '@/components/ui/input'
 import { useAIChat } from '@/composables/use-chat'
+import { usePipeline } from '@/composables/use-pipeline'
 
 const { providerID, providerDef, setAPIKey, customBaseURL, customModelID } = useAIChat()
+const { currentPhase, skipToDesign } = usePipeline()
+
+// The blank-canvas escape hatch only makes sense before the design phase.
+const canSkipToDesign = computed(() => currentPhase.value === 'idea' || currentPhase.value === 'spec')
 
 const keyInput = ref('')
 const baseURLInput = ref(customBaseURL.value)
@@ -68,7 +73,7 @@ function save() {
       <button
         type="submit"
         data-test-id="api-key-save"
-        class="mt-1 w-full rounded bg-accent py-1.5 text-xs font-medium text-white hover:bg-accent/90"
+        class="mt-1 w-full rounded-lg bg-surface py-2 text-xs font-medium text-panel transition-colors hover:bg-surface/90 disabled:opacity-40"
         :disabled="!keyInput.trim()"
       >
         Connect
@@ -98,5 +103,15 @@ function save() {
     >
       One key for 100+ models from all providers.
     </p>
+
+    <button
+      v-if="canSkipToDesign"
+      type="button"
+      data-test-id="skip-to-design"
+      class="mt-5 text-[11px] text-muted underline underline-offset-2 transition-colors hover:text-surface"
+      @click="skipToDesign()"
+    >
+      Start from a blank canvas
+    </button>
   </div>
 </template>

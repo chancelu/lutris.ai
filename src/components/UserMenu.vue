@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/use-auth'
-import { useRouter } from 'vue-router'
+import { toast } from '@/composables/use-toast'
 
 const { isLoggedIn, userEmail, signOut } = useAuth()
-const router = useRouter()
 const open = ref(false)
 const triggerRef = ref<HTMLElement>()
 const menuStyle = ref({ top: '0px', right: '0px' })
@@ -30,7 +29,8 @@ function closeMenu() {
 async function handleSignOut() {
   open.value = false
   await signOut()
-  router.push('/login')
+  // Stay in place — there is no /login route; clearing the session is enough.
+  toast.show('Signed out')
 }
 
 // Close on outside click
@@ -77,7 +77,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
             @click="handleSignOut"
           >
             <icon-lucide-log-out class="size-3.5" />
-            退出登录
+            Sign out
           </button>
         </div>
       </Transition>

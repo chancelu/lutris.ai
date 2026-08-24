@@ -61,6 +61,14 @@ const BUNDLED_FONTS: Record<string, string> = {
   'Inter|Regular': '/Inter-Regular.ttf'
 }
 
+// Google Fonts 开发者 API 需要 key；没有 key 时对关键字体直连
+// jsDelivr 的 google/fonts 仓库镜像拿全量 TTF（CORS 开放）。
+// Noto Sans SC 尤其重要——它是 CJK fallback，拿不到中文全变豆腐块。
+const DIRECT_TTF_URLS: Record<string, string> = {
+  'Noto Sans SC':
+    'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf'
+}
+
 const googleFontsCache = new Map<string, Record<string, string>>()
 const googleFontsFailed = new Set<string>()
 
@@ -174,6 +182,25 @@ export async function loadFont(family: string, style = 'Regular'): Promise<Array
         loadedFamilyNames.add(family)
         registerFontInBrowser(family, style, buffer)
         return buffer
+      }
+    } catch {
+      /* fall through to direct TTF */
+    }
+  }
+
+  // Keyless direct TTF mirror for critical families (e.g. the CJK fallback)
+  const directUrl = DIRECT_TTF_URLS[family]
+  if (directUrl && typeof fetch !== 'undefined') {
+    try {
+      const response = await fetch(directUrl)
+      if (response.ok) {
+        const buffer = await response.arrayBuffer()
+        if (registerFontInCanvasKit(family, buffer)) {
+          loadedFamilies.set(cacheKey, buffer)
+          loadedFamilyNames.add(family)
+          registerFontInBrowser(family, style, buffer)
+          return buffer
+        }
       }
     } catch {
       /* fall through to bundled */
@@ -334,7 +361,11 @@ export async function ensureCJKFallback(): Promise<string | null> {
     }
 
     const data = await loadFont(CJK_GOOGLE_FONT, 'Regular')
-    if (data) {
+    // loadFont 的 last-resort 会把默认字体（Inter）的数据注册到目标族名下——
+    // 对 CJK fallback 来说这比失败更糟（中文照样豆腐块，却假装加载成功）。
+    // 拒绝接受替补数据，让 fallback 保持 null、下次再试。
+    const substituted = data !== null && data === loadedFamilies.get(`${DEFAULT_FONT_FAMILY}|Regular`)
+    if (data && !substituted) {
       cjkFallbackFamily = CJK_GOOGLE_FONT
       return CJK_GOOGLE_FONT
     }

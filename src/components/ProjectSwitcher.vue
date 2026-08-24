@@ -17,9 +17,11 @@ const emit = defineEmits<{
 <template>
   <DropdownMenuRoot>
     <DropdownMenuTrigger as-child>
-      <button class="flex items-center gap-1 text-[12px] text-muted transition hover:text-surface">
-        <span class="max-w-36 truncate">{{ projectName }}</span>
-        <icon-lucide-chevron-down class="size-3 opacity-50" />
+      <button
+        class="flex size-6 items-center justify-center rounded-md text-muted transition hover:bg-hover hover:text-surface"
+        title="Switch project"
+      >
+        <icon-lucide-chevron-down class="size-3.5" />
       </button>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>

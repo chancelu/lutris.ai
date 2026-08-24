@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 import { CanvasHelper } from '../helpers/canvas'
+import { dismissWelcomeAndEnterDesign, expandLeftRail } from '../helpers/shell'
 
 let page: Page
 let canvas: CanvasHelper
@@ -12,8 +13,11 @@ test.beforeAll(async ({ browser }) => {
   await page.goto('/editor')
   canvas = new CanvasHelper(page)
   await canvas.waitForInit()
+  // R10 shell: the Export section lives in the design panel behind the rail.
+  await dismissWelcomeAndEnterDesign(page)
   await canvas.clearCanvas()
   await canvas.drawRect(200, 200, 100, 100)
+  await expandLeftRail(page, 'design')
 })
 
 test.afterAll(async () => {

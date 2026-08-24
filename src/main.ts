@@ -2,6 +2,7 @@ import { createHead } from '@unhead/vue/client'
 import { createApp } from 'vue'
 
 import './app.css'
+import '@/composables/use-theme'
 import { IS_TAURI } from '@/constants'
 import { preloadFonts } from '@/engine/fonts'
 

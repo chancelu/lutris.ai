@@ -1,7 +1,7 @@
 import { useRafFn, useResizeObserver } from '@vueuse/core'
 import { onMounted, onUnmounted, type Ref } from 'vue'
 
-import { getCanvasKit, getGpuBackend, SkiaRenderer } from '@llc3233149/core'
+import { computeAllLayouts, ensureCJKFallback, getCanvasKit, getGpuBackend, SkiaRenderer } from '@llc3233149/core'
 
 import type { EditorStore } from '@/stores/editor'
 import type { CanvasKit } from 'canvaskit-wasm'
@@ -123,6 +123,18 @@ export function useCanvas(canvasRef: Ref<HTMLCanvasElement | null>, store: Edito
     renderer = new SkiaRenderer(ck, surface, glCtx)
     store.setCanvasKit(ck, renderer)
     void renderer.loadFonts().then(() => renderNow())
+    // CJK fallback 字体在后台异步加载（variable TTF，数秒）；加载完成时 renderer
+    // 只 invalidate 了缓存图片，不触发重绘——画布会一直显示加载前缓存的豆腐块。
+    // 这里在 fallback 就绪后走 store.requestRender 补一次重绘（sceneVersion 同时
+    // 自增，确保场景图重新录制；loadFonts 内部也调 ensureCJKFallback，模块级
+    // promise 去重，这里是同一个加载过程，不会重复下载）。
+    // 此外必须重算一遍自动布局：字体未就绪时文本测量走的是估算/缺字形宽度，
+    // 重绘不会自动纠正已烘入 yoga 布局的文本尺寸（标题换行错误的根因）。
+    void ensureCJKFallback().then((family) => {
+      if (!family) return
+      computeAllLayouts(store.graph)
+      store.requestRender()
+    })
     renderNow()
     canvas.dataset.ready = '1'
   }

@@ -240,7 +240,7 @@ describe('ACP agent', () => {
   })
 
   test('open_file loads a .fig file', async () => {
-    const fixturePath = join(import.meta.dir, '..', 'fixtures', 'nuxtui.fig')
+    const fixturePath = join(import.meta.dirname, '..', 'fixtures', 'nuxtui.fig')
     const result = await prompt(pair, `/open_file ${JSON.stringify({ path: fixturePath })}`)
     expect(result.stopReason).toBe('end_turn')
     const completed = pair.updates.toolUpdates.find((u) => u.status === 'completed')
@@ -249,7 +249,10 @@ describe('ACP agent', () => {
     )
     expect(data.pages.length).toBeGreaterThan(0)
     expect(data.currentPage).toBeTruthy()
-  })
+    // 240s: parsing the 85MB nuxtui.fig fixture is pure-JS CPU work (fzstd +
+    // kiwi) that runs ~20x slower under Node/vite-node than under Bun's JIT
+    // (~98s measured). Genuine environment perf gap, not a product bug.
+  }, 240_000)
 
   test('open_file with invalid path reports failure', async () => {
     await prompt(pair, '/open_file {"path": "/nonexistent/file.fig"}')
@@ -258,7 +261,7 @@ describe('ACP agent', () => {
   })
 
   test('save_file roundtrips a document', async () => {
-    const tmpPath = join(import.meta.dir, '..', `_acp_test_${Date.now()}.fig`)
+    const tmpPath = join(import.meta.dirname, '..', `_acp_test_${Date.now()}.fig`)
     try {
       await prompt(pair, '/new_document')
       await prompt(

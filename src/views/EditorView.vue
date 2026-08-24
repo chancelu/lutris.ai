@@ -16,11 +16,13 @@ import { useEditorStore } from '@/stores/editor'
 import { createTab, getActiveStore } from '@/stores/tabs'
 
 import EditorCanvas from '@/components/EditorCanvas.vue'
+import OtterMark from '@/components/OtterMark.vue'
 import PropertiesPanel from '@/components/PropertiesPanel.vue'
+import SpecPanel from '@/components/SpecPanel.vue'
 import TopBar from '@/components/TopBar.vue'
-import Toolbar from '@/components/Toolbar.vue'
 import WelcomeOverlay from '@/components/WelcomeOverlay.vue'
-import LeftSidebar from '@/components/LeftSidebar.vue'
+import ToolDock from '@/components/ToolDock.vue'
+import ZoomControls from '@/components/ZoomControls.vue'
 
 const aiPanelHighlight = ref(false)
 const route = useRoute()
@@ -29,7 +31,7 @@ const firstTab = createTab()
 const store = useEditorStore()
 useKeyboard()
 useMenu()
-const { currentPhase } = usePipeline()
+const { currentPhase, skipToDesign, skipToSpec } = usePipeline()
 // Idea/Spec 阶段 AI 没有 canvas 工具权限（见 phase-tools.ts filterToolsByPhase），
 // 画布上的工具箱/图层面板此时点了也没用——收起来，把注意力留在对话上。
 const showCanvasChrome = computed(() => currentPhase.value === 'design' || currentPhase.value === 'dev')
@@ -42,13 +44,17 @@ const {
 
 onMounted(async () => {
   await initProjects()
+  // Demo 路由：只展示预置演示内容。不 switchProject（否则 resetToBlank 会抹掉
+  // createDemoShapes 刚创建的演示节点），也不启动自动保存（否则演示内容会被
+  // 写回用户真实项目的 IDB 存档，造成数据覆盖）。
+  if (route.meta.demo) return
   const pid = route.params.projectId as string | undefined
   if (pid && pid !== activeProjectId.value) {
     await switchProject(pid, store)
   } else if (activeProjectId.value) {
     // Reload design from IDB on refresh (initProjects doesn't load .fig)
     await switchProject(activeProjectId.value, store)
-    if (!pid && !route.meta.demo) router.replace(`/editor/${activeProjectId.value}`)
+    if (!pid) router.replace(`/editor/${activeProjectId.value}`)
   }
   startAutosave(store)
 })
@@ -56,6 +62,7 @@ onUnmounted(() => stopAutosave())
 
 // Save design and chat when page becomes hidden (tab switch, close, refresh)
 useEventListener(document, 'visibilitychange', () => {
+  if (route.meta.demo) return // demo 内容永远不落盘
   if (document.visibilityState === 'hidden') {
     syncChatToProject()
     void saveCurrentDesign(store)
@@ -63,6 +70,7 @@ useEventListener(document, 'visibilitychange', () => {
 })
 // Also sync on beforeunload as a safety net (visibilitychange may not fire on all browsers)
 useEventListener(window, 'beforeunload', () => {
+  if (route.meta.demo) return
   syncChatToProject()
   void saveCurrentDesign(store)
 })
@@ -110,10 +118,15 @@ function onWelcomeAction(type: string) {
         const { useProductDoc } = await import('@/composables/use-product-doc')
         const { importFile } = useProductDoc()
         await importFile(file)
-        inlinePanel.value = 'spec'
+        // PRD 即需求——跳过 idea 直接进入 Spec Studio
+        skipToSpec(`Imported PRD: ${file.name}`)
       }
     }
     input.click()
+    return
+  }
+  if (type === 'blank-canvas') {
+    skipToDesign()
   }
 }
 
@@ -140,6 +153,7 @@ if (import.meta.env.DEV) {
     jumpToPhase: pipeline.jumpToPhase,
     canJumpTo: pipeline.canJumpTo,
     revertPhase: pipeline.revertPhase,
+    skipToDesign: pipeline.skipToDesign,
     get currentPhase() { return pipeline.currentPhase.value },
     get phases() { return pipeline.phases.value },
   }
@@ -151,52 +165,60 @@ useEventListener(document, 'wheel', (e: WheelEvent) => {
 
 const params = useUrlSearchParams('history')
 const showChrome = !('no-chrome' in params)
+// 不要在 setup 阶段 restoreFromIDB（旧的全局 session 恢复槽）：它和
+// onMounted 里 per-project 的 switchProject 加载是竞态——全局槽的
+// openFigFile 后落地，把别的项目的场景盖到当前项目上，下一次
+// saveCurrentDesign 就把串了的场景写进错误项目的 IDB（画布版"串项目"）。
+// 项目系统下画布只由 switchProject(projectId) 驱动；旧数据由
+// migrateLegacySession 一次性迁移进默认项目。
 if (route.meta.demo && !('test' in params)) createDemoShapes(firstTab.store)
-else if (!route.meta.demo) firstTab.store.restoreFromIDB()
 useHead({ title: route.meta.demo ? 'Demo' : undefined })
 </script>
 
 <template>
-  <div data-test-id="editor-root" class="flex h-screen w-screen flex-col overflow-hidden">
-    <TopBar
-      v-if="showChrome && store.state.showUI"
-      :project-name="activeProject?.name || store.state.documentName"
-      :projects="projectsList"
-      :active-project-id="activeProjectId"
-      @switch-project="onSwitchProject"
-      @create-project="onCreateProject"
-      @delete-project="onDeleteProject"
-      @export-click="onExportClick"
-    />
+  <div data-test-id="editor-root" class="relative flex h-screen w-screen overflow-hidden">
+    <!-- Center: Canvas + phase surfaces（全幅，chrome 全部悬浮其上）.
+         Spec 阶段主区是 Spec Studio（全幅可编辑需求板），不再露出空白画布。 -->
+    <div class="relative flex min-w-0 flex-1 flex-col overflow-hidden" data-region="canvas">
+      <EditorCanvas class="min-h-0 flex-1" />
+      <!-- Spec Studio 给悬浮 chrome 让位：顶部留出 TopBar（h≈52）、右侧留出
+           悬浮面板（360+12）——否则底部 CTA「确认 Spec，开始设计」会被面板盖住
+           （R15 右栏改悬浮后引入的遮挡，实测"spec 里进不了设计"的根因）。 -->
+      <SpecPanel v-if="showChrome && currentPhase === 'spec'" class="absolute inset-0 z-10 pr-[372px] pt-14" />
+      <!-- Demo 路由是预置内容展示，不走引导流程，不弹欢迎浮层（否则会挡住 demo 内容） -->
+        <WelcomeOverlay v-if="showChrome && !route.meta.demo" @action="onWelcomeAction" />
 
-    <div class="relative flex flex-1 overflow-hidden">
-      <!-- Left: Layers + Design Properties — only relevant once AI can touch the canvas (Design/Dev) -->
-      <LeftSidebar v-if="showChrome && store.state.showUI && showCanvasChrome" data-region="left" />
-
-      <!-- Center: Canvas + Toolbar + WelcomeOverlay -->
-      <div class="relative flex flex-1 flex-col overflow-hidden" data-region="canvas">
-        <EditorCanvas class="min-h-0 flex-1" />
-        <WelcomeOverlay v-if="showChrome" @action="onWelcomeAction" />
-        <div v-if="showChrome && store.state.showUI && showCanvasChrome" class="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center">
-          <div class="pointer-events-auto">
-            <Toolbar />
-          </div>
-        </div>
-        <div
-          v-if="showChrome && store.state.showUI && !showCanvasChrome"
-          class="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center"
-        >
-          <div class="pointer-events-auto rounded-full border border-border/10 bg-panel/90 px-3 py-1.5 text-[11px] text-muted shadow-lg shadow-black/15 backdrop-blur-md">
-            画布工具会在 Design 阶段解锁 — 先在右侧和 AI 聊清楚需求
-          </div>
-        </div>
+      <!-- R15: 悬浮 chrome —— 顶栏三段 pill / 底部居中工具 dock / 右下缩放控件 / 右侧悬浮玻璃面板 -->
+      <div v-if="showChrome && store.state.showUI" class="pointer-events-none absolute inset-x-3 top-3 z-30">
+        <TopBar
+          :project-name="activeProject?.name || store.state.documentName"
+          :projects="projectsList"
+          :active-project-id="activeProjectId"
+          @switch-project="onSwitchProject"
+          @create-project="onCreateProject"
+          @delete-project="onDeleteProject"
+          @export-click="onExportClick"
+        />
+      </div>
+      <div
+        v-if="showChrome && store.state.showUI && showCanvasChrome"
+        data-region="dock"
+        class="absolute bottom-4 left-1/2 z-20 -translate-x-1/2"
+      >
+        <ToolDock />
+      </div>
+      <div
+        v-if="showChrome && store.state.showUI && showCanvasChrome"
+        class="absolute bottom-4 left-4 z-20"
+      >
+        <ZoomControls />
       </div>
 
-      <!-- Right: AI Chat Panel -->
+      <!-- Right: 悬浮玻璃面板 —— AI Chat / Design / Code（与画布 chrome 同一语言） -->
       <div
         v-if="showChrome && store.state.showUI"
         data-region="right"
-        class="flex w-[360px] shrink-0 flex-col border-l border-border/10 bg-panel transition-shadow duration-300"
+        class="glass absolute bottom-3 right-3 top-16 z-20 flex w-[360px] flex-col overflow-hidden rounded-2xl border border-border/40 shadow-2xl shadow-black/30 transition-shadow duration-300"
         :class="aiPanelHighlight && 'animate-[ai-panel-highlight_0.8s_ease-in-out]'"
       >
         <PropertiesPanel />
@@ -204,8 +226,8 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
     </div>
 
     <!-- Minimal UI when showUI is false -->
-    <div v-if="showChrome && !store.state.showUI" class="absolute top-7 left-7 z-10 flex items-center gap-2 rounded-lg border border-border bg-panel px-2 py-1 shadow-sm">
-      <img src="/lutris-mascot.png" class="h-4 w-auto object-contain" alt="Lutris.ai" />
+    <div v-if="showChrome && !store.state.showUI" class="glass absolute left-4 top-4 z-10 flex items-center gap-2 rounded-full border border-border px-3 py-1.5 shadow-xl">
+      <OtterMark :size="16" />
       <span data-test-id="editor-document-name" class="text-xs text-surface">{{ store.state.documentName }}</span>
       <button data-test-id="editor-show-ui" class="ml-1 flex size-6 cursor-pointer items-center justify-center rounded text-muted transition-colors hover:bg-hover hover:text-surface" title="Show UI" @click="store.state.showUI = true">
         <icon-lucide-sidebar class="size-3.5" />

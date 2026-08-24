@@ -3,12 +3,14 @@ import { computed } from 'vue'
 import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from 'reka-ui'
 import { useEditorStore } from '@/stores/editor'
 import { useAISelect } from '@/composables/use-ai-select'
+import { useAIChat } from '@/composables/use-chat'
 import { menuContent, menuItem, menuSeparator } from '@/components/ui/menu'
 import { toast } from '@/composables/use-toast'
 
 const store = useEditorStore()
 
 const { addCurrentSelection } = useAISelect()
+const { focusRequested } = useAIChat()
 
 const hasSelection = computed(() => {
   void store.state.sceneVersion
@@ -41,7 +43,10 @@ function selectedIds(): string[] {
 }
 
 function sendToAIChat() {
+  const count = store.state.selectedIds.size
   addCurrentSelection()
+  focusRequested.value++
+  toast.show(count > 1 ? `已把 ${count} 个元素加入对话——在聊天里描述要改什么` : '已加入对话——在聊天里描述要改什么')
 }
 
 async function exportAsPNG() {
@@ -62,6 +67,15 @@ const separatorClass = menuSeparator({ class: 'my-1' })
 
 <template>
   <ContextMenuContent :class="menuClass" :side-offset="2" align="start">
+    <ContextMenuItem
+      :class="[itemClass, 'text-accent']"
+      :disabled="!hasSelection"
+      @select="sendToAIChat"
+    >
+      <icon-lucide-sparkles class="size-3.5" />
+      <span>发送给 AI 修改</span>
+    </ContextMenuItem>
+    <ContextMenuSeparator :class="separatorClass" />
     <ContextMenuItem :class="itemClass" :disabled="!hasSelection" @select="document.execCommand('copy')">
       <span>Copy</span>
       <span class="text-[12px] text-muted">&#8984;C</span>
@@ -86,9 +100,6 @@ const separatorClass = menuSeparator({ class: 'my-1' })
 
     <ContextMenuSeparator :class="separatorClass" />
 
-    <ContextMenuItem :class="itemClass" :disabled="!hasSelection" @select="sendToAIChat">
-      <span>Send to AI Chat</span>
-    </ContextMenuItem>
     <ContextMenuItem :class="itemClass" :disabled="!hasSelection" @select="exportAsPNG">
       <span>Export selection (PNG)</span>
       <span class="text-[12px] text-muted">&#8679;&#8984;C</span>

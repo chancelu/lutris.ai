@@ -1,6 +1,7 @@
-import { computed, readonly, ref, toRaw, watch } from 'vue'
+import { computed, readonly, ref, watch } from 'vue'
 
 import { useProjects } from './use-projects'
+import { deepRawClone } from '@/utils/deep-raw'
 import {
   createEmptyDesignSystem,
   createSpecComponent,
@@ -33,8 +34,8 @@ function currentSnapshot(): SpecSnapshot {
     projectName: '',
     createdFromIdeaBriefId: '',
     targetPlatform: targetPlatform.value,
-    pages: structuredClone(toRaw(pages.value)),
-    designSystem: structuredClone(toRaw(designSystem.value)),
+    pages: deepRawClone(pages.value),
+    designSystem: deepRawClone(designSystem.value),
     freeformNotes: freeformNotes.value,
   }
 }
@@ -42,8 +43,8 @@ function currentSnapshot(): SpecSnapshot {
 function syncFromProject() {
   const { activePRD } = useProjects()
   const prd = activePRD.value
-  pages.value = structuredClone(toRaw(prd.pages) ?? [])
-  designSystem.value = structuredClone(toRaw(prd.designSystem) ?? createEmptyDesignSystem())
+  pages.value = deepRawClone(prd.pages ?? [])
+  designSystem.value = deepRawClone(prd.designSystem ?? createEmptyDesignSystem())
   targetPlatform.value = prd.targetPlatform ?? 'web'
   freeformNotes.value = prd.content || ''
   versions.value = prd.versions.map((version) => ({
@@ -69,8 +70,8 @@ function syncToProject() {
   activePRD.value = {
     ...activePRD.value,
     content: freeformNotes.value,
-    pages: structuredClone(toRaw(pages.value)),
-    designSystem: structuredClone(toRaw(designSystem.value)),
+    pages: deepRawClone(pages.value),
+    designSystem: deepRawClone(designSystem.value),
     targetPlatform: targetPlatform.value,
     versions: versions.value.map((version) => ({
       id: version.id,
@@ -113,7 +114,7 @@ function appendSummary(text: string, source: SpecSource = 'ai', label?: string) 
 // ── Page/Component CRUD（PRD §11 核心） ──
 
 function replacePages(next: SpecPage[], source: SpecSource = 'ai', label?: string) {
-  pages.value = structuredClone(next)
+  pages.value = deepRawClone(next)
   createVersion(source, label)
   syncToProject()
 }
@@ -121,30 +122,32 @@ function replacePages(next: SpecPage[], source: SpecSource = 'ai', label?: strin
 function upsertPage(page: SpecPage, source: SpecSource = 'ai', label?: string) {
   const idx = pages.value.findIndex((p) => p.id === page.id)
   if (idx >= 0) {
-    pages.value = pages.value.map((p) => (p.id === page.id ? page : p))
+    pages.value = deepRawClone(pages.value.map((p) => (p.id === page.id ? page : p)))
   } else {
-    pages.value = [...pages.value, page]
+    pages.value = deepRawClone([...pages.value, page])
   }
   createVersion(source, label)
   syncToProject()
 }
 
 function removePage(pageId: string, source: SpecSource = 'user', label?: string) {
-  pages.value = pages.value.filter((p) => p.id !== pageId)
+  pages.value = deepRawClone(pages.value.filter((p) => p.id !== pageId))
   createVersion(source, label)
   syncToProject()
 }
 
 function addComponentToPage(pageId: string, component: SpecComponent, source: SpecSource = 'ai', label?: string) {
-  pages.value = pages.value.map((p) =>
-    p.id === pageId ? { ...p, components: [...p.components, component] } : p,
+  pages.value = deepRawClone(
+    pages.value.map((p) =>
+      p.id === pageId ? { ...p, components: [...p.components, component] } : p,
+    ),
   )
   createVersion(source, label)
   syncToProject()
 }
 
 function updateDesignSystem(next: Partial<SpecDesignSystem>, source: SpecSource = 'user', label?: string) {
-  designSystem.value = { ...designSystem.value, ...next }
+  designSystem.value = deepRawClone({ ...designSystem.value, ...next })
   createVersion(source, label)
   syncToProject()
 }
@@ -168,8 +171,8 @@ function createSpecDraftFromAI(text: string) {
 function restoreVersion(versionId: number) {
   const version = versions.value.find((item) => item.id === versionId)
   if (!version) return false
-  pages.value = structuredClone(toRaw(version.snapshot.pages))
-  designSystem.value = structuredClone(toRaw(version.snapshot.designSystem))
+  pages.value = deepRawClone(version.snapshot.pages)
+  designSystem.value = deepRawClone(version.snapshot.designSystem)
   targetPlatform.value = version.snapshot.targetPlatform
   freeformNotes.value = version.snapshot.freeformNotes
   createVersion('user', `Restored from v${versionId}`)

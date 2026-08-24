@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" sizes="128x128" href="/favicon-128x128.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#FBF8F3" />
+    <meta name="theme-color" content="#07090F" />
     <title>Lutris.ai</title>
     <meta name="description" content="AI-native design tool — from PRD to design to code" />
     <meta property="og:title" content="Lutris.ai — AI-Native Design Tool" />
@@ -19,7 +19,7 @@
     <meta name="twitter:description" content="From PRD to design to code. AI-powered. Open source." />
     <meta name="twitter:image" content="/pwa-512x512.png" />
     <style>
-      body { margin: 0; background: #FBF8F3; }
+      body { margin: 0; background: #07090F; }
       #loader {
         position: fixed;
         inset: 0;
@@ -28,28 +28,27 @@
         align-items: center;
         justify-content: center;
         z-index: 9999;
-        background: #FBF8F3;
+        background: radial-gradient(ellipse 60% 50% at 50% 40%, #0D1322 0%, #07090F 70%);
         transition: opacity 0.3s;
         gap: 16px;
       }
       #loader.fade-out { opacity: 0; pointer-events: none; }
-      #loader img {
+      #loader svg {
         height: 64px;
-        width: auto;
-        object-fit: contain;
+        width: 64px;
         animation: bounce 2s ease-in-out infinite;
-        filter: drop-shadow(0 4px 12px rgba(59, 122, 107, 0.15));
+        filter: drop-shadow(0 6px 20px rgba(110, 123, 255, 0.35));
       }
       #loader .text {
-        font-family: Georgia, serif;
-        font-size: 14px;
-        color: #8B7E6A;
+        font-family: Inter, system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        font-size: 13px;
+        color: #8B93A7;
         letter-spacing: 0.5px;
       }
       #loader .bar {
         width: 120px;
         height: 3px;
-        background: #E8E0D4;
+        background: #1C2231;
         border-radius: 2px;
         overflow: hidden;
       }
@@ -58,7 +57,7 @@
         display: block;
         height: 100%;
         width: 40%;
-        background: #3B7A6B;
+        background: linear-gradient(90deg, #6E7BFF, #22D3EE);
         border-radius: 2px;
         animation: slide 1.2s ease-in-out infinite;
       }
@@ -75,7 +74,25 @@
 
   <body>
     <div id="loader">
-      <img src="/lutris-otter.png" alt="Loading..." />
+      <svg viewBox="0 0 48 48" fill="none" aria-label="Lutris otter">
+        <defs>
+          <linearGradient id="loader-otter-g" x1="6" y1="4" x2="42" y2="44" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#6E7BFF" />
+            <stop offset="1" stop-color="#22D3EE" />
+          </linearGradient>
+        </defs>
+        <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#loader-otter-g)" />
+        <g fill="#FFFFFF">
+          <circle cx="16.2" cy="16.8" r="4.4" />
+          <circle cx="31.8" cy="16.8" r="4.4" />
+          <path d="M24 18.6c-6.9 0-11.4 4.8-11.4 10.7 0 5.6 4.6 9.4 11.4 9.4s11.4-3.8 11.4-9.4c0-5.9-4.5-10.7-11.4-10.7z" />
+        </g>
+        <g fill="url(#loader-otter-g)">
+          <circle cx="19.6" cy="26.6" r="1.8" />
+          <circle cx="28.4" cy="26.6" r="1.8" />
+          <path d="M24 30c-1.7 0-2.9 1.1-2.9 2.3 0 1.6 1.8 3 2.9 3s2.9-1.4 2.9-3c0-1.2-1.2-2.3-2.9-2.3z" />
+        </g>
+      </svg>
       <div class="text">Loading Lutris.ai...</div>
       <div class="bar"></div>
     </div>

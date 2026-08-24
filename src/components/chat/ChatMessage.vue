@@ -25,7 +25,21 @@ function hasErrorOutput(part: ToolPart): boolean {
   )
 }
 
-function toolState(part: ToolPart): 'pending' | 'done' | 'error' {
+/**
+ * submit_* 桥接工具在校验未过时会返回 needsMoreInfo —— 这是引导流程的正常一环
+ * （AI 还需要向用户补问信息），不是系统故障，UI 上按"待补充"而非"出错"渲染。
+ */
+function isNeedsMoreInfo(part: ToolPart): boolean {
+  return (
+    part.state === 'output-available' &&
+    typeof part.output === 'object' &&
+    part.output !== null &&
+    (part.output as { needsMoreInfo?: boolean }).needsMoreInfo === true
+  )
+}
+
+function toolState(part: ToolPart): 'pending' | 'done' | 'error' | 'needs-info' {
+  if (isNeedsMoreInfo(part)) return 'needs-info'
   if (part.state === 'output-error' || hasErrorOutput(part)) return 'error'
   if (part.state === 'output-available') return 'done'
   return 'pending'
@@ -40,13 +54,14 @@ function partKey(part: UIMessagePart, index: number): string {
 <template>
   <div
     :data-test-id="`chat-message-${message.role}`"
+    class="animate-in fade-in slide-in-from-bottom-1 duration-300"
     :class="message.role === 'user' ? 'flex justify-end' : ''"
   >
     <div class="min-w-0 select-text space-y-1.5" :class="message.role === 'user' ? 'max-w-[85%]' : ''">
       <template v-if="message.role === 'assistant'">
         <template v-for="(part, i) in message.parts" :key="partKey(part, i)">
           <!-- Tool call -->
-          <div v-if="isToolUIPart(part)" class="rounded-lg border border-border bg-canvas p-2">
+          <div v-if="isToolUIPart(part)" class="rounded-xl border border-border/40 bg-inset p-2">
             <CollapsibleRoot>
               <CollapsibleTrigger
                 class="flex w-full items-center gap-2 rounded px-1 py-0.5 hover:bg-hover"
@@ -56,6 +71,7 @@ function partKey(part: UIMessagePart, index: number): string {
                   :class="{
                     'bg-accent/20 text-accent': toolState(part) === 'pending',
                     'bg-green-500/20 text-green-400': toolState(part) === 'done',
+                    'bg-amber-500/20 text-amber-400': toolState(part) === 'needs-info',
                     'bg-red-500/20 text-red-400': toolState(part) === 'error'
                   }"
                 >
@@ -64,6 +80,7 @@ function partKey(part: UIMessagePart, index: number): string {
                     class="size-3 animate-spin"
                   />
                   <icon-lucide-check v-else-if="toolState(part) === 'done'" class="size-3" />
+                  <icon-lucide-circle-help v-else-if="toolState(part) === 'needs-info'" class="size-3" />
                   <icon-lucide-triangle-alert v-else class="size-3" />
                 </div>
                 <span class="text-[11px] text-surface">
@@ -75,7 +92,9 @@ function partKey(part: UIMessagePart, index: number): string {
                       ? 'Running…'
                       : toolState(part) === 'done'
                         ? 'Done'
-                        : 'Error'
+                        : toolState(part) === 'needs-info'
+                          ? 'Needs more info'
+                          : 'Error'
                   }}
                 </span>
                 <icon-lucide-chevron-down
@@ -87,7 +106,11 @@ function partKey(part: UIMessagePart, index: number): string {
                 v-if="toolState(part) !== 'pending'"
                 class="data-[state=closed]:collapsible-up data-[state=open]:collapsible-down overflow-hidden text-[10px]"
               >
-                <pre class="mt-1 overflow-x-auto rounded bg-input p-2 text-muted">{{
+                <!-- needsMoreInfo 的 output 是写给模型的恢复指令，用户看到的是友好提示 -->
+                <p v-if="toolState(part) === 'needs-info'" class="mt-1 rounded bg-input p-2 text-muted">
+                  还差一点点信息就能进入下一阶段 —— 继续在下方对话里补充即可，无需重试。
+                </p>
+                <pre v-else class="mt-1 overflow-x-auto rounded bg-input p-2 text-muted">{{
                   part.state === 'output-error' && part.errorText
                     ? part.errorText
                     : hasErrorOutput(part)
@@ -98,22 +121,22 @@ function partKey(part: UIMessagePart, index: number): string {
             </CollapsibleRoot>
           </div>
 
-          <!-- Text -->
+          <!-- Text — assistant messages sit directly on the panel (Lovart-style plain) -->
           <div
             v-else-if="isTextUIPart(part) && part.text"
             data-test-id="chat-text-bubble"
-            class="rounded-xl rounded-tl-md bg-hover px-3 py-2 text-xs leading-relaxed text-surface"
+            class="px-1 py-0.5 text-xs leading-relaxed text-surface"
           >
             <Markdown :content="part.text" :mermaid="false" class="chat-markdown" />
           </div>
         </template>
       </template>
 
-      <!-- User message -->
+      <!-- User message — accent-tinted glass, not a saturated brand block -->
       <div
         v-else-if="message.role === 'user'"
         data-test-id="chat-text-bubble"
-        class="rounded-xl rounded-br-md bg-accent px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap text-white"
+        class="rounded-2xl rounded-br-md border border-accent/25 bg-accent/10 px-3.5 py-2 text-xs leading-relaxed whitespace-pre-wrap text-surface"
       >
         {{
           message.parts

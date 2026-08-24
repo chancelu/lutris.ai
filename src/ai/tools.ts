@@ -45,10 +45,10 @@ export function createAITools(store: EditorStore) {
   let batchActive = false
   let batchHasMutations = false
 
-  // Filter out dangerous tools in production (evalCode allows arbitrary code execution)
-  const safeTools = import.meta.env.DEV
-    ? ALL_TOOLS
-    : ALL_TOOLS.filter((t) => t.name !== 'eval')
+  // eval 工具允许任意 JS 执行：既危险，又会让模型绕过正规工具"抄近路"
+  // （实测：design 阶段模型用 eval 直接改图，跳过 render/undo/质量扫描）。
+  // 聊天 agent 一律不暴露 eval（自动化/MCP 通道另有工具集，不受影响）。
+  const safeTools = ALL_TOOLS.filter((t) => t.name !== 'eval')
 
   const coreTools = toolsToAI(
     safeTools,

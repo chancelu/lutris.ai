@@ -3,10 +3,37 @@ import { selectionToCode } from '../render/export-code'
 
 import type { CodeFormat } from '../render/export-code'
 
+// ── Code-export listener registry (Slice C) ──
+// Core stays store-free: the UI layer (src/) registers listeners here and
+// receives every successful export_code result. No logic changes below —
+// execute() just notifies listeners in addition to returning the result.
+export interface CodeExportResult {
+  format: CodeFormat
+  code: string
+  nodeCount: number
+}
+
+export type CodeExportListener = (result: CodeExportResult) => void
+
+const codeExportListeners = new Set<CodeExportListener>()
+
+export function onCodeExport(cb: CodeExportListener): () => void {
+  codeExportListeners.add(cb)
+  return () => { codeExportListeners.delete(cb) }
+}
+
+export function clearCodeExportListeners(): void {
+  codeExportListeners.clear()
+}
+
+export function notifyCodeExport(result: CodeExportResult): void {
+  for (const cb of codeExportListeners) cb(result)
+}
+
 export const exportCode = defineTool({
   name: 'export_code',
   description:
-    'Export selected nodes as production code. Supports Vue SFC (.vue), React component (.tsx), or standalone HTML+CSS.',
+    'Export selected nodes as production code. Supports Vue SFC (.vue), React component (.tsx), or standalone HTML+CSS. READ-ONLY projection of the canvas — this does NOT modify the design. If the user asked for a visual/design change, do NOT answer with exported code: call return_to_phase(\'design\') first and modify the canvas there.',
   params: {
     format: {
       type: 'string',
@@ -31,6 +58,8 @@ export const exportCode = defineTool({
     }
 
     const code = selectionToCode(ids, figma.graph, format)
+
+    notifyCodeExport({ format, code, nodeCount: ids.length })
 
     return {
       format,

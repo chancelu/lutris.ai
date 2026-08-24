@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { CanvasHelper } from '../helpers/canvas'
+import { dismissWelcomeAndEnterDesign, expandLeftRail } from '../helpers/shell'
 
 let page: Page
 let canvas: CanvasHelper
@@ -12,6 +13,10 @@ test.beforeAll(async ({ browser }) => {
   await page.goto('/editor')
   canvas = new CanvasHelper(page)
   await canvas.waitForInit()
+  // R10 shell: canvas chrome + design panel require design/dev and the
+  // expanded left rail.
+  await dismissWelcomeAndEnterDesign(page)
+  await expandLeftRail(page, 'design')
 })
 
 test.afterAll(async () => {
@@ -66,6 +71,12 @@ test('component shows purple label in design panel', async () => {
 })
 
 test('component visible in layers panel', async () => {
+  // R14: layers live in a floating flyout — open it if it isn't already
+  const panel = page.locator('[data-test-id="left-sidebar"]')
+  if (!(await panel.isVisible().catch(() => false))) {
+    await page.locator('[data-test-id="tool-dock-layers"]').click()
+    await panel.waitFor({ state: 'visible', timeout: 5000 })
+  }
   const layers = page.locator('[data-node-id]')
   const count = await layers.count()
   expect(count).toBeGreaterThan(0)

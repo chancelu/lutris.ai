@@ -146,6 +146,20 @@ function detectSizeIssues(node: SceneNode, isContainer: boolean, issues: Describ
   if (node.type === 'TEXT' && node.fontSize > 48) {
     issues.push({ message: `Text size ${node.fontSize}px is very large`, suggestion: 'Use 32-40px for display, 24px for headings' })
   }
+  // Vertical-text trap: the model sets a small w on Text to "align" it, the string
+  // wraps one char per line, and the heading reads as a vertical strip. This
+  // renderer has no vertical-text feature, so tall-narrow multi-char text is
+  // always a defect.
+  if (node.type === 'TEXT' && node.text.trim().length >= 4) {
+    const approxCharW = node.fontSize * 0.9
+    const charsPerLine = Math.max(1, Math.floor(node.width / approxCharW))
+    if (charsPerLine <= 3 && node.text.trim().length > charsPerLine * 2 && node.height > node.width) {
+      issues.push({
+        message: `Text squeezed into a ${Math.round(node.width)}px-wide column (~${charsPerLine} chars/line) — reads as vertical text`,
+        suggestion: 'Remove the w prop (Text auto-sizes) or widen it so the string fits on 1-2 lines'
+      })
+    }
+  }
 }
 
 function detectStructuralIssues(node: SceneNode, gridSize: number, issues: DescribeIssue[]): void {
@@ -204,7 +218,117 @@ export function detectIssues(node: SceneNode, gridSize: number, graph: SceneGrap
   const issues: DescribeIssue[] = []
   detectStructuralIssues(node, gridSize, issues)
   detectVisibilityIssues(node, graph, issues)
+  detectGeometryIssues(node, graph, issues)
   return issues
+}
+
+// --- Geometry: sibling overlap & out-of-bounds (元素覆盖/排版混乱的硬检测) ---
+
+const DECORATIVE_NAME = /orb|glow|bg\b|background|backdrop|decoration|blur|gradient|光晕|背景|装饰/i
+
+/** Decorative layers (glow orbs, tinted washes) intentionally sit under siblings. */
+function isDecorative(n: SceneNode): boolean {
+  if (DECORATIVE_NAME.test(n.name)) return true
+  if (n.opacity < 0.9) return true
+  // PASS_THROUGH is the default blend for every node — only explicit modes count.
+  if (n.blendMode !== 'NORMAL' && n.blendMode !== 'PASS_THROUGH') return true
+  return n.fills.some((f) => f.visible && f.type.startsWith('GRADIENT'))
+}
+
+function rectOverlapArea(a: SceneNode, b: SceneNode): number {
+  const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)
+  const h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y)
+  return w > 0 && h > 0 ? w * h : 0
+}
+
+function checkOverlapPair(a: SceneNode, b: SceneNode, issues: DescribeIssue[], reported: Set<string>): void {
+  const overlap = rectOverlapArea(a, b)
+  if (overlap === 0) return
+  // Measure coverage of the LARGER node: a tiny badge mostly covering an
+  // avatar is intentional layering, but two frames each losing a big share
+  // of their area to a sibling is a layout accident.
+  const maxArea = Math.max(a.width * a.height, b.width * b.height)
+  const pct = maxArea > 0 ? overlap / maxArea : 0
+  // Minor layering (badges, icon-on-avatar) and decorative underlays are intentional.
+  if (pct < 0.12) return
+  if (isDecorative(a) || isDecorative(b)) return
+  const nearDup =
+    Math.abs(a.x - b.x) <= 8 &&
+    Math.abs(a.y - b.y) <= 8 &&
+    Math.abs(a.width - b.width) <= 8 &&
+    Math.abs(a.height - b.height) <= 8
+  const key = nearDup ? `dup:${a.name}` : `${a.id}:${b.id}`
+  if (reported.has(key)) return
+  reported.add(key)
+  if (nearDup) {
+    issues.push({
+      message: `Stacked duplicate frames: "${a.name}" rendered twice at the same position`,
+      suggestion: 'Delete the older copy — re-rendering without deleting the old subtree stacks nodes'
+    })
+  } else {
+    issues.push({
+      message: `Sibling overlap: "${a.name}" covers "${b.name}" by ${Math.round(pct * 100)}%`,
+      suggestion: 'Put stacked content in ONE frame (text inside its card), or use flex layout instead of absolute x/y'
+    })
+  }
+}
+
+function detectSiblingOverlaps(node: SceneNode, kids: SceneNode[], issues: DescribeIssue[]): void {
+  // Only meaningful in absolute-layout containers; flex/grid children are
+  // positioned by yoga and cannot drift onto each other.
+  if (node.layoutMode !== 'NONE' || kids.length < 2 || kids.length > 60) return
+  const reported = new Set<string>()
+  for (let i = 0; i < kids.length; i++) {
+    for (let j = i + 1; j < kids.length; j++) {
+      checkOverlapPair(kids[i], kids[j], issues, reported)
+    }
+  }
+}
+
+function detectOutOfBounds(node: SceneNode, kids: SceneNode[], issues: DescribeIssue[]): void {
+  // Right/bottom overflow means the content ran out of room (left/top negative
+  // offsets are the intentional "sticking out" kind). Decorative underlays may
+  // bleed; clipped parents hide overflow; the canvas itself has no bounds.
+  if (node.type === 'CANVAS' || node.clipsContent) return
+  for (const k of kids) {
+    if (isDecorative(k)) continue
+    const overX = k.x + k.width - node.width
+    const overY = k.y + k.height - node.height
+    if (overX > 4 || overY > 4) {
+      issues.push({
+        message: `"${k.name}" overflows "${node.name}" by ${Math.max(Math.round(overX), 0)}px right / ${Math.max(Math.round(overY), 0)}px bottom`,
+        suggestion: 'Shrink the child, widen the parent, or let the parent hug/fill instead of a fixed size'
+      })
+    }
+  }
+}
+
+function detectGeometryIssues(node: SceneNode, graph: SceneGraph, issues: DescribeIssue[]): void {
+  const isCanvas = node.type === 'CANVAS'
+  const isContainer =
+    isCanvas ||
+    node.type === 'FRAME' || node.type === 'COMPONENT' || node.type === 'INSTANCE' || node.type === 'SECTION'
+  if (!isContainer) return
+  const kids = node.childIds
+    .map((id) => graph.getNode(id))
+    .filter((k): k is SceneNode => !!k && k.visible)
+  if (kids.length === 0) return
+
+  // Page-level hygiene: a loose Text directly on the canvas is almost always an
+  // orphan fragment left behind by a partial delete — real content lives in frames.
+  if (isCanvas) {
+    for (const k of kids) {
+      if (k.type === 'TEXT') {
+        issues.push({
+          message: `Loose text "${k.text.slice(0, 20)}" directly on the canvas (orphan fragment?)`,
+          suggestion: 'Delete it, or move it inside the frame it belongs to'
+        })
+      }
+    }
+  }
+
+  detectSiblingOverlaps(node, kids, issues)
+  detectOutOfBounds(node, kids, issues)
 }
 
 function detectRole(node: SceneNode): string {

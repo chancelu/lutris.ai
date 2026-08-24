@@ -11,6 +11,7 @@ import {
   colorToCSSCompact,
   rgba255ToColor,
   colorToFill,
+  parseGradientFill,
   colorDistance
 } from '@llc3233149/core'
 
@@ -234,5 +235,73 @@ describe('colorDistance', () => {
       { r: 0, g: 0, b: 1, a: 1 }
     )
     expect(d).toBeGreaterThan(300)
+  })
+})
+
+
+describe('parseGradientFill', () => {
+  test('linear-gradient 90deg runs left to right', () => {
+    const f = parseGradientFill('linear-gradient(90deg, #FF0000, #0000FF)')
+    expect(f).not.toBeNull()
+    expect(f!.type).toBe('GRADIENT_LINEAR')
+    expect(f!.gradientStops).toHaveLength(2)
+    expect(f!.gradientStops![0].color.r).toBeCloseTo(1)
+    expect(f!.gradientStops![1].color.b).toBeCloseTo(1)
+    // start=(m02,m12)=(0,0.5)，end=(m00+m02,m10+m12)=(1,0.5)
+    const t = f!.gradientTransform!
+    expect(t.m02).toBeCloseTo(0)
+    expect(t.m12).toBeCloseTo(0.5)
+    expect(t.m00 + t.m02).toBeCloseTo(1)
+    expect(t.m10 + t.m12).toBeCloseTo(0.5)
+  })
+
+  test('linear-gradient 180deg runs top to bottom', () => {
+    const f = parseGradientFill('linear-gradient(180deg, #FF0000, #0000FF)')!
+    const t = f.gradientTransform!
+    expect(t.m02).toBeCloseTo(0.5)
+    expect(t.m12).toBeCloseTo(0)
+    expect(t.m00 + t.m02).toBeCloseTo(0.5)
+    expect(t.m10 + t.m12).toBeCloseTo(1)
+  })
+
+  test('explicit stop positions are honored', () => {
+    const f = parseGradientFill('linear-gradient(135deg, #10B981 0%, #22D3EE 80%)')!
+    expect(f.gradientStops![0].position).toBeCloseTo(0)
+    expect(f.gradientStops![1].position).toBeCloseTo(0.8)
+  })
+
+  test('positions default to even distribution', () => {
+    const f = parseGradientFill('linear-gradient(90deg, #FF0000, #00FF00, #0000FF)')!
+    expect(f.gradientStops!.map((s) => s.position)).toEqual([0, 0.5, 1])
+  })
+
+  test('radial-gradient with at position', () => {
+    const f = parseGradientFill('radial-gradient(circle at 30% 20%, #10B98133, #10B98100)')!
+    expect(f.type).toBe('GRADIENT_RADIAL')
+    const t = f.gradientTransform!
+    expect(t.m02).toBeCloseTo(0.3)
+    expect(t.m12).toBeCloseTo(0.2)
+    // 半径系数 0.75
+    expect(Math.sqrt(t.m00 * t.m00 + t.m10 * t.m10)).toBeCloseTo(0.75)
+  })
+
+  test('radial-gradient defaults center to 50% 50%', () => {
+    const f = parseGradientFill('radial-gradient(circle, #FF0000, #0000FF)')!
+    expect(f.gradientTransform!.m02).toBeCloseTo(0.5)
+    expect(f.gradientTransform!.m12).toBeCloseTo(0.5)
+  })
+
+  test('8-digit hex encodes alpha on stops', () => {
+    const f = parseGradientFill('radial-gradient(circle, #10B98133, #10B98100)')!
+    expect(f.gradientStops![0].color.a).toBeCloseTo(0x33 / 255, 2)
+    expect(f.gradientStops![1].color.a).toBe(0)
+  })
+
+  test('rejects non-gradient input', () => {
+    expect(parseGradientFill('#FF0000')).toBeNull()
+    expect(parseGradientFill('red')).toBeNull()
+    expect(parseGradientFill('linear-gradient(90deg, #FF0000)')).toBeNull()
+    expect(parseGradientFill('linear-gradient(90deg, red, blue)')).toBeNull()
+    expect(parseGradientFill('conic-gradient(#FFF, #000)')).toBeNull()
   })
 })

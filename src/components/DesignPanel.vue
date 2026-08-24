@@ -4,10 +4,14 @@ import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editor'
 
 import AppearanceSection from './properties/AppearanceSection.vue'
+import EffectsSection from './properties/EffectsSection.vue'
 import ExportSection from './properties/ExportSection.vue'
 import FillSection from './properties/FillSection.vue'
+import LayoutSection from './properties/LayoutSection.vue'
 import PageSection from './properties/PageSection.vue'
 import PositionSection from './properties/PositionSection.vue'
+import StrokeSection from './properties/StrokeSection.vue'
+import TypographySection from './properties/TypographySection.vue'
 import VariablesSection from './properties/VariablesSection.vue'
 
 const store = useEditorStore()
@@ -106,10 +110,16 @@ const mainColor = computed(() => {
       </button>
     </div>
 
-    <!-- Key properties only -->
+    <!-- Single-selection sections in Figma order: Position, Layout,
+         Typography (text only), Appearance, Fill, Stroke, Effects, Export.
+         Each section keeps its own internal visibility logic. -->
     <PositionSection />
+    <LayoutSection />
+    <TypographySection v-if="node.type === 'TEXT'" />
     <AppearanceSection />
     <FillSection />
+    <StrokeSection />
+    <EffectsSection />
 
     <ExportSection />
   </div>

@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import type { Rect } from '@llc3233149/core'
+import { sceneNodeToJSX, type Rect } from '@llc3233149/core'
 import { useEditorStore } from '@/stores/editor'
 
 export interface AISelectionContext {
@@ -36,10 +36,11 @@ export function useAISelect() {
       bounds: bounds,
     }
 
-    // Try to get JSX representation for richer context
+    // Try to get JSX representation for richer context (capped — a whole page
+    // frame's JSX can be huge and would flood the prompt)
     try {
-      const jsx = (store.graph as unknown as { toJSX?: (id: string) => string }).toJSX?.(nodeId)
-      if (jsx) ctx.jsx = jsx
+      const jsx = sceneNodeToJSX(nodeId, store.graph)
+      if (jsx) ctx.jsx = jsx.length > 2000 ? `${jsx.slice(0, 2000)}\n… (truncated)` : jsx
     } catch { /* not all nodes support JSX export */ }
 
     // Extract key visual properties

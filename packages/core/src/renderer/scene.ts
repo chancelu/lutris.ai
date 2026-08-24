@@ -1,7 +1,7 @@
 import { DROP_HIGHLIGHT_ALPHA, DROP_HIGHLIGHT_STROKE, SECTION_CORNER_RADIUS } from '../constants'
 import type { SceneNode, SceneGraph } from '../scene-graph'
 import type { Canvas, EmbindEnumEntity, Path } from 'canvaskit-wasm'
-import type { Color } from '../types'
+import type { Color, Vector } from '../types'
 import type { SkiaRenderer, RenderOverlays } from './renderer'
 
 function isCulled(
@@ -391,6 +391,17 @@ export function renderShapeUncached(
   r.renderEffects(canvas, node, rect, hasRadius, 'front')
 }
 
+// Malformed effects (missing offset/color — older docs, hand-built nodes) must
+// never crash the render loop or the autosave thumbnail worker. The Effect type
+// declares both as required; runtime data has proven otherwise.
+function normalizeEffect(effect: SceneNode['effects'][number]) {
+  const e = effect as { offset?: Vector; color?: Color }
+  return {
+    off: e.offset ?? { x: 0, y: 0 },
+    color: e.color ?? { r: 0, g: 0, b: 0, a: 0.25 }
+  }
+}
+
 export function renderEffects(
   r: SkiaRenderer,
   canvas: Canvas,
@@ -401,6 +412,7 @@ export function renderEffects(
 ): void {
   for (const effect of node.effects) {
     if (!effect.visible) continue
+    const { off, color: eColor } = normalizeEffect(effect)
 
     if (pass === 'behind' && effect.type === 'DROP_SHADOW') {
       const sp = effect.spread
@@ -408,14 +420,14 @@ export function renderEffects(
 
       if (node.type === 'TEXT') {
         const shadowColor = r.ck.Color4f(
-          effect.color.r,
-          effect.color.g,
-          effect.color.b,
-          effect.color.a
+          eColor.r,
+          eColor.g,
+          eColor.b,
+          eColor.a
         )
         const dropFilter = r.getCachedDropShadow(
-          effect.offset.x,
-          effect.offset.y,
+          off.x,
+          off.y,
           sigma,
           shadowColor
         )
@@ -425,12 +437,12 @@ export function renderEffects(
         canvas.restore()
       } else {
         r.auxFill.setColor(
-          r.color4f(effect.color.r, effect.color.g, effect.color.b, effect.color.a)
+          r.color4f(eColor.r, eColor.g, eColor.b, eColor.a)
         )
         r.auxFill.setMaskFilter(r.getCachedMaskBlur(sigma))
         r.auxFill.setImageFilter(null)
         canvas.save()
-        canvas.translate(effect.offset.x, effect.offset.y)
+        canvas.translate(off.x, off.y)
         if (node.type === 'ELLIPSE') {
           canvas.drawOval(r.ltrb(-sp, -sp, node.width + sp, node.height + sp), r.auxFill)
         } else if (hasRadius) {
@@ -455,13 +467,13 @@ export function renderEffects(
         r.effectLayerPaint.setImageFilter(r.getCachedDecalBlur(effect.radius))
         r.effectLayerPaint.setColorFilter(
           r.ck.ColorFilter.MakeBlend(
-            r.ck.Color4f(effect.color.r, effect.color.g, effect.color.b, effect.color.a),
+            r.ck.Color4f(eColor.r, eColor.g, eColor.b, eColor.a),
             r.ck.BlendMode.SrcIn
           )
         )
         canvas.saveLayer(r.effectLayerPaint)
         canvas.save()
-        canvas.translate(effect.offset.x, effect.offset.y)
+        canvas.translate(off.x, off.y)
         r.renderText(canvas, node)
         canvas.restore()
         canvas.restore()
@@ -470,7 +482,7 @@ export function renderEffects(
       }
       const sp = effect.spread
       r.auxFill.setColor(
-        r.ck.Color4f(effect.color.r, effect.color.g, effect.color.b, effect.color.a)
+        r.ck.Color4f(eColor.r, eColor.g, eColor.b, eColor.a)
       )
       r.auxFill.setImageFilter(r.getCachedDecalBlur(effect.radius))
 
@@ -488,37 +500,37 @@ export function renderEffects(
 
       const expand = effect.radius * 2
       const big = r.ck.LTRBRect(
-        -expand + effect.offset.x,
-        -expand + effect.offset.y,
-        node.width + expand + effect.offset.x,
-        node.height + expand + effect.offset.y
+        -expand + off.x,
+        -expand + off.y,
+        node.width + expand + off.x,
+        node.height + expand + off.y
       )
       const bigPath = new r.ck.Path()
       bigPath.addRect(big)
       if (node.type === 'ELLIPSE') {
         const innerPath = new r.ck.Path()
         const offsetRect = r.ck.LTRBRect(
-          effect.offset.x + sp,
-          effect.offset.y + sp,
-          node.width + effect.offset.x - sp,
-          node.height + effect.offset.y - sp
+          off.x + sp,
+          off.y + sp,
+          node.width + off.x - sp,
+          node.height + off.y - sp
         )
         innerPath.addOval(offsetRect)
         bigPath.op(innerPath, r.ck.PathOp.Difference)
         innerPath.delete()
       } else if (hasRadius) {
         const innerPath = new r.ck.Path()
-        innerPath.addRRect(r.makeRRectWithOffset(node, effect.offset.x + sp, effect.offset.y + sp, -sp))
+        innerPath.addRRect(r.makeRRectWithOffset(node, off.x + sp, off.y + sp, -sp))
         bigPath.op(innerPath, r.ck.PathOp.Difference)
         innerPath.delete()
       } else {
         const innerPath = new r.ck.Path()
         innerPath.addRect(
           r.ck.LTRBRect(
-            effect.offset.x + sp,
-            effect.offset.y + sp,
-            node.width + effect.offset.x - sp,
-            node.height + effect.offset.y - sp
+            off.x + sp,
+            off.y + sp,
+            node.width + off.x - sp,
+            node.height + off.y - sp
           )
         )
         bigPath.op(innerPath, r.ck.PathOp.Difference)

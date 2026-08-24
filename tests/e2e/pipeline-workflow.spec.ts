@@ -121,6 +121,7 @@ test('clicking idea in stepper jumps back to idea phase', async () => {
   await canvas.waitForRender()
 
   expect(await getCurrentPhase()).toBe('idea')
-  await expect(phaseButton('Idea')).toHaveClass(/bg-accent\/15/)
+  // R15: 当前段 = 浮起玻璃片（bg-panel + 渐变状态点），不再是 glow-accent 渐变填充
+  await expect(phaseButton('Idea')).toHaveClass(/bg-panel/)
   canvas.assertNoErrors()
 })

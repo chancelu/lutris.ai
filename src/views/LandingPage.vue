@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 
+import OtterMark from '@/components/OtterMark.vue'
+
 const router = useRouter()
 const openEditor = () => router.push('/editor')
 const openDemo = () => router.push('/demo')
@@ -53,22 +55,28 @@ const workflow = [
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#FBF8F3] text-[#2C2A25]">
+  <!-- R13 "Deep Space" landing — cold blue-black, glass, electric indigo→cyan gradient.
+       Palette mirrors app.css .dark tokens; hardcoded because this page lives
+       outside the themed app shell. -->
+  <div class="min-h-screen bg-[#07090F] text-[#EEF1F8] antialiased">
     <!-- Nav -->
-    <nav class="sticky top-0 z-50 border-b border-[#E8E0D4] bg-[#FBF8F3]/90 backdrop-blur-xl">
+    <nav class="sticky top-0 z-50 border-b border-white/8 bg-[#07090F]/80 backdrop-blur-xl">
       <div class="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
         <div class="flex items-center gap-3">
-          <img src="/lutris-mascot.png" alt="Lutris.ai" class="h-8 w-auto object-contain rounded-lg" />
+          <OtterMark :size="30" />
           <div>
-            <div class="text-sm font-semibold tracking-tight text-[#2C2A25]">Lutris.ai</div>
-            <div class="text-[10px] text-[#8B7E6A]">AI design workspace</div>
+            <div class="text-sm font-semibold tracking-tight">Lutris.ai</div>
+            <div class="text-[10px] text-[#8B93A7]">AI design workspace</div>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button class="rounded-full border border-[#D4CFC6] px-4 py-2 text-sm text-[#5C5549] transition hover:bg-[#F0EBE3]" @click="openDemo">
+          <button class="rounded-full border border-white/12 px-4 py-2 text-sm text-[#B9C0D4] transition hover:bg-white/6 hover:text-white" @click="openDemo">
             Try Demo
           </button>
-          <button class="rounded-full bg-[#3B7A6B] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#326959]" @click="openEditor">
+          <button
+            class="rounded-full bg-gradient-to-br from-[#6E7BFF] to-[#22D3EE] px-4 py-2 text-sm font-medium text-white shadow-[0_4px_24px_rgba(110,123,255,0.35)] transition hover:brightness-110"
+            @click="openEditor"
+          >
             Open Editor
           </button>
         </div>
@@ -76,81 +84,95 @@ const workflow = [
     </nav>
 
     <!-- Hero -->
-    <section class="mx-auto grid max-w-5xl items-center gap-16 px-6 pb-20 pt-20 lg:grid-cols-[1fr_0.9fr] lg:pt-28">
-      <div class="max-w-xl">
-        <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-[#3B7A6B]/20 bg-[#3B7A6B]/8 px-3 py-1.5 text-[11px] font-medium text-[#3B7A6B]">
-          <span class="size-1.5 rounded-full bg-[#3B7A6B]" />
-          Open Source · AI-Native
-        </div>
-        <h1 class="font-serif text-[44px] font-semibold leading-[1.1] tracking-tight text-[#2C2A25] md:text-[52px]">
-          Design with AI,<br />not around it
-        </h1>
-        <p class="mt-5 max-w-md text-[15px] leading-7 text-[#8B7E6A]">
-          Lutris.ai is an AI-native design tool. Describe what you need, import a
-          <code class="rounded bg-[#E8E0D4] px-1.5 py-0.5 text-[13px] text-[#5C5549]">.fig</code>
-          file, or paste a PRD — then refine on a real canvas with real layers.
-        </p>
-        <div class="mt-8 flex flex-wrap gap-3">
-          <button class="rounded-full bg-[#3B7A6B] px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-[#326959]" @click="openEditor">
-            Open Editor →
-          </button>
-          <button class="rounded-full border border-[#D4CFC6] px-6 py-3 text-sm text-[#5C5549] transition hover:bg-[#F0EBE3]" @click="openDemo">
-            Try Demo
-          </button>
-        </div>
-      </div>
+    <section class="relative overflow-hidden">
+      <!-- Backdrop: grid + glows -->
+      <div
+        class="pointer-events-none absolute inset-0"
+        style="background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 44px 44px; mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 30%, transparent 75%);"
+      />
+      <div class="pointer-events-none absolute -top-32 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-[#6E7BFF]/18 blur-[120px]" />
+      <div class="pointer-events-none absolute top-40 right-[-8rem] h-72 w-72 rounded-full bg-[#22D3EE]/10 blur-[100px]" />
 
-      <!-- Preview mockup -->
-      <div class="relative">
-        <div class="absolute -inset-6 rounded-[32px] bg-[#3B7A6B]/5 blur-3xl" />
-        <div class="relative overflow-hidden rounded-2xl border border-[#E8E0D4] bg-white shadow-xl shadow-[#2C2A25]/5">
-          <div class="flex items-center gap-2 border-b border-[#E8E0D4] px-4 py-3 text-[11px] text-[#8B7E6A]">
-            <span class="size-2.5 rounded-full bg-[#E8E0D4]" />
-            <span class="size-2.5 rounded-full bg-[#E8E0D4]" />
-            <span class="size-2.5 rounded-full bg-[#E8E0D4]" />
-            <span class="ml-3">Lutris.ai — Editor</span>
+      <div class="relative mx-auto grid max-w-5xl items-center gap-16 px-6 pb-24 pt-20 lg:grid-cols-[1fr_0.9fr] lg:pt-28">
+        <div class="max-w-xl">
+          <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-[#6E7BFF]/30 bg-[#6E7BFF]/10 px-3 py-1.5 text-[11px] font-medium text-[#A5AEFF]">
+            <span class="size-1.5 rounded-full bg-gradient-to-br from-[#6E7BFF] to-[#22D3EE]" />
+            Open Source · AI-Native
           </div>
-          <div class="aspect-[16/10] bg-[#FBF8F3] p-4 md:p-5">
-            <div class="grid h-full gap-3 rounded-xl border border-[#E8E0D4] bg-white p-3 md:grid-cols-[1.2fr_0.8fr] md:p-4">
-              <div class="flex min-h-0 flex-col rounded-xl border border-[#E8E0D4] bg-[#FBF8F3] p-3">
-                <div class="mb-3 flex items-center justify-between">
-                  <div>
-                    <div class="text-[12px] font-medium text-[#2C2A25]">Canvas</div>
-                    <div class="text-[10px] text-[#8B7E6A]">Editable design</div>
-                  </div>
-                  <div class="rounded-full border border-[#E8E0D4] px-2 py-1 text-[10px] text-[#8B7E6A]">.fig / Prompt</div>
-                </div>
-                <div class="grid flex-1 place-items-center rounded-xl border border-dashed border-[#D4CFC6] bg-white p-3">
-                  <div class="aspect-[4/5] w-full max-w-[200px] rounded-xl border border-[#E8E0D4] bg-white p-4 shadow-sm">
-                    <div class="mb-3 h-3 w-20 rounded bg-[#E8E0D4]" />
-                    <div class="space-y-2">
-                      <div class="h-8 rounded-lg bg-[#F0EBE3]" />
-                      <div class="h-8 rounded-lg bg-[#F0EBE3]" />
-                      <div class="h-14 rounded-xl bg-[#3B7A6B]/10" />
+          <h1 class="text-[44px] font-semibold leading-[1.08] tracking-[-0.02em] md:text-[54px]">
+            Design with AI,<br />
+            <span class="bg-gradient-to-br from-[#6E7BFF] to-[#22D3EE] bg-clip-text text-transparent">not around it</span>
+          </h1>
+          <p class="mt-5 max-w-md text-[15px] leading-7 text-[#8B93A7]">
+            Lutris.ai is an AI-native design tool. Describe what you need, import a
+            <code class="rounded border border-white/10 bg-white/6 px-1.5 py-0.5 text-[13px] text-[#B9C0D4]">.fig</code>
+            file, or paste a PRD — then refine on a real canvas with real layers.
+          </p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <button
+              class="rounded-full bg-gradient-to-br from-[#6E7BFF] to-[#22D3EE] px-6 py-3 text-sm font-medium text-white shadow-[0_4px_28px_rgba(110,123,255,0.4)] transition hover:brightness-110"
+              @click="openEditor"
+            >
+              Open Editor →
+            </button>
+            <button class="rounded-full border border-white/12 px-6 py-3 text-sm text-[#B9C0D4] transition hover:bg-white/6 hover:text-white" @click="openDemo">
+              Try Demo
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview mockup: dark glass editor -->
+        <div class="relative">
+          <div class="absolute -inset-8 rounded-[40px] bg-[#6E7BFF]/10 blur-3xl" />
+          <div class="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0C0F16]/90 shadow-2xl shadow-black/50 backdrop-blur-xl">
+            <div class="flex items-center gap-2 border-b border-white/8 px-4 py-3 text-[11px] text-[#8B93A7]">
+              <span class="size-2.5 rounded-full bg-white/10" />
+              <span class="size-2.5 rounded-full bg-white/10" />
+              <span class="size-2.5 rounded-full bg-white/10" />
+              <span class="ml-3">Lutris.ai — Editor</span>
+            </div>
+            <div class="aspect-[16/10] bg-[#07090F] p-4 md:p-5">
+              <div class="grid h-full gap-3 rounded-xl border border-white/8 bg-[#0C0F16] p-3 md:grid-cols-[1.2fr_0.8fr] md:p-4">
+                <div class="flex min-h-0 flex-col rounded-xl border border-white/8 bg-[#07090F] p-3">
+                  <div class="mb-3 flex items-center justify-between">
+                    <div>
+                      <div class="text-[12px] font-medium">Canvas</div>
+                      <div class="text-[10px] text-[#8B93A7]">Editable design</div>
                     </div>
-                    <div class="mt-3 h-8 rounded-lg bg-[#3B7A6B] text-center text-[11px] font-medium leading-8 text-white">Primary action</div>
+                    <div class="rounded-full border border-white/10 px-2 py-1 text-[10px] text-[#8B93A7]">.fig / Prompt</div>
+                  </div>
+                  <div class="grid flex-1 place-items-center rounded-xl border border-dashed border-white/12 bg-[#0C0F16] p-3">
+                    <div class="aspect-[4/5] w-full max-w-[200px] rounded-xl border border-white/10 bg-[#10141F] p-4 shadow-lg shadow-black/30">
+                      <div class="mb-3 h-3 w-20 rounded bg-white/10" />
+                      <div class="space-y-2">
+                        <div class="h-8 rounded-lg bg-white/6" />
+                        <div class="h-8 rounded-lg bg-white/6" />
+                        <div class="h-14 rounded-xl bg-gradient-to-br from-[#6E7BFF]/25 to-[#22D3EE]/15" />
+                      </div>
+                      <div class="mt-3 h-8 rounded-lg bg-gradient-to-br from-[#6E7BFF] to-[#22D3EE] text-center text-[11px] font-medium leading-8 text-white">Primary action</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="flex min-h-0 flex-col rounded-xl border border-[#E8E0D4] bg-white p-3">
-                <div class="mb-3 flex items-center justify-between gap-2">
-                  <div>
-                    <div class="text-[12px] font-medium text-[#2C2A25]">Create</div>
-                    <div class="text-[10px] text-[#8B7E6A]">AI workspace</div>
+                <div class="flex min-h-0 flex-col rounded-xl border border-white/8 bg-[#0C0F16]/60 p-3">
+                  <div class="mb-3 flex items-center justify-between gap-2">
+                    <div>
+                      <div class="text-[12px] font-medium">Create</div>
+                      <div class="text-[10px] text-[#8B93A7]">AI workspace</div>
+                    </div>
+                    <div class="rounded-full border border-[#6E7BFF]/30 bg-[#6E7BFF]/10 px-2 py-1 text-[10px] text-[#A5AEFF]">AI ready</div>
                   </div>
-                  <div class="rounded-full border border-[#3B7A6B]/25 bg-[#3B7A6B]/8 px-2 py-1 text-[10px] text-[#3B7A6B]">AI ready</div>
-                </div>
-                <div class="rounded-xl border border-[#E8E0D4] bg-[#FBF8F3] p-3 text-[11px] leading-5 text-[#5C5549]">
-                  Create a pricing page with strong hierarchy and one clear CTA.
-                </div>
-                <div class="mt-3 flex flex-wrap gap-2">
-                  <div class="rounded-full border border-[#E8E0D4] px-2.5 py-1 text-[10px] text-[#8B7E6A]">Landing</div>
-                  <div class="rounded-full border border-[#E8E0D4] px-2.5 py-1 text-[10px] text-[#8B7E6A]">Dashboard</div>
-                  <div class="rounded-full border border-[#E8E0D4] px-2.5 py-1 text-[10px] text-[#8B7E6A]">Mobile</div>
-                </div>
-                <div class="mt-auto pt-4">
-                  <div class="rounded-xl border border-[#3B7A6B]/15 bg-[#3B7A6B]/5 p-3 text-[11px] text-[#3B7A6B]">
-                    ✓ Generated editable layout. Refine or export.
+                  <div class="rounded-xl border border-white/8 bg-[#07090F] p-3 text-[11px] leading-5 text-[#B9C0D4]">
+                    Create a pricing page with strong hierarchy and one clear CTA.
+                  </div>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <div class="rounded-full border border-white/10 px-2.5 py-1 text-[10px] text-[#8B93A7]">Landing</div>
+                    <div class="rounded-full border border-white/10 px-2.5 py-1 text-[10px] text-[#8B93A7]">Dashboard</div>
+                    <div class="rounded-full border border-white/10 px-2.5 py-1 text-[10px] text-[#8B93A7]">Mobile</div>
+                  </div>
+                  <div class="mt-auto pt-4">
+                    <div class="rounded-xl border border-[#22D3EE]/25 bg-[#22D3EE]/8 p-3 text-[11px] text-[#7FE3F4]">
+                      ✓ Generated editable layout. Refine or export.
+                    </div>
                   </div>
                 </div>
               </div>
@@ -163,36 +185,36 @@ const workflow = [
     <!-- 3 Start Paths -->
     <section class="mx-auto max-w-5xl px-6 pb-24">
       <div class="mb-8 text-center">
-        <h2 class="font-serif text-2xl font-semibold text-[#2C2A25]">Three ways to start</h2>
-        <p class="mt-2 text-sm text-[#8B7E6A]">Pick whichever fits your workflow. All roads lead to an editable canvas.</p>
+        <h2 class="text-2xl font-semibold tracking-tight">Three ways to start</h2>
+        <p class="mt-2 text-sm text-[#8B93A7]">Pick whichever fits your workflow. All roads lead to an editable canvas.</p>
       </div>
       <div class="grid gap-4 sm:grid-cols-3">
         <button
           v-for="path in startPaths"
           :key="path.title"
-          class="group rounded-2xl border border-[#E8E0D4] bg-white/60 p-6 text-left transition hover:border-[#3B7A6B]/30 hover:bg-white hover:shadow-md"
+          class="group rounded-2xl border border-white/8 bg-white/[0.03] p-6 text-left backdrop-blur-sm transition hover:border-[#6E7BFF]/40 hover:bg-white/[0.05]"
           @click="openEditor"
         >
           <div class="mb-3 text-2xl">{{ path.icon }}</div>
-          <div class="text-[15px] font-semibold text-[#2C2A25]">{{ path.title }}</div>
-          <div class="mt-2 text-[13px] leading-6 text-[#8B7E6A]">{{ path.desc }}</div>
-          <div class="mt-4 text-[12px] font-medium text-[#3B7A6B] group-hover:underline">{{ path.cta }} →</div>
+          <div class="text-[15px] font-semibold">{{ path.title }}</div>
+          <div class="mt-2 text-[13px] leading-6 text-[#8B93A7]">{{ path.desc }}</div>
+          <div class="mt-4 bg-gradient-to-br from-[#6E7BFF] to-[#22D3EE] bg-clip-text text-[12px] font-medium text-transparent group-hover:brightness-125">{{ path.cta }} →</div>
         </button>
       </div>
     </section>
 
     <!-- How it works -->
-    <section class="border-y border-[#E8E0D4] bg-white/50 py-24">
+    <section class="border-y border-white/8 bg-white/[0.02] py-24">
       <div class="mx-auto max-w-5xl px-6">
         <div class="mb-12 text-center">
-          <h2 class="font-serif text-2xl font-semibold text-[#2C2A25]">How it works</h2>
-          <p class="mt-2 text-sm text-[#8B7E6A]">From idea to production in four steps.</p>
+          <h2 class="text-2xl font-semibold tracking-tight">How it works</h2>
+          <p class="mt-2 text-sm text-[#8B93A7]">From idea to production in four steps.</p>
         </div>
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <div v-for="w in workflow" :key="w.step" class="relative rounded-2xl border border-[#E8E0D4] bg-[#FBF8F3] p-6">
-            <div class="mb-3 text-3xl font-bold text-[#3B7A6B]/20">{{ w.step }}</div>
-            <div class="text-[15px] font-semibold text-[#2C2A25]">{{ w.title }}</div>
-            <div class="mt-2 text-[13px] leading-6 text-[#8B7E6A]">{{ w.desc }}</div>
+          <div v-for="w in workflow" :key="w.step" class="relative rounded-2xl border border-white/8 bg-[#0C0F16]/60 p-6">
+            <div class="mb-3 bg-gradient-to-br from-[#6E7BFF]/50 to-[#22D3EE]/30 bg-clip-text text-3xl font-bold text-transparent">{{ w.step }}</div>
+            <div class="text-[15px] font-semibold">{{ w.title }}</div>
+            <div class="mt-2 text-[13px] leading-6 text-[#8B93A7]">{{ w.desc }}</div>
           </div>
         </div>
       </div>
@@ -201,39 +223,43 @@ const workflow = [
     <!-- Features -->
     <section class="mx-auto max-w-5xl px-6 py-24">
       <div class="mb-12 text-center">
-        <h2 class="font-serif text-2xl font-semibold text-[#2C2A25]">What's inside</h2>
-        <p class="mt-2 text-sm text-[#8B7E6A]">Not a toy. A real design tool with AI at the core.</p>
+        <h2 class="text-2xl font-semibold tracking-tight">What's inside</h2>
+        <p class="mt-2 text-sm text-[#8B93A7]">Not a toy. A real design tool with AI at the core.</p>
       </div>
       <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <div
           v-for="f in features"
           :key="f.title"
-          class="rounded-2xl border border-[#E8E0D4] bg-white/60 p-6 transition hover:shadow-sm"
+          class="rounded-2xl border border-white/8 bg-white/[0.03] p-6 transition hover:border-white/16 hover:bg-white/[0.05]"
         >
           <div class="mb-3 text-2xl">{{ f.icon }}</div>
-          <div class="text-[15px] font-semibold text-[#2C2A25]">{{ f.title }}</div>
-          <div class="mt-2 text-[13px] leading-6 text-[#8B7E6A]">{{ f.desc }}</div>
+          <div class="text-[15px] font-semibold">{{ f.title }}</div>
+          <div class="mt-2 text-[13px] leading-6 text-[#8B93A7]">{{ f.desc }}</div>
         </div>
       </div>
     </section>
 
     <!-- CTA -->
-    <section class="border-t border-[#E8E0D4] bg-white/50 py-20">
-      <div class="mx-auto max-w-2xl px-6 text-center">
-        <img src="/lutris-mascot.png" alt="Lutris.ai" class="mx-auto mb-6 h-16 w-auto object-contain" />
-        <h2 class="font-serif text-3xl font-semibold text-[#2C2A25]">Ready to try?</h2>
-        <p class="mt-3 text-[15px] leading-7 text-[#8B7E6A]">
+    <section class="relative overflow-hidden border-t border-white/8 py-20">
+      <div class="pointer-events-none absolute left-1/2 top-0 h-64 w-[36rem] -translate-x-1/2 rounded-full bg-[#6E7BFF]/12 blur-[100px]" />
+      <div class="relative mx-auto max-w-2xl px-6 text-center">
+        <OtterMark :size="64" class="mx-auto mb-6" />
+        <h2 class="text-3xl font-semibold tracking-tight">Ready to try?</h2>
+        <p class="mt-3 text-[15px] leading-7 text-[#8B93A7]">
           No sign-up required. Open the editor, bring your own API key, and start designing with AI.
         </p>
         <div class="mt-8 flex justify-center gap-3">
-          <button class="rounded-full bg-[#3B7A6B] px-8 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-[#326959]" @click="openEditor">
+          <button
+            class="rounded-full bg-gradient-to-br from-[#6E7BFF] to-[#22D3EE] px-8 py-3 text-sm font-medium text-white shadow-[0_4px_28px_rgba(110,123,255,0.4)] transition hover:brightness-110"
+            @click="openEditor"
+          >
             Open Editor →
           </button>
           <a
             href="https://github.com/chancelu/lutris.ai"
             target="_blank"
             rel="noopener"
-            class="rounded-full border border-[#D4CFC6] px-6 py-3 text-sm text-[#5C5549] transition hover:bg-[#F0EBE3]"
+            class="rounded-full border border-white/12 px-6 py-3 text-sm text-[#B9C0D4] transition hover:bg-white/6 hover:text-white"
           >
             GitHub ↗
           </a>
@@ -242,8 +268,8 @@ const workflow = [
     </section>
 
     <!-- Footer -->
-    <footer class="border-t border-[#E8E0D4] py-8">
-      <div class="mx-auto max-w-5xl px-6 text-center text-[12px] text-[#8B7E6A]">
+    <footer class="border-t border-white/8 py-8">
+      <div class="mx-auto max-w-5xl px-6 text-center text-[12px] text-[#8B93A7]">
         Built with ♥ by the Lutris.ai team · Open source under MIT
       </div>
     </footer>

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 import { CanvasHelper } from '../helpers/canvas'
+import { dismissWelcomeAndEnterDesign } from '../helpers/shell'
 
 let page: Page
 let canvas: CanvasHelper
@@ -12,6 +13,8 @@ test.beforeAll(async ({ browser }) => {
   await page.goto('/editor')
   canvas = new CanvasHelper(page)
   await canvas.waitForInit()
+  // R10 shell: the toolbar only renders in design/dev.
+  await dismissWelcomeAndEnterDesign(page)
 })
 
 test.afterAll(async () => {
@@ -77,8 +80,8 @@ test('active tool gets visual highlight', async () => {
   await page.locator('[data-test-id="toolbar-tool-select"]').click()
   await canvas.waitForRender()
 
-  // Active tool gets 'bg-accent text-white' classes
+  // R13: active tool gets the gradient CTA fill
   const selectBtn = page.locator('[data-test-id="toolbar-tool-select"]')
-  await expect(selectBtn).toHaveClass(/bg-accent/)
+  await expect(selectBtn).toHaveClass(/gradient-cta/)
   canvas.assertNoErrors()
 })

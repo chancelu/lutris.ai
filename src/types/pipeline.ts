@@ -108,3 +108,34 @@ export function createEmptyPipelineState(): PipelineState {
 export function phaseIndex(phase: PipelinePhase): number {
   return PIPELINE_PHASES.indexOf(phase)
 }
+
+
+/**
+ * 兼容恢复：IDB 里旧版本存的 pipeline 可能缺 phases 的某些 key（或整个 phases/history），
+ * 直接挂到 activePipeline 上会让 PipelinePhaseStepper 等消费方在渲染时抛
+ * "Cannot read properties of undefined (reading 'status')"。这里以默认空状态为底做合并，
+ * 缺失的 phase 补 pending，未识别的 currentPhase 回退到 idea。
+ */
+export function normalizePipelineState(saved: Partial<PipelineState> | null | undefined): PipelineState {
+  const base = createEmptyPipelineState()
+  if (!saved || typeof saved !== 'object') return base
+
+  const phases = { ...base.phases }
+  for (const phase of PIPELINE_PHASES) {
+    const s = saved.phases?.[phase]
+    if (s && typeof s === 'object') {
+      phases[phase] = { ...createEmptyPhaseState(), ...s }
+    }
+  }
+
+  const currentPhase = PIPELINE_PHASES.includes(saved.currentPhase as PipelinePhase)
+    ? (saved.currentPhase as PipelinePhase)
+    : 'idea'
+
+  return {
+    currentPhase,
+    phases,
+    outputs: saved.outputs && typeof saved.outputs === 'object' ? saved.outputs : {},
+    history: Array.isArray(saved.history) && saved.history.length > 0 ? saved.history : base.history,
+  }
+}
