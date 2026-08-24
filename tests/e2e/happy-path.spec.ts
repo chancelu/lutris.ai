@@ -192,3 +192,112 @@ test('8. demo route renders prebuilt content without the welcome overlay', async
   expect(errors).toEqual([])
   await demo.close()
 })
+
+// ── P1: zero-AI user-driven path through design → dev ──
+// Covers the three new user-side actions: blank-canvas skip, the TopBar
+// "完成设计 →" advance (no AI submit needed), and the Code panel's
+// no-AI direct export. The whole flow runs without any provider key.
+test('9. zero-AI path: skip → design → finish design → direct code export', async ({
+  browser,
+}) => {
+  const p = await browser.newPage()
+  const errors: string[] = []
+  p.on('pageerror', (err) => errors.push(err.message))
+  await p.goto('/editor')
+  await p.locator('canvas[data-ready="1"]').waitFor({ timeout: 30_000 })
+
+  // Idea → Design via the no-key escape hatch
+  await p.locator('[data-test-id="welcome-blank-canvas"]').click()
+  await expect(p.locator('[data-test-id="welcome-overlay"]')).not.toBeVisible()
+  expect(await p.evaluate(() => window.__OPEN_PENCIL_PIPELINE__!.currentPhase)).toBe('design')
+
+  // Put a page frame on the canvas (stands in for AI-rendered design)
+  await p.evaluate(() => {
+    const store = window.__OPEN_PENCIL_STORE__!
+    const id = store.createShape('FRAME', 100, 100, 375, 812)
+    store.renameNode(id, '首页')
+  })
+
+  // User-side advance: 完成设计 → (TopBar primary button, design phase only)
+  const finish = p.locator('[data-test-id="topbar-finish-design"]')
+  await expect(finish).toBeVisible()
+  await finish.click()
+  expect(await p.evaluate(() => window.__OPEN_PENCIL_PIPELINE__!.currentPhase)).toBe('dev')
+  await expect(finish).not.toBeVisible() // button only exists in design phase
+
+  // Dev: open the Code view and export without any AI round-trip
+  await p.locator('[data-test-id="panel-view-code"]').click()
+  const empty = p.locator('[data-test-id="code-panel-empty"]')
+  await expect(empty).toBeVisible()
+  await p.locator('[data-test-id="code-panel-direct-export"]').click()
+
+  await expect(p.locator('[data-test-id="code-panel"]')).toBeVisible()
+  await expect(p.locator('[data-test-id="code-panel-framework-vue"]')).toBeVisible()
+  await expect(p.locator('[data-test-id="code-panel-framework-react"]')).toBeVisible()
+
+  expect(errors).toEqual([])
+  await p.close()
+})
+
+// ── P1: 交付物是可运行的工程 zip，不只是代码片段 ──
+test('10. code panel downloads a runnable project zip', async ({ browser }) => {
+  const p = await browser.newPage()
+  const errors: string[] = []
+  p.on('pageerror', (err) => errors.push(err.message))
+  await p.goto('/editor')
+  await p.locator('canvas[data-ready="1"]').waitFor({ timeout: 30_000 })
+
+  await p.locator('[data-test-id="welcome-blank-canvas"]').click()
+  await p.evaluate(() => {
+    const store = window.__OPEN_PENCIL_STORE__!
+    const id = store.createShape('FRAME', 100, 100, 375, 812)
+    store.renameNode(id, '首页')
+    store.createShape('TEXT', 20, 20, 200, 40, id)
+  })
+
+  // 无 AI 直出 → 默认落在最新导出的框架上
+  await p.locator('[data-test-id="topbar-finish-design"]').click()
+  await p.locator('[data-test-id="panel-view-code"]').click()
+  await p.locator('[data-test-id="code-panel-direct-export"]').click()
+  await expect(p.locator('[data-test-id="code-panel"]')).toBeVisible()
+
+  // React tab 上点击 Project → 应下载 zip 且可解压出完整 Vite 工程
+  await p.locator('[data-test-id="code-panel-framework-react"]').click()
+  const [download] = await Promise.all([
+    p.waitForEvent('download'),
+    p.locator('[data-test-id="code-panel-download-project"]').click(),
+  ])
+  expect(download.suggestedFilename()).toBe('lutris-react-app.zip')
+
+  const zipPath = await download.path()
+  const { unzipSync, strFromU8 } = await import('fflate')
+  const { readFileSync } = await import('node:fs')
+  const entries = unzipSync(new Uint8Array(readFileSync(zipPath!)))
+  expect(Object.keys(entries)).toEqual(
+    expect.arrayContaining(['package.json', 'src/main.tsx', 'src/Component.tsx', 'src/styles.css'])
+  )
+  const pkg = JSON.parse(strFromU8(entries['package.json']))
+  expect(pkg.scripts.dev).toBe('vite')
+  // 内嵌 CSS 注释块已被拆成真实文件，tsx 里不留残骸
+  expect(strFromU8(entries['src/Component.tsx'])).not.toContain('/* styles.css */')
+  expect(strFromU8(entries['src/styles.css'])).toContain('{')
+
+  // 埋点漏斗：这条零 AI 路径应完整留下事件轨迹
+  const events: string[] = await p.evaluate(() =>
+    (window as any).__LUTRIS_ANALYTICS__.events.map((e: any) => e.event)
+  )
+  for (const expected of [
+    'welcome_action', // blank-canvas
+    'phase_skipped', // idea/spec → design
+    'finish_design_clicked',
+    'phase_advanced', // design → dev
+    'direct_export',
+    'code_exported',
+    'code_download', // kind: project
+  ]) {
+    expect(events, `missing event ${expected}`).toContain(expected)
+  }
+
+  expect(errors).toEqual([])
+  await p.close()
+})

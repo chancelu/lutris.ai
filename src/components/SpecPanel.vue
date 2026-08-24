@@ -10,6 +10,7 @@ import { useAIChat } from '@/composables/use-chat'
 import { usePipeline } from '@/composables/use-pipeline'
 import { useProjects } from '@/composables/use-projects'
 import { useSpec } from '@/composables/use-spec'
+import { track } from '@/lib/analytics'
 import { createSpecInteractionRule, type SpecComponentRole, type SpecPage } from '@/types/spec'
 
 const {
@@ -104,6 +105,7 @@ function confirmSpec() {
   const result = advancePhase('spec', {
     specDocumentId: pages.value.map((p) => p.id).join(','),
   })
+  track('spec_confirm_clicked', { ok: result.valid, pageCount: pages.value.length })
   if (!result.valid) return
   pendingMessage.value = 'Spec 已确认。请按照 Spec 把这些页面逐一渲染到画布上，注意保持统一的设计语言。'
 }

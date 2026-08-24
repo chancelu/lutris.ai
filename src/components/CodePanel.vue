@@ -7,6 +7,9 @@ import { ScrollAreaRoot, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewpor
 import { computed, ref, watch } from 'vue'
 
 import { useCodeOutput, type CodeFramework } from '@/stores/code-output'
+import { exportCodeDirectly } from '@/composables/use-phase-actions'
+import { downloadProjectZip } from '@/lib/export-project'
+import { track } from '@/lib/analytics'
 import OtterMark from '@/components/OtterMark.vue'
 
 const { output, byFramework, availableFrameworks } = useCodeOutput()
@@ -64,6 +67,7 @@ function copyCode() {
 function downloadCode() {
   const file = activeFile.value
   if (!file) return
+  track('code_download', { kind: 'file', framework: payload.value?.framework })
   const blob = new Blob([file.code], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -71,6 +75,20 @@ function downloadCode() {
   a.download = file.path
   a.click()
   URL.revokeObjectURL(url)
+}
+
+// 单文件代码 → 可运行 Vite 工程 zip（npm install && npm run dev 即可跑）。
+// React 导出内嵌的 CSS 注释块会在打包时拆成真实的 styles.css。
+const canDownloadProject = computed(
+  () => payload.value?.framework === 'Vue' || payload.value?.framework === 'React'
+)
+
+function downloadProject() {
+  const file = activeFile.value
+  const framework = payload.value?.framework
+  if (!file || !framework) return
+  track('code_download', { kind: 'project', framework })
+  downloadProjectZip(framework, file.code)
 }
 
 watch(activeFile, () => {
@@ -87,6 +105,15 @@ watch(activeFile, () => {
   >
     <OtterMark :size="56" class="opacity-80" />
     <p class="text-[12px] text-muted">Ask the AI to export your code.</p>
+    <!-- 无 AI 直出：不依赖模型，直接把画布页面跑一遍代码生成器 -->
+    <button
+      data-test-id="code-panel-direct-export"
+      class="gradient-cta glow-accent mt-1 flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-medium text-on-accent transition-[filter] hover:brightness-110"
+      @click="exportCodeDirectly"
+    >
+      <icon-lucide-code class="size-3.5" />
+      Export now (no AI needed)
+    </button>
   </div>
 
   <div v-else data-test-id="code-panel" class="flex min-h-0 flex-1 flex-col">
@@ -124,6 +151,16 @@ watch(activeFile, () => {
         >
           <icon-lucide-download class="size-3" />
           Download
+        </button>
+        <button
+          v-if="canDownloadProject"
+          data-test-id="code-panel-download-project"
+          title="Download a runnable Vite project (npm install && npm run dev)"
+          class="flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-[11px] font-medium text-accent transition-colors hover:bg-hover"
+          @click="downloadProject"
+        >
+          <icon-lucide-package class="size-3" />
+          Project
         </button>
       </div>
     </div>

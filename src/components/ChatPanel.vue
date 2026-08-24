@@ -12,6 +12,7 @@ import NextStepCard from '@/components/NextStepCard.vue'
 import { useAIChat } from '@/composables/use-chat'
 import { useAISelect } from '@/composables/use-ai-select'
 import { usePipeline } from '@/composables/use-pipeline'
+import { track } from '@/lib/analytics'
 import { useEditorStore } from '@/stores/editor'
 import { AI_PROVIDERS } from '@llc3233149/core'
 
@@ -122,6 +123,15 @@ function handleSubmit(text: string, systemPrefix?: string) {
 
 function handleStop() {
   chat.value?.stop()
+}
+
+// Idea 阶段用户侧推进：让 AI 立即收尾——提交 Idea Brief 并接着拆 Spec。
+// 走正常对话通道，AI 的 submit_idea_brief 工具完成真正的 advancePhase。
+function finishIdea() {
+  track('idea_finish_clicked')
+  handleSubmit(
+    '我们已经聊清楚了。请立即调用 submit_idea_brief 提交目前确认的产品定位（summary / targetUsers / problem，如有待定决策列入 keyDecisions），然后继续把 Spec 页面结构拆解出来。'
+  )
 }
 
 async function handleCopyDebug() {
@@ -239,6 +249,22 @@ function openProviderSettings() {
       </div>
 
       <AIContextCards />
+
+      <!-- Idea 阶段的用户侧出口：聊得差不多时不必等 AI 判断"信息够了"，
+           一键让 AI 立即总结并提交 Idea Brief、接着生成 Spec 初稿 -->
+      <div
+        v-if="currentPhase === 'idea' && messages.length > 0 && status === 'ready'"
+        class="flex shrink-0 items-center gap-2 border-t border-border/30 px-3 py-1.5"
+      >
+        <p class="min-w-0 flex-1 text-[11px] text-muted">聊得差不多了？</p>
+        <button
+          data-test-id="idea-finish"
+          class="gradient-cta shrink-0 rounded-full px-3 py-1 text-[11px] font-medium text-on-accent transition-[filter] hover:brightness-110"
+          @click="finishIdea"
+        >
+          总结想法，生成 Spec →
+        </button>
+      </div>
 
       <div
         v-if="chatError"

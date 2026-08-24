@@ -9,6 +9,7 @@
 import { computed } from 'vue'
 
 import { useProjects } from '@/composables/use-projects'
+import { track } from '@/lib/analytics'
 import {
   PIPELINE_PHASES,
   phaseIndex,
@@ -140,6 +141,7 @@ export function usePipeline() {
         note: result.reason,
       })
       persistPipeline()
+      track('phase_validation_failed', { phase, reason: result.reason })
       return result
     }
 
@@ -154,8 +156,11 @@ export function usePipeline() {
       pipeline.phases[next].status = 'in-progress'
       pipeline.phases[next].enteredAt = Date.now()
       pipeline.history.push({ from: phase, to: next, timestamp: Date.now(), reason: 'agent-advance' })
+      track('phase_advanced', { from: phase, to: next })
+    } else {
+      // 已经是最后一个阶段（dev）：完成后停留在 dev，不再前进
+      track('phase_completed_final', { phase })
     }
-    // 已经是最后一个阶段（dev）：完成后停留在 dev，不再前进
     persistPipeline()
     return { valid: true }
   }
@@ -173,6 +178,7 @@ export function usePipeline() {
     pipeline.currentPhase = prev
     pipeline.history.push({ from, to: prev, timestamp: Date.now(), reason: 'validation-fail-revert', note })
     persistPipeline()
+    track('phase_reverted', { from, to: prev })
     return true
   }
 
@@ -202,6 +208,7 @@ export function usePipeline() {
       note: note ?? 'Imported PRD — starting from the spec phase',
     })
     persistPipeline()
+    track('phase_skipped', { from, to: 'spec' })
     return true
   }
 
@@ -263,6 +270,7 @@ export function usePipeline() {
       })
     }
     persistPipeline()
+    track('phase_skipped', { from, to: 'design' })
     return true
   }
 

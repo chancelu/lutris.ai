@@ -77,6 +77,7 @@ declare module 'vue' {
     IconLucideMessageSquare: typeof import('~icons/lucide/message-square')['default']
     IconLucideMinus: typeof import('~icons/lucide/minus')['default']
     IconLucideMoon: typeof import('~icons/lucide/moon')['default']
+    IconLucidePackage: typeof import('~icons/lucide/package')['default']
     IconLucidePlus: typeof import('~icons/lucide/plus')['default']
     IconLucideRadius: typeof import('~icons/lucide/radius')['default']
     IconLucideRotateCcw: typeof import('~icons/lucide/rotate-ccw')['default']
