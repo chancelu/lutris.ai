@@ -4,7 +4,7 @@
 
 > **Status:** Active development. Not ready for production use.
 
-**[Try it online →](https://app.lutris.ai/demo)** · [Download](https://github.com/chancelu/lutris.ai/releases/latest) · [Documentation](https://lutris.ai)
+**[Try it online →](https://lutris-ai.vercel.app/demo)** · [Open the editor](https://lutris-ai.vercel.app/editor) · [Download](https://github.com/chancelu/lutris.ai/releases/latest)
 
 ![Lutris.ai](packages/docs/public/screenshot.png)
 
@@ -77,7 +77,7 @@ bun add -g @llc3233149/mcp
 { "mcpServers": { "lutris": { "command": "lutris-mcp" } } }
 ```
 
-HTTP 模式：`lutris-mcp-http` → `http://localhost:3100/mcp`。[完整文档 →](https://lutris.ai/reference/mcp-tools)
+HTTP 模式：`lutris-mcp-http` → `http://localhost:3100/mcp`。[完整文档 →](https://github.com/chancelu/lutris.ai/tree/main/packages/docs)
 
 ## Why
 
