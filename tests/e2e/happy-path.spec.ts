@@ -165,6 +165,34 @@ test('7. fresh profile without keys shows simplified provider setup with skip li
   await keyless.close()
 })
 
+// ── /demo route: prebuilt content, never the welcome overlay, never persisted ──
+// Regression (P0): the demo used to render the welcome overlay on top of the
+// prebuilt shapes, and (worse) EditorView's onMounted would switchProject()
+// into the user's real project — wiping the demo via resetToBlank and letting
+// autosave write demo/blank content over the real design.
+test('8. demo route renders prebuilt content without the welcome overlay', async ({
+  browser,
+}) => {
+  const demo = await browser.newPage()
+  const errors: string[] = []
+  demo.on('pageerror', (err) => errors.push(err.message))
+  await demo.goto('/demo')
+  await demo.locator('canvas[data-ready="1"]').waitFor({ timeout: 30_000 })
+
+  await expect(demo.locator('[data-test-id="welcome-overlay"]')).toHaveCount(0)
+
+  // Demo shapes are actually on the canvas (not wiped by a project switch)
+  const nodeCount = await demo.evaluate(() => {
+    const store = window.__OPEN_PENCIL_STORE__!
+    const pageNode = store.graph.nodes.get(store.state.currentPageId)
+    return pageNode?.childIds?.length ?? 0
+  })
+  expect(nodeCount).toBeGreaterThan(0)
+
+  expect(errors).toEqual([])
+  await demo.close()
+})
+
 // ── P1: zero-AI user-driven path through design → dev ──
 // Covers the three new user-side actions: blank-canvas skip, the TopBar
 // "完成设计 →" advance (no AI submit needed), and the Code panel's

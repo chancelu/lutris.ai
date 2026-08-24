@@ -44,13 +44,17 @@ const {
 
 onMounted(async () => {
   await initProjects()
+  // Demo 路由：只展示预置演示内容。不 switchProject（否则 resetToBlank 会抹掉
+  // createDemoShapes 刚创建的演示节点），也不启动自动保存（否则演示内容会被
+  // 写回用户真实项目的 IDB 存档，造成数据覆盖）。
+  if (route.meta.demo) return
   const pid = route.params.projectId as string | undefined
   if (pid && pid !== activeProjectId.value) {
     await switchProject(pid, store)
   } else if (activeProjectId.value) {
     // Reload design from IDB on refresh (initProjects doesn't load .fig)
     await switchProject(activeProjectId.value, store)
-    if (!pid && !route.meta.demo) router.replace(`/editor/${activeProjectId.value}`)
+    if (!pid) router.replace(`/editor/${activeProjectId.value}`)
   }
   startAutosave(store)
 })
@@ -58,6 +62,7 @@ onUnmounted(() => stopAutosave())
 
 // Save design and chat when page becomes hidden (tab switch, close, refresh)
 useEventListener(document, 'visibilitychange', () => {
+  if (route.meta.demo) return // demo 内容永远不落盘
   if (document.visibilityState === 'hidden') {
     syncChatToProject()
     void saveCurrentDesign(store)
@@ -65,6 +70,7 @@ useEventListener(document, 'visibilitychange', () => {
 })
 // Also sync on beforeunload as a safety net (visibilitychange may not fire on all browsers)
 useEventListener(window, 'beforeunload', () => {
+  if (route.meta.demo) return
   syncChatToProject()
   void saveCurrentDesign(store)
 })
@@ -179,7 +185,8 @@ useHead({ title: route.meta.demo ? 'Demo' : undefined })
            悬浮面板（360+12）——否则底部 CTA「确认 Spec，开始设计」会被面板盖住
            （R15 右栏改悬浮后引入的遮挡，实测"spec 里进不了设计"的根因）。 -->
       <SpecPanel v-if="showChrome && currentPhase === 'spec'" class="absolute inset-0 z-10 pr-[372px] pt-14" />
-      <WelcomeOverlay v-if="showChrome" @action="onWelcomeAction" />
+      <!-- Demo 路由是预置内容展示，不走引导流程，不弹欢迎浮层（否则会挡住 demo 内容） -->
+        <WelcomeOverlay v-if="showChrome && !route.meta.demo" @action="onWelcomeAction" />
 
       <!-- R15: 悬浮 chrome —— 顶栏三段 pill / 底部居中工具 dock / 右下缩放控件 / 右侧悬浮玻璃面板 -->
       <div v-if="showChrome && store.state.showUI" class="pointer-events-none absolute inset-x-3 top-3 z-30">

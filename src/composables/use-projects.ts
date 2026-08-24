@@ -20,7 +20,7 @@ import {
   migrateLegacySession,
   DEFAULT_PROJECT_ID,
 } from '@/stores/autosave-idb'
-import { createEmptyPipelineState } from '@/types/pipeline'
+import { createEmptyPipelineState, normalizePipelineState } from '@/types/pipeline'
 import {
   type ProjectBrand,
   type ProjectChat,
@@ -114,7 +114,9 @@ async function loadProjectData(projectId: string): Promise<void> {
     activeChat.value = chat ?? { messages: [] }
     activeSnapshots.value = snapshots ?? []
     // 旧项目没存过 pipeline（Phase 2 之前创建的），补默认空状态
-    activePipeline.value = pipeline ?? createEmptyPipelineState()
+    // 旧项目没存过 pipeline，或旧版本存的 shape 缺 key——统一走 normalize，
+    // 缺的部分补默认值，避免消费方渲染崩溃
+    activePipeline.value = normalizePipelineState(pipeline)
     snapshotCounter = activeSnapshots.value.reduce((max, s) => Math.max(max, s.id), 0)
   } finally {
     isLoading.value = false
