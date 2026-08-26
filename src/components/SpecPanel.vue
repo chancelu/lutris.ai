@@ -8,6 +8,7 @@ import { computed, ref } from 'vue'
 import ProductDocPanel from './ProductDocPanel.vue'
 import { useAIChat } from '@/composables/use-chat'
 import { usePipeline } from '@/composables/use-pipeline'
+import { useAgentRun } from '@/composables/use-agent-run'
 import { useProjects } from '@/composables/use-projects'
 import { useSpec } from '@/composables/use-spec'
 import { track } from '@/lib/analytics'
@@ -106,6 +107,14 @@ function confirmSpec() {
     specDocumentId: pages.value.map((p) => p.id).join(','),
   })
   track('spec_confirm_clicked', { ok: result.valid, pageCount: pages.value.length })
+  // Agent 化：若 run 正停在 approve-spec 检查点，这次确认就是决策——
+  // resolveCheckpoint 恢复 run，design 接力消息由 run loop 注入。
+  // 注意先于 advance 失败返回处理：阶段已被推过（completed）时确认仍是有效决策。
+  const { plan, resolveCheckpoint } = useAgentRun()
+  if (plan.value?.pendingCheckpoint?.type === 'approve-spec') {
+    resolveCheckpoint()
+    return
+  }
   if (!result.valid) return
   pendingMessage.value = 'Spec 已确认。请按照 Spec 把这些页面逐一渲染到画布上，注意保持统一的设计语言。'
 }

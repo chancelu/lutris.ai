@@ -33,8 +33,11 @@ function getPhase() {
 test('1. editor loads with zero console errors and shows the welcome overlay', async () => {
   const overlay = page.locator('[data-test-id="welcome-overlay"]')
   await expect(overlay).toBeVisible()
-  // R12 "Atelier" welcome: serif Chinese headline, no mascot.
-  await expect(overlay).toContainText('从一个想法')
+  // Agent 化首屏：目标驱动入口（goal 输入 + 开始 Run + 剧本演示），旧入口降级为链接
+  await expect(overlay).toContainText('你定目标')
+  await expect(page.locator('[data-test-id="welcome-goal-input"]')).toBeVisible()
+  await expect(page.locator('[data-test-id="welcome-run"]')).toBeDisabled() // 空目标不可开跑
+  await expect(page.locator('[data-test-id="welcome-script-demo"]')).toBeVisible()
   await expect(page.locator('[data-test-id="welcome-describe-idea"]')).toBeVisible()
   await expect(page.locator('[data-test-id="welcome-blank-canvas"]')).toBeVisible()
   expect(await getPhase()).toBe('idea')
@@ -294,6 +297,76 @@ test('10. code panel downloads a runnable project zip', async ({ browser }) => {
     'direct_export',
     'code_exported',
     'code_download', // kind: project
+  ]) {
+    expect(events, `missing event ${expected}`).toContain(expected)
+  }
+
+  expect(errors).toEqual([])
+  await p.close()
+})
+
+// ── Agent 化 v1：剧本演示全链路（核心圣经：agent 跑流水线，人看管和决策）──
+// 确定性执行器跑完 brief → spec → 人确认 → design → export → 自检 → 人验收。
+// 零 API key；检查点暂停/恢复走的全是生产代码路径（与 AI run 共用引擎）。
+test('11. scripted demo: agent runs the pipeline, human decides at checkpoints', async ({
+  browser,
+}) => {
+  const p = await browser.newPage()
+  const errors: string[] = []
+  p.on('pageerror', (err) => errors.push(err.message))
+  await p.goto('/editor')
+  await p.locator('canvas[data-ready="1"]').waitFor({ timeout: 30_000 })
+
+  // 入口：欢迎页一键看 agent 演示（无需 API key）
+  await p.locator('[data-test-id="welcome-script-demo"]').click()
+
+  // Plan 面板成为主角：目标 + 步骤列表
+  await expect(p.locator('[data-test-id="plan-panel"]')).toBeVisible()
+  await expect(p.locator('[data-test-id="plan-goal"]')).toContainText('记账')
+
+  // agent 自动跑过 brief + spec 两步，停在 approve-spec 检查点等人
+  await expect(p.locator('[data-test-id="checkpoint-card"]')).toBeVisible({ timeout: 15_000 })
+  await expect(p.locator('[data-test-id="run-status"]')).toContainText('等你决策')
+
+  // 人去 Spec Studio 审阅（2 个页面），点确认 = 解决检查点
+  await p.locator('[data-test-id="checkpoint-goto-spec"]').click()
+  await expect(p.locator('[data-test-id="spec-studio"]')).toBeVisible()
+  await expect(p.locator('[data-test-id="spec-page-card"]')).toHaveCount(2)
+  await p.locator('[data-test-id="spec-confirm"]').click()
+
+  // agent 继续：design → export → 引擎内联自检，最后停在验收检查点
+  await expect(p.locator('[data-test-id="selfcheck-report"]')).toBeVisible({ timeout: 20_000 })
+  await expect(p.locator('[data-test-id="selfcheck-report"]')).toContainText('Vue 代码已生成')
+
+  // 画布上真的有设计产物（每个 spec 页面一个 Frame）
+  const frameCount = await p.evaluate(() => {
+    const store = window.__OPEN_PENCIL_STORE__!
+    const pageNode = store.graph.nodes.get(store.state.currentPageId)
+    return (pageNode?.childIds ?? []).filter(
+      (id: string) => store.graph.nodes.get(id)?.type === 'FRAME'
+    ).length
+  })
+  expect(frameCount).toBeGreaterThanOrEqual(2)
+
+  // 人验收 → run 完成，pipeline 落到 dev
+  await p.locator('[data-test-id="checkpoint-accept"]').click()
+  await expect(p.locator('[data-test-id="run-status"]')).toContainText('已完成')
+  expect(await p.evaluate(() => window.__OPEN_PENCIL_PIPELINE__!.currentPhase)).toBe('dev')
+
+  // 埋点漏斗：run 全生命周期留痕
+  const events: string[] = await p.evaluate(() =>
+    (window as any).__LUTRIS_ANALYTICS__.events.map((e: any) => e.event)
+  )
+  for (const expected of [
+    'script_demo_started',
+    'run_started',
+    'plan_proposed',
+    'run_step_done',
+    'checkpoint_shown',
+    'checkpoint_resolved',
+    'selfcheck_result',
+    'run_completed',
+    'script_demo_finished',
   ]) {
     expect(events, `missing event ${expected}`).toContain(expected)
   }

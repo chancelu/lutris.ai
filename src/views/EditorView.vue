@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 
 import { useKeyboard } from '@/composables/use-keyboard'
+import { useAgentRun } from '@/composables/use-agent-run'
 import { useAIChat } from '@/composables/use-chat'
 import { useMenu } from '@/composables/use-menu'
 import { usePipeline } from '@/composables/use-pipeline'
@@ -100,7 +101,20 @@ async function onDeleteProject(projectId: string) {
   }
 }
 
-function onWelcomeAction(type: string) {
+function onWelcomeAction(type: string, goal?: string) {
+  if (type === 'run' && goal) {
+    // Agent 化主路径：说出目标 → 引擎建计划、开跑，人只看管和决策
+    const { startRun } = useAgentRun()
+    startRun(goal)
+    inlinePanel.value = 'plan'
+    return
+  }
+  if (type === 'script-demo') {
+    // 剧本演示：确定性执行器跑完全程，零 API key，兼作新用户的"看见 agent 工作"
+    inlinePanel.value = 'plan'
+    void import('@/demo-script').then((m) => m.runScriptedDemo(goal ?? ''))
+    return
+  }
   if (type === 'ai') {
     inlinePanel.value = null
     focusRequested.value++

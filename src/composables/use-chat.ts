@@ -8,8 +8,10 @@ import { DirectChatTransport, ToolLoopAgent } from 'ai'
 import { computed, ref, shallowRef, watch } from 'vue'
 
 import { createPhaseReadTools, createReturnTool, createSubmitTools, filterToolsByPhase } from '@/ai/phase-tools'
+import { createPlanTools } from '@/ai/plan-tools'
 import { DESIGN_PROMPT, DEV_PROMPT, IDEA_PROMPT, SPEC_PROMPT, buildIdeaBriefSection, buildSpecPagesSection } from '@/ai/prompts'
 import { createAITools } from '@/ai/tools'
+import { useAgentRun } from '@/composables/use-agent-run'
 import { useEditorStore } from '@/stores/editor'
 import { AI_PROVIDERS, DEFAULT_AI_MODEL, DEFAULT_AI_PROVIDER } from '@llc3233149/core'
 import { useBrand } from './use-brand'
@@ -92,7 +94,7 @@ const pendingMessage = ref<string | null>(null)
 const pendingSystemPrefix = ref<string | null>(null)
 const draftMessage = ref<string>('')
 const focusRequested = ref(0)
-const inlinePanel = ref<'export' | 'code' | 'design' | null>(null)
+const inlinePanel = ref<'export' | 'code' | 'design' | 'plan' | null>(null)
 // Bumped when chat instance is re-created (e.g. after IDB restore) so ChatPanel can react
 const chatInstanceVersion = ref(0)
 
@@ -342,6 +344,7 @@ function createTransport() {
     ...createSubmitTools('design'),
     ...createSubmitTools('dev'),
     ...createReturnTool('design'),
+    ...createPlanTools(),
   }
 
   function activeToolsForPhase(phase: PipelinePhase): string[] {
@@ -350,6 +353,8 @@ function createTransport() {
       ...createPhaseReadTools(phase),
       ...createSubmitTools(phase),
       ...createReturnTool(phase),
+      // plan 工具全阶段可用：propose_plan 在 run 开头，clarify 主要在 idea
+      ...createPlanTools(),
     })
   }
 
@@ -418,6 +423,13 @@ function createTransport() {
       commitAIBatch()
       aiProgress.value = 'idle'
       saveChatToProject()
+      // Agent 化：一个 turn 结束后交给 run loop 评估——
+      // auto 步骤自动接力下一阶段，检查点暂停等人，全部完成则收尾。
+      try {
+        useAgentRun().notifyAgentTurnFinished()
+      } catch (err) {
+        console.error('[agent-run] turn evaluation failed:', err)
+      }
     }
   })
 
