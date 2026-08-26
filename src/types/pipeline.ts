@@ -5,6 +5,10 @@
 //   2. 该阶段的产出是否合法，能不能推进到下一阶段
 // 这个文件只定义数据结构，不含任何业务逻辑（校验/推进逻辑在 use-pipeline.ts）。
 
+import { normalizePlan } from './plan'
+
+import type { AgentPlan } from './plan'
+
 export type PipelinePhase = 'idea' | 'spec' | 'design' | 'dev'
 
 export const PIPELINE_PHASES: readonly PipelinePhase[] = ['idea', 'spec', 'design', 'dev']
@@ -81,6 +85,8 @@ export interface PipelineState {
   phases: Record<PipelinePhase, PipelinePhaseState>
   outputs: PipelineOutputs
   history: PipelineTransition[]
+  /** Agent 化：当前 run 的计划。无 run 时缺省；恢复时经 normalizePlan 兜底 */
+  plan?: AgentPlan
 }
 
 // ── Factory ──
@@ -137,5 +143,7 @@ export function normalizePipelineState(saved: Partial<PipelineState> | null | un
     phases,
     outputs: saved.outputs && typeof saved.outputs === 'object' ? saved.outputs : {},
     history: Array.isArray(saved.history) && saved.history.length > 0 ? saved.history : base.history,
+    // plan 是可选字段：旧数据没有就缺省（null = 不带 plan 恢复）
+    ...(saved.plan ? { plan: normalizePlan(saved.plan) ?? undefined } : {}),
   }
 }

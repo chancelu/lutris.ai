@@ -279,6 +279,22 @@ export function createSubmitTools(phase: PipelinePhase): ToolSet {
             return page
           })
 
+          // Agent 化：run 进行中时，spec 阶段的"推进权"在 approve-spec 检查点（人）手里。
+          // 这里只落 pages、不 advancePhase——否则人还没在 Spec Studio 审阅，
+          // 阶段就被 agent 自己推走了，检查点形同虚设。动态 import 避免模块环。
+          const { useAgentRun } = await import('@/composables/use-agent-run')
+          if (useAgentRun().isActive.value) {
+            return JSON.stringify({
+              success: true,
+              awaitingUserApproval: true,
+              message:
+                `Spec recorded with ${specPages.length} page(s), now visible in the Spec Studio. ` +
+                'The run is PAUSED at the approve-spec checkpoint — the user must review and confirm. ' +
+                'STOP here: do NOT render to canvas and do NOT call any design tool until the user approves.',
+              pages: specPages.map((p: { id: string; name: string; route: string }) => ({ id: p.id, name: p.name, route: p.route })),
+            })
+          }
+
           const result = advancePhase('spec', { specDocumentId: specPages.map((p: { id: string }) => p.id).join(',') })
           if (!result.valid) return JSON.stringify({ success: false, error: result.reason })
           // §4.3: 返回真实 page id 列表，Design 阶段 agent 靠这些 id 构造

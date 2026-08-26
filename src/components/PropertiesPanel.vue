@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useAIChat } from '@/composables/use-chat'
 import { useAISelect } from '@/composables/use-ai-select'
+import { useAgentRun } from '@/composables/use-agent-run'
 import { usePipeline } from '@/composables/use-pipeline'
 import { useEditorStore } from '@/stores/editor'
 
@@ -10,17 +11,21 @@ import CodePanel from './CodePanel.vue'
 import DesignPanel from './DesignPanel.vue'
 import ExportPanel from './ExportPanel.vue'
 import OtterMark from './OtterMark.vue'
+import PlanPanel from './PlanPanel.vue'
 
 const { inlinePanel, focusRequested } = useAIChat()
 const { currentPhase } = usePipeline()
 const { addCurrentSelection } = useAISelect()
+const { plan, run } = useAgentRun()
 const store = useEditorStore()
 
 // R12: Spec 不再住在右栏——它是主区的一等界面（Spec Studio）。
 // R14: 右栏 = Framer "Agent | Style" 范式——AI 对话 / 设计属性 / Code(dev)
 // 同居一栏，分段切换。阶段推进不再把聊天切走，Code tab 上亮圆点提示。
+// Agent 化：run 存在时"计划"成为第一个 tab；检查点悬置时自动切过去等人决策。
 const canViewCode = computed(() => currentPhase.value === 'dev')
 const canViewDesign = computed(() => currentPhase.value === 'design' || currentPhase.value === 'dev')
+const canViewPlan = computed(() => plan.value !== null)
 const hasSelection = computed(() => (store.state.selectedIds?.size ?? 0) > 0)
 const hasNewCode = ref(false)
 
@@ -33,6 +38,11 @@ watch(inlinePanel, (panel) => {
   if (panel === 'code') hasNewCode.value = false
 })
 
+// 检查点挂出时自动切到计划面板——"等你决策"必须抢占注意力
+watch(() => run.value.status, (s) => {
+  if (s === 'paused-checkpoint') inlinePanel.value = 'plan'
+})
+
 // 如果用户落在当前阶段不允许的视图（如通过 stepper 跳回），回退到聊天。
 watch(canViewCode, () => {
   if (inlinePanel.value === 'code' && !canViewCode.value) inlinePanel.value = null
@@ -40,8 +50,11 @@ watch(canViewCode, () => {
 watch(canViewDesign, () => {
   if (inlinePanel.value === 'design' && !canViewDesign.value) inlinePanel.value = null
 })
+watch(canViewPlan, () => {
+  if (inlinePanel.value === 'plan' && !canViewPlan.value) inlinePanel.value = null
+})
 
-type View = 'code' | 'design' | null
+type View = 'code' | 'design' | 'plan' | null
 function setView(view: View) {
   inlinePanel.value = inlinePanel.value === view ? null : view
 }
@@ -64,6 +77,21 @@ function editWithAI() {
          阶段名；有选中图层时属性图标亮蓝点，有新代码时代码图标亮蓝点。 -->
     <div class="flex shrink-0 items-center gap-2 px-3 pb-1.5 pt-3">
       <div class="flex items-center rounded-full border border-border/30 bg-black/20 p-0.5">
+        <button
+          v-if="canViewPlan"
+          data-test-id="panel-view-plan"
+          class="relative flex items-center justify-center rounded-full px-3 py-1 transition"
+          :class="inlinePanel === 'plan' ? 'bg-panel text-accent shadow-md shadow-black/20' : 'text-muted hover:text-surface'"
+          title="执行计划（agent 的任务清单与决策点）"
+          @click="setView('plan')"
+        >
+          <icon-lucide-list-checks class="size-3.5" />
+          <span
+            v-if="run.status === 'paused-checkpoint'"
+            data-test-id="panel-view-plan-dot"
+            class="absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-amber-400"
+          />
+        </button>
         <button
           data-test-id="panel-view-chat"
           class="flex items-center justify-center rounded-full px-3 py-1 transition"
@@ -107,7 +135,7 @@ function editWithAI() {
 
       <!-- 当前视图名——让"我在哪"永远有文字锚点，又不与阶段名撞车 -->
       <span class="text-[11px] font-medium text-muted">
-        {{ inlinePanel === 'design' ? '属性' : inlinePanel === 'code' ? '代码' : inlinePanel === 'export' ? 'Export' : 'AI 助手' }}
+        {{ inlinePanel === 'design' ? '属性' : inlinePanel === 'code' ? '代码' : inlinePanel === 'export' ? 'Export' : inlinePanel === 'plan' ? '计划' : 'AI 助手' }}
       </span>
 
       <div class="flex-1" />
@@ -148,6 +176,11 @@ function editWithAI() {
         <OtterMark :size="48" class="opacity-80" />
         <p class="text-[11px] text-muted">在画布上选中一个图层，就能在这里调整它的属性</p>
       </div>
+    </div>
+
+    <!-- Plan view (agent run) -->
+    <div v-show="inlinePanel === 'plan'" class="flex min-h-0 flex-1 flex-col overflow-hidden [user-select:text] [-webkit-user-select:text]">
+      <PlanPanel class="flex-1" />
     </div>
 
     <!-- Code view (dev phase) -->
