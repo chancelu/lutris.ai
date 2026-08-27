@@ -110,15 +110,14 @@ describe('配置持久化与迁移', () => {
     expect(config.value.baseURL).toBe('https://ark.cn/v1')
   })
 
-  it('旧版 designflow-gemini-key 在无新配置时生效（迁移路径）', () => {
-    localStorage.setItem('designflow-gemini-key', 'legacy-g')
+  it('旧版 designflow-gemini-key 已作废：加载时清除且不参与配置', () => {
+    localStorage.setItem('designflow-gemini-key', 'revoked-key')
     const cfg = loadImageGenConfig()
-    expect(cfg.provider).toBe('gemini')
-    expect(cfg.apiKey).toBe('legacy-g')
+    expect(cfg.apiKey).not.toBe('revoked-key')
+    expect(localStorage.getItem('designflow-gemini-key')).toBeNull()
   })
 
-  it('新配置存在时忽略 legacy key', () => {
-    localStorage.setItem('designflow-gemini-key', 'legacy-g')
+  it('读取已保存的新配置', () => {
     localStorage.setItem(
       'lutris-image-gen',
       JSON.stringify({ provider: 'openai-images', apiKey: 'new-k', baseURL: 'https://x/v1', model: 'm' })

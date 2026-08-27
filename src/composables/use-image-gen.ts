@@ -7,7 +7,8 @@ import { ref } from 'vue'
 //   2. openai-images —— 任何 OpenAI 兼容的 /images/generations 端点
 //      （OpenAI gpt-image 系列、Doubao Seedream、SiliconFlow、各类中转站…），
 //      baseURL + model + key 全部由用户在 Provider Settings 里配置
-// 配置持久化在 localStorage（lutris-image-gen）；旧版 designflow-gemini-key 自动迁移。
+// 配置持久化在 localStorage（lutris-image-gen）；旧版 designflow-gemini-key
+// 已作废——加载时直接清除本地残留，不做迁移。
 
 export type ImageGenProvider = 'gemini' | 'openai-images'
 
@@ -21,6 +22,7 @@ export interface ImageGenConfig {
 }
 
 const CONFIG_KEY = 'lutris-image-gen'
+// 旧版独立 key 已作废：不做迁移，加载时直接清除本地残留
 const LEGACY_GEMINI_KEY = 'designflow-gemini-key'
 
 const GEMINI_MODEL = 'gemini-2.5-flash-image'
@@ -32,6 +34,7 @@ const GEMINI_MODEL = 'gemini-2.5-flash-image'
 const SERVER_PROXIED = (import.meta.env.VITE_GEMINI_SERVER_PROXY as string) === 'true'
 
 export function loadImageGenConfig(): ImageGenConfig {
+  localStorage.removeItem(LEGACY_GEMINI_KEY)
   try {
     const raw = localStorage.getItem(CONFIG_KEY)
     if (raw) {
@@ -44,12 +47,14 @@ export function loadImageGenConfig(): ImageGenConfig {
       }
     }
   } catch {
-    // fall through to legacy/env
+    // fall through to env/default
   }
-  // 迁移：旧版单独的 Gemini key，或 env 注入的 VITE_GEMINI_API_KEY
-  const legacy =
-    localStorage.getItem(LEGACY_GEMINI_KEY) || (import.meta.env.VITE_GEMINI_API_KEY as string) || ''
-  return { provider: 'gemini', apiKey: legacy, baseURL: '', model: '' }
+  return {
+    provider: 'gemini',
+    apiKey: (import.meta.env.VITE_GEMINI_API_KEY as string) || '',
+    baseURL: '',
+    model: '',
+  }
 }
 
 const config = ref<ImageGenConfig>(loadImageGenConfig())
