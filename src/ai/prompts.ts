@@ -455,9 +455,9 @@ export const DESIGN_PROMPT = dedent`
   ⚠ Do NOT use \`export_image\` — it is expensive and slow. Use \`describe\` to verify designs instead.
 
   # Image generation
-  - \`generate_image\`: Generate AI images (illustrations, icons, backgrounds, photos) via Gemini and insert them into the canvas.
+  - \`generate_image\`: Generate AI images (illustrations, icons, backgrounds, photos) and insert them into the canvas.
   - Use when the user asks for visual assets, hero images, placeholder photos, icons, or any bitmap content.
-  - Requires Gemini API key configured in Brand Settings.
+  - The image provider is user-configured (Provider Settings ⚙): Gemini by default, or any OpenAI-compatible /images/generations endpoint. If it fails with a configuration error, tell the user to check Provider Settings and continue the design with solid-color/gradient placeholders — never block the pipeline on image generation.
 
   # Smart routing: render vs generate_image
   Automatically decide which tool to use based on the user's request:

@@ -15,6 +15,7 @@ import { ref, watch } from 'vue'
 import ProviderSelect from '@/components/chat/ProviderSelect.vue'
 import { uiInput } from '@/components/ui/input'
 import { useAIChat } from '@/composables/use-chat'
+import { useImageGen, type ImageGenProvider } from '@/composables/use-image-gen'
 
 const {
   providerID,
@@ -26,6 +27,33 @@ const {
   customAPIType,
   maxOutputTokens
 } = useAIChat()
+
+// ── 图像生成 provider（与聊天模型解耦：Gemini 或任意 OpenAI 兼容 images 端点）──
+const { config: imageGenConfig, setConfig: setImageGenConfig } = useImageGen()
+const imageProvider = ref<ImageGenProvider>(imageGenConfig.value.provider)
+const imageKeyInput = ref('')
+const imageBaseURLInput = ref(imageGenConfig.value.baseURL)
+const imageModelInput = ref(imageGenConfig.value.model)
+const hasImageKey = ref(!!imageGenConfig.value.apiKey)
+
+function saveImageGen() {
+  setImageGenConfig({
+    provider: imageProvider.value,
+    baseURL: imageBaseURLInput.value.trim(),
+    model: imageModelInput.value.trim(),
+    ...(imageKeyInput.value.trim() ? { apiKey: imageKeyInput.value.trim() } : {})
+  })
+  if (imageKeyInput.value.trim()) {
+    hasImageKey.value = true
+    imageKeyInput.value = ''
+  }
+}
+
+function clearImageKey() {
+  setImageGenConfig({ apiKey: '' })
+  imageKeyInput.value = ''
+  hasImageKey.value = false
+}
 
 const keyInput = ref('')
 const baseURLInput = ref(customBaseURL.value)
@@ -78,7 +106,7 @@ function clearKey() {
         :collision-padding="16"
         :avoid-collisions="true"
         class="isolate z-[51] w-64 rounded-lg border border-border bg-panel p-3 shadow-lg"
-        @interact-outside="save"
+        @interact-outside="save(); saveImageGen()"
       >
         <div class="flex flex-col gap-2.5">
           <h3 class="text-[11px] font-semibold text-surface">AI Provider</h3>
@@ -191,10 +219,89 @@ function clearKey() {
             </a>
           </div>
 
+          <!-- 图像生成 provider：与聊天模型解耦 -->
+          <div class="mt-1 flex flex-col gap-2 border-t border-border/50 pt-2.5">
+            <h3 class="text-[11px] font-semibold text-surface">图像生成</h3>
+
+            <TabsRoot
+              v-model="imageProvider"
+              data-test-id="imagegen-provider"
+              class="flex flex-col"
+              @update:model-value="saveImageGen"
+            >
+              <TabsList class="flex rounded bg-canvas">
+                <TabsTrigger
+                  value="gemini"
+                  class="flex-1 rounded px-2 py-1 text-[10px] text-muted data-[state=active]:bg-hover data-[state=active]:text-surface"
+                >
+                  Gemini
+                </TabsTrigger>
+                <TabsTrigger
+                  value="openai-images"
+                  class="flex-1 rounded px-2 py-1 text-[10px] text-muted data-[state=active]:bg-hover data-[state=active]:text-surface"
+                >
+                  OpenAI 兼容
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="gemini" />
+              <TabsContent value="openai-images" />
+            </TabsRoot>
+
+            <template v-if="imageProvider === 'openai-images'">
+              <div class="flex flex-col gap-1">
+                <label class="text-[10px] text-muted">Base URL</label>
+                <input
+                  v-model="imageBaseURLInput"
+                  type="text"
+                  data-test-id="imagegen-base-url"
+                  placeholder="https://api.openai.com/v1"
+                  :class="uiInput({ size: 'sm' })"
+                  @change="saveImageGen"
+                />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-[10px] text-muted">Model</label>
+                <input
+                  v-model="imageModelInput"
+                  type="text"
+                  data-test-id="imagegen-model"
+                  placeholder="gpt-image-1 / doubao-seedream-4-5 …"
+                  :class="uiInput({ size: 'sm' })"
+                  @change="saveImageGen"
+                />
+              </div>
+            </template>
+
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between">
+                <label class="text-[10px] text-muted">Image API Key</label>
+                <button
+                  v-if="hasImageKey"
+                  class="cursor-pointer text-[10px] text-muted hover:text-surface"
+                  data-test-id="imagegen-clear-key"
+                  @click="clearImageKey"
+                >
+                  Clear
+                </button>
+              </div>
+              <input
+                v-model="imageKeyInput"
+                type="password"
+                data-test-id="imagegen-api-key"
+                :placeholder="hasImageKey ? 'Key saved — enter new to replace' : (imageProvider === 'gemini' ? 'AIza…' : 'API key')"
+                :class="uiInput({ size: 'sm' })"
+                @change="saveImageGen"
+              />
+              <p v-if="imageProvider === 'gemini' && !hasImageKey" class="text-[9px] text-muted/70">
+                不填 key 时走服务器代理（若部署方已开启）
+              </p>
+            </div>
+          </div>
+
           <PopoverClose
             class="mt-1 w-full rounded-lg bg-accent px-2 py-1.5 text-center text-[11px] font-medium text-on-accent transition-colors hover:bg-accent/90"
             data-test-id="provider-settings-done"
-            @click="save"
+            @click="save(); saveImageGen()"
           >
             Done
           </PopoverClose>
