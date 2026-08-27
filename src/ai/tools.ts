@@ -125,7 +125,6 @@ export function createAITools(store: EditorStore) {
       }
 
       const { generateImage: gen, base64ToBlobUrl } = useImageGen()
-
       const pageId = store.state.currentPageId
       const placeholder = store.graph.createNode('RECTANGLE', pageId, {
         name: `⏳ Generating: ${prompt.slice(0, 30)}...`,
@@ -154,7 +153,7 @@ export function createAITools(store: EditorStore) {
 
       let result: Awaited<ReturnType<typeof gen>>
       try {
-        result = await gen(prompt)
+        result = await gen(prompt, { width, height })
       } finally {
         clearInterval(pulseInterval)
       }
@@ -162,8 +161,8 @@ export function createAITools(store: EditorStore) {
       if (!result) {
         store.graph.updateNode(placeholder.id, { visible: false })
         store.requestRender()
-        toast.show('Image generation failed. Check Gemini API key in Brand Settings.', 'error')
-        return { success: false, error: 'Image generation failed. Check Gemini API key in Brand Settings.' }
+        toast.show('Image generation failed. Check the image provider in Provider Settings (⚙).', 'error')
+        return { success: false, error: 'Image generation failed. Check the image provider in Provider Settings.' }
       }
 
       const blobUrl = base64ToBlobUrl(result.base64, result.mimeType)
